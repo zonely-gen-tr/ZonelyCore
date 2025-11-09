@@ -1,0 +1,644 @@
+# --------------------------------------------------------------------------------------
+# 
+#  ________  ________  ________   _______   ___           ___    ___ ________  ________  ________  _______      
+# |\_____  \|\   __  \|\   ___  \|\  ___ \ |\  \         |\  \  /  /|\   ____\|\   __  \|\   __  \|\  ___ \     
+#  \|___/  /\ \  \|\  \ \  \\ \  \ \   __/|\ \  \        \ \  \/  / | \  \___|\ \  \|\  \ \  \|\  \ \   __/|    
+#      /  / /\ \  \\\  \ \  \\ \  \ \  \_|/_\ \  \        \ \    / / \ \  \    \ \  \\\  \ \   _  _\ \  \_|/__  
+#     /  /_/__\ \  \\\  \ \  \\ \  \ \  \_|\ \ \  \____    \/  /  /   \ \  \____\ \  \\\  \ \  \\  \\ \  \_|\ \ 
+#    |\________\ \_______\ \__\\ \__\ \_______\ \_______\__/  / /      \ \_______\ \_______\ \__\\ _\\ \_______\
+#     \|_______|\|_______|\|__| \|__|\|_______|\|_______|\___/ /        \|_______|\|_______|\|__|\|__|\|_______|
+#                                                       \|___|/                                                                                                                                                         
+#                                                                                                               
+# --------------------------------------------------------------------------------------
+# Enable if this lobby is part of a BungeeCord network.
+bungeecord: false
+# API credentials used by the Zonely web panel (leave blank to disable remote commands).
+web-token: ""
+socket-port: 454
+auction-server-id: 1
+# Toggle major subsystems individually.
+modules:
+  socket: true
+  vouchers: true
+  auctions: true
+  reports: true
+  last-credits: true
+  support: true
+  auth: false
+  launcher-auth: false
+
+# Support module settings
+support:
+  # When set to a value > 0 this category ID is always used for newly created tickets.
+  # Set to -1 to automatically pick the first category returned by the web panel ordering.
+  default-category-id: -1
+  # Allow the support module to run even if the in-game auth module is disabled.
+  allow-without-auth: false
+database:
+  # Supported drivers: MongoDB, MySQL
+  type: "MySQL"
+  # When true the plugin switches to an in-memory fallback if the database is unavailable.
+  fail-open: true
+  mysql:
+    hikari: false
+    mariadb: false
+    host: "premium.zonely.gen.tr"
+    port: "3306"
+    name: "test"
+    username: "root"
+    password: ""
+  mongodb:
+    url: ""
+auth:
+  password-policy:
+    min-length: 6
+    max-length: 32
+    disallow-name-substring: true
+  security:
+    max-login-attempts: 5
+    login-timeout-seconds: 120
+    auto-login-seconds: 0
+    auto-login-require-same-ip: true
+    allowed-commands:
+      - login
+      - l
+      - register
+      - reg
+      - 2fa
+      - twofactor
+      - email
+      - mail
+      - passwordreset
+      - passwordreset
+  fallback-server:
+    # Enables automatic transfer through BungeeCord after login/registration.
+    enabled: false
+    # Enter the server name exactly as it appears inside your BungeeCord config.
+    server: "fallback"
+    # Delay (in ticks) before the transfer request is dispatched. Useful when additional
+    # join logic (bossbars, announcements, etc.) should finish first.
+    connect-delay-ticks: 20
+    # Plugin messaging channel to use. Leave as-is unless you renamed it on your proxy.
+    channel: "bungeecord:main"
+    # When true the module only runs if the global `bungeecord` flag is enabled in this file.
+    require-bungeecord-flag: true
+    trigger:
+      # Send the player after a manual /login or /register flow completes.
+      on-login: true
+      # Send the player even when their session was auto-restored.
+      on-session-restore: true
+  site:
+    base-url: "https://example.com"
+    password-reset-path: "/recovery"
+    twofactor-login-path: "/login"
+    email-verify-path: "/mail/verify"
+  two-factor:
+    enabled: true
+    issuer: "Zonely Network"
+    digits: 6
+    period-seconds: 30
+    allowed-drift-windows: 1
+    enforce-on-login: true
+    setup-timeout-seconds: 300
+    cooldown-seconds: 5
+    require-code-to-disable: true
+    recovery:
+      enabled: true
+      token-expiry-minutes: 60
+  password-reset:
+    enabled: true
+    token-expiry-minutes: 60
+  email:
+    enabled: false
+    require-address: true
+    require-verification: true
+    auto-send-token: true
+    send-mail: true
+    show-link-in-chat: true
+    resend-cooldown-seconds: 300
+    reminder-interval-seconds: 60
+    allowed-domains: []
+chat-bridge:
+  enabled: true
+  server-id: "lobby-1"
+  poll-interval-seconds: 2
+  command-batch-size: 25
+  retention-days: 7
+inventory-snapshot:
+  enabled: true
+  server-id: ""
+  remove-on-join: true
+booster:
+  minigames:
+    - "Lobby"
+queue: true
+gold: true
+punishments:
+  enabled: true
+  allow:
+    ban: true
+    mute: true
+    warning: true
+  history:
+    page-size: 10
+  default-reason: "Not specified"
+chat-filter:
+  profanity:
+    enabled: true
+    blocked-words:
+      - "fuck"
+      - "wtf"
+    mute-durations:
+      - "5m"
+      - "15m"
+      - "1h"
+  advertising:
+    enabled: true
+    mute-duration: "3d"
+  keywords:
+    - "http://"
+    - "https://"
+    - "www."
+launcher-auth:
+  base-url: "https://zonely.gen.tr"
+  api-token: ""
+  timeout-ms: 4500
+  fail-open: true
+  log-denied: true
+  # When true, connections from 127.0.0.1/::1 are automatically accepted (useful for local testing).
+  allow-loopback: false
+reports:
+  default-punishment:
+    duration: "1d"
+  replay:
+    capture-seconds: 120
+  punishment:
+    defaults:
+      ban-duration: "1d"
+      mute-duration: "30m"
+  notifications:
+    approve-commands:
+      enabled: false
+      list:
+        - "tell {reporter} Your report #{id} resulted in {action}"
+groups:
+  kurucu:
+    name: "&4Founder"
+    prefix: "&c"
+    permission: "group.kurucu"
+    alwaysvisible: true
+  admin:
+    name: "&4Admin"
+    prefix: "&c"
+    permission: "group.admin"
+    alwaysvisible: true
+  moderator:
+    name: "&5Moderator"
+    prefix: "&d"
+    permission: "group.moderator"
+    alwaysvisible: true
+  yardimci:
+    name: "&2Helper"
+    prefix: "&a"
+    permission: "group.yardimci"
+    alwaysvisible: true
+  mimar:
+    name: "&3Builder"
+    prefix: "&b"
+    permission: "group.mimar"
+    alwaysvisible: true
+  youtuber:
+    name: "&cYou&fTuber"
+    prefix: "&e"
+    permission: "group.youtuber"
+  twitcher:
+    name: "&5Twitcher"
+    prefix: "&e"
+    permission: "group.twitcher"
+  ozeluye:
+    name: "&dSupporter"
+    prefix: "&e"
+    permission: "group.ozeluye"
+  previpplus:
+    name: "&9Pre&cVIP&5+"
+    prefix: "&e"
+    permission: "group.previpplus"
+  previp:
+    name: "&9Pre&cVIP"
+    prefix: "&e"
+    permission: "group.previp"
+  mvipplus:
+    name: "&aMVIP&c+"
+    prefix: "&e"
+    permission: "group.mvipplus"
+  mvip:
+    name: "&aMVIP"
+    prefix: "&e"
+    permission: "group.mvip"
+  vipplus:
+    name: "&6VIP&c+"
+    prefix: "&e"
+    permission: "group.vipplus"
+  vip:
+    name: "&6VIP"
+    prefix: "&e"
+    permission: "group.vip"
+  uye:
+    name: "&3Player"
+    prefix: "&f"
+    permission: ""
+    broadcast: false
+disguise:
+  groups:
+    - "previp"
+    - "mvip"
+    - "vip"
+    - "uye"
+  randoms:
+    - "Mosary"
+    - "GlueMan"
+    - "Rosbeff"
+    - "Sentopuk"
+  kick-apply: "&6&l- Disguise -\\n \\n&eRejoin the server to apply your disguise."
+  kick-remove: "&6&l- Disguise -\\n \\n&cUnable to find a replacement name. Please rejoin."
+# AlonsoLeagues GUI: keep these league identifiers in sync with AlonsoLeagues' leagues.yml
+# so the menu can show live data pulled from the PlaceholderAPI expansion.
+alonsoleagues:
+  progress-bar:
+    length: 10
+    symbol: "|"
+    progress-color: "&b"
+    remaining-color: "&7"
+  description:
+    base:
+      - "&8[Level]&e"
+      - ""
+      - "&fUnlock this tier by winning games,"
+      - "&fdefeating opponents and spending time on"
+      - "&fthe network."
+      - ""
+      - "&7 &8-> &fDisplay: {appearance} &f{player}"
+    progress:
+      - "&7 &8-> &fNeeded XP: &c{current}/{required} {bar}&7 ({percent}%)"
+      - ""
+      - "&7 &8-> &fStatus: &cIN PROGRESS"
+    completed:
+      - ""
+      - "&7 &8-> &fStatus: &aCOMPLETED"
+  levels:
+    coal-1:
+      slot: 10
+      required-points: 0
+      icon: "173 : 1"
+      name: "&a&lCoal I"
+      completed-name: "&a&lCoal I"
+      appearance: "&8Coal I"
+      glow-on-complete: true
+    coal-2:
+      slot: 11
+      required-points: 1000
+      icon: "173 : 1"
+      name: "&8&lCoal II"
+      completed-name: "&a&lCoal II"
+      appearance: "&8Coal II"
+      glow-on-complete: true
+    coal-3:
+      slot: 12
+      required-points: 1200
+      icon: "173 : 1"
+      name: "&8&lCoal III"
+      completed-name: "&a&lCoal III"
+      appearance: "&8Coal III"
+      glow-on-complete: true
+    iron-1:
+      slot: 14
+      required-points: 1450
+      icon: "42 : 1"
+      name: "&f&lIron I"
+      completed-name: "&a&lIron I"
+      appearance: "&fIron I"
+      glow-on-complete: true
+    iron-2:
+      slot: 15
+      required-points: 1750
+      icon: "42 : 1"
+      name: "&f&lIron II"
+      completed-name: "&a&lIron II"
+      appearance: "&fIron II"
+      glow-on-complete: true
+    iron-3:
+      slot: 16
+      required-points: 2100
+      icon: "42 : 1"
+      name: "&f&lIron III"
+      completed-name: "&a&lIron III"
+      appearance: "&fIron III"
+      glow-on-complete: true
+    redstone-1:
+      slot: 19
+      required-points: 2500
+      icon: "152 : 1"
+      name: "&c&lRedstone I"
+      completed-name: "&a&lRedstone I"
+      appearance: "&cRedstone I"
+      glow-on-complete: true
+    redstone-2:
+      slot: 20
+      required-points: 2950
+      icon: "152 : 1"
+      name: "&c&lRedstone II"
+      completed-name: "&a&lRedstone II"
+      appearance: "&cRedstone II"
+      glow-on-complete: true
+    redstone-3:
+      slot: 21
+      required-points: 3450
+      icon: "152 : 1"
+      name: "&c&lRedstone III"
+      completed-name: "&a&lRedstone III"
+      appearance: "&cRedstone III"
+      glow-on-complete: true
+    gold-1:
+      slot: 23
+      required-points: 4000
+      icon: "41 : 1"
+      name: "&6&lGold I"
+      completed-name: "&a&lGold I"
+      appearance: "&6Gold I"
+      glow-on-complete: true
+    gold-2:
+      slot: 24
+      required-points: 4600
+      icon: "41 : 1"
+      name: "&6&lGold II"
+      completed-name: "&a&lGold II"
+      appearance: "&6Gold II"
+      glow-on-complete: true
+    gold-3:
+      slot: 25
+      required-points: 5250
+      icon: "41 : 1"
+      name: "&6&lGold III"
+      completed-name: "&a&lGold III"
+      appearance: "&6Gold III"
+      glow-on-complete: true
+    diamond-1:
+      slot: 28
+      required-points: 5950
+      icon: "57 : 1"
+      name: "&b&lDiamond I"
+      completed-name: "&b&lDiamond I"
+      appearance: "&bDiamond I"
+      glow-on-complete: true
+    diamond-2:
+      slot: 29
+      required-points: 6700
+      icon: "57 : 1"
+      name: "&b&lDiamond II"
+      completed-name: "&b&lDiamond II"
+      appearance: "&bDiamond II"
+      glow-on-complete: true
+    diamond-3:
+      slot: 30
+      required-points: 7500
+      icon: "57 : 1"
+      name: "&b&lDiamond III"
+      completed-name: "&b&lDiamond III"
+      appearance: "&bDiamond III"
+      glow-on-complete: true
+    obsidian-1:
+      slot: 32
+      required-points: 8350
+      icon: "49 : 1"
+      name: "&5&lObsidian I"
+      completed-name: "&5&lObsidian I"
+      appearance: "&5Obsidian I"
+      glow-on-complete: true
+    obsidian-2:
+      slot: 33
+      required-points: 9250
+      icon: "49 : 1"
+      name: "&5&lObsidian II"
+      completed-name: "&5&lObsidian II"
+      appearance: "&5Obsidian II"
+      glow-on-complete: true
+    obsidian-3:
+      slot: 34
+      required-points: 10200
+      icon: "49 : 1"
+      name: "&5&lObsidian III"
+      completed-name: "&5&lObsidian III"
+      appearance: "&5Obsidian III"
+      glow-on-complete: true
+    emerald-1:
+      slot: 37
+      required-points: 11200
+      icon: "133 : 1"
+      name: "&2&lEmerald I"
+      completed-name: "&2&lEmerald I"
+      appearance: "&2Emerald I"
+      glow-on-complete: true
+    emerald-2:
+      slot: 38
+      required-points: 12250
+      icon: "133 : 1"
+      name: "&2&lEmerald II"
+      completed-name: "&2&lEmerald II"
+      appearance: "&2Emerald II"
+      glow-on-complete: true
+    emerald-3:
+      slot: 39
+      required-points: 13350
+      icon: "133 : 1"
+      name: "&2&lEmerald III"
+      completed-name: "&2&lEmerald III"
+      appearance: "&2Emerald III"
+      glow-on-complete: true
+    amethyst-1:
+      slot: 41
+      required-points: 14500
+      icon: "159:2 : 1"
+      name: "&d&lAmethyst I"
+      completed-name: "&d&lAmethyst I"
+      appearance: "&dAmethyst I"
+      glow-on-complete: true
+    amethyst-2:
+      slot: 42
+      required-points: 15700
+      icon: "159:2 : 1"
+      name: "&d&lAmethyst II"
+      completed-name: "&d&lAmethyst II"
+      appearance: "&dAmethyst II"
+      glow-on-complete: true
+    amethyst-3:
+      slot: 43
+      required-points: 16950
+      icon: "159:2 : 1"
+      name: "&d&lAmethyst III"
+      completed-name: "&d&lAmethyst III"
+      appearance: "&dAmethyst III"
+      glow-on-complete: true
+
+deliveries:
+  oyuncugunluk:
+    slot: 10
+    days: 1
+    permission: ""
+    icon: "STAINED_CLAY:5 : 1 : name>{color}&lPlayer Daily Reward : desc>&8[REWARD]\\n \\n&fYou can claim this reward again after a short period.\\n \\n&f* Contents:\\n&7 &8-> &6100 Credits\\n"
+    message: "&3Lobby &8-> &6Player Daily &eReward collected successfully."
+    rewards:
+      - "CASH>100"
+  vipgunluk:
+    slot: 11
+    days: 1
+    permission: "group.vip"
+    icon: "STAINED_CLAY:5 : 1 : name>&6&lVIP {color}&lDaily Reward : desc>&8[REWARD]\\n \\n&fAvailable only to &6VIP &fplayers.\\n \\n&f* Contents:\\n&7 &8-> &6300 Credits\\n&7 &8-> &d1 Mystery Box\\n&7 &8-> &c1 &l[2x Booster] &c[Global] &7(1 hour)\\n&7 &8-> &31 &l[2x Booster] &3[Server] &7(2 hours)\\n"
+    message: "&3Lobby &8-> &6VIP Daily &eReward collected successfully."
+    rewards:
+      - "CASH>300"
+      - "PRIVATE_BOOSTER>1:2.0:1"
+      - "NETWORK_BOOSTER>1:2.0:2"
+      - "KOMUT>wmb ver {name} 1"
+  vipplusgunluk:
+    slot: 12
+    days: 1
+    permission: "group.vipplus"
+    icon: "STAINED_CLAY:5 : 1 : name>&6&lVIP&c&l+ {color}&lDaily Reward : desc>&8[REWARD]\\n \\n&fAvailable only to &6VIP&c+ &fplayers.\\n \\n&f* Contents:\\n&7 &8-> &6400 Credits\\n&7 &8-> &d2 Mystery Boxes\\n&7 &8-> &c1 &l[3x Booster] &c[Global] &7(1 hour)\\n&7 &8-> &31 &l[3x Booster] &3[Server] &7(2 hours)\\n"
+    message: "&3Lobby &8-> &6VIP&c+ &6Daily &eReward collected successfully."
+    rewards:
+      - "CASH>400"
+      - "PRIVATE_BOOSTER>1:3.0:1"
+      - "NETWORK_BOOSTER>1:3.0:2"
+      - "KOMUT>wmb ver {name} 2"
+  mvipgunluk:
+    slot: 13
+    days: 1
+    permission: "group.mvip"
+    icon: "STAINED_CLAY:5 : 1 : name>&a&lMVIP {color}&lDaily Reward : desc>&8[REWARD]\\n \\n&fAvailable only to &aMVIP &fplayers.\\n \\n&f* Contents:\\n&7 &8-> &6450 Credits\\n&7 &8-> &d3 Mystery Boxes\\n&7 &8-> &c1 &l[4x Booster] &c[Global] &7(1 hour)\\n&7 &8-> &31 &l[4x Booster] &3[Server] &7(2 hours)\\n"
+    message: "&3Lobby &8-> &6MVIP Daily &eReward collected successfully."
+    rewards:
+      - "CASH>450"
+      - "PRIVATE_BOOSTER>1:4.0:1"
+      - "NETWORK_BOOSTER>1:4.0:2"
+      - "KOMUT>wmb ver {name} 3"
+  mvipplusgunluk:
+    slot: 14
+    days: 1
+    permission: "group.mvipplus"
+    icon: "STAINED_CLAY:5 : 1 : name>&a&lMVIP&c&l+ {color}&lDaily Reward : desc>&8[REWARD]\\n \\n&fAvailable only to &aMVIP&c+ &fplayers.\\n \\n&f* Contents:\\n&7 &8-> &6500 Credits\\n&7 &8-> &d4 Mystery Boxes\\n&7 &8-> &c1 &l[5x Booster] &c[Global] &7(1 hour)\\n&7 &8-> &31 &l[5x Booster] &3[Server] &7(2 hours)\\n"
+    message: "&3Lobby &8-> &aMVIP&c+ &6Daily &eReward collected successfully."
+    rewards:
+      - "CASH>500"
+      - "PRIVATE_BOOSTER>1:5.0:1"
+      - "NETWORK_BOOSTER>1:5.0:2"
+      - "KOMUT>wmb ver {name} 4"
+  previpgunluk:
+    slot: 15
+    days: 1
+    permission: "group.previp"
+    icon: "STAINED_CLAY:5 : 1 : name>&9&lPre&cVIP {color}&lDaily Reward : desc>&8[REWARD]\\n \\n&fAvailable only to &9Pre&cVIP &fplayers.\\n \\n&f* Contents:\\n&7 &8-> &61000 Credits\\n&7 &8-> &d10 Mystery Boxes\\n&7 &8-> &c2 &l[7x Booster] &c[Global] &7(1 hour)\\n&7 &8-> &32 &l[7x Booster] &3[Server] &7(2 hours)\\n"
+    message: "&3Lobby &8-> &9Pre&cVIP Daily &eReward collected successfully."
+    rewards:
+      - "CASH>1000"
+      - "PRIVATE_BOOSTER>2:7.0:1"
+      - "NETWORK_BOOSTER>2:7.0:2"
+      - "KOMUT>wmb ver {name} 10"
+  previpplusgunluk:
+    slot: 16
+    days: 1
+    permission: "group.previpplus"
+    icon: "STAINED_CLAY:5 : 1 : name>&9&lPre&cVIP&5&l+ {color}&lDaily Reward : desc>&8[REWARD]\\n \\n&fAvailable only to &9Pre&cVIP&5+ &fplayers.\\n \\n&f* Contents:\\n&7 &8-> &62000 Credits\\n&7 &8-> &d20 Mystery Boxes\\n&7 &8-> &c4 &l[14x Booster] &c[Global] &7(1 hour)\\n&7 &8-> &34 &l[14x Booster] &3[Server] &7(2 hours)\\n"
+    message: "&3Lobby &8-> &9Pre&cVIP&5+ &6Daily &eReward collected successfully."
+    rewards:
+      - "CASH>2000"
+      - "PRIVATE_BOOSTER>4:14.0:1"
+      - "NETWORK_BOOSTER>4:14.0:2"
+      - "KOMUT>wmb ver {name} 20"
+  oyuncuaylik:
+    slot: 19
+    days: 31
+    permission: ""
+    icon: "STAINED_CLAY:5 : 1 : name>{color}&lPlayer Monthly Reward : desc>&8[REWARD]\\n \\n&fYou can claim this reward again after a cooldown.\\n \\n&f* Contents:\\n&7 &8-> &6200 Credits\\n&7 &8-> &d1 Mystery Box\\n"
+    message: "&3Lobby &8-> &6Player Monthly &eReward collected successfully."
+    rewards:
+      - "CASH>200"
+      - "KOMUT>wmb ver {name} 1"
+  vipaylik:
+    slot: 20
+    days: 31
+    permission: "group.vip"
+    icon: "STAINED_CLAY:5 : 1 : name>&6&lVIP {color}&lMonthly Reward : desc>&8[REWARD]\\n \\n&fAvailable only to &6VIP &fplayers.\\n \\n&f* Contents:\\n&7 &8-> &6300 Credits\\n&7 &8-> &d5 Mystery Boxes\\n&7 &8-> &c2 &l[2x Booster] &c[Global] &7(4 hours)\\n&7 &8-> &32 &l[2x Booster] &3[Server] &7(10 hours)\\n"
+    message: "&3Lobby &8-> &6VIP Monthly &eReward collected successfully."
+    rewards:
+      - "CASH>300"
+      - "PRIVATE_BOOSTER>2:2.0:4"
+      - "NETWORK_BOOSTER>2:2.0:10"
+      - "KOMUT>wmb ver {name} 5"
+  vipplusaylik:
+    slot: 21
+    days: 31
+    permission: "group.vipplus"
+    icon: "STAINED_CLAY:5 : 1 : name>&6&lVIP&c&l+ {color}&lMonthly Reward : desc>&8[REWARD]\\n \\n&fAvailable only to &6VIP&c+ &fplayers.\\n \\n&f* Contents:\\n&7 &8-> &6400 Credits\\n&7 &8-> &d7 Mystery Boxes\\n&7 &8-> &c3 &l[3x Booster] &c[Global] &7(4 hours)\\n&7 &8-> &33 &l[3x Booster] &3[Server] &7(10 hours)\\n"
+    message: "&3Lobby &8-> &6VIP&c+ &6Monthly &eReward collected successfully."
+    rewards:
+      - "CASH>400"
+      - "PRIVATE_BOOSTER>3:3.0:4"
+      - "NETWORK_BOOSTER>3:3.0:10"
+      - "KOMUT>wmb ver {name} 7"
+  mvipaylik:
+    slot: 22
+    days: 31
+    permission: "group.mvip"
+    icon: "STAINED_CLAY:5 : 1 : name>&a&lMVIP {color}&lMonthly Reward : desc>&8[REWARD]\\n \\n&fAvailable only to &aMVIP &fplayers.\\n \\n&f* Contents:\\n&7 &8-> &6450 Credits\\n&7 &8-> &d10 Mystery Boxes\\n&7 &8-> &c4 &l[4x Booster] &c[Global] &7(4 hours)\\n&7 &8-> &34 &l[4x Booster] &3[Server] &7(10 hours)\\n"
+    message: "&3Lobby &8-> &aMVIP &6Monthly &eReward collected successfully."
+    rewards:
+      - "CASH>450"
+      - "PRIVATE_BOOSTER>4:4.0:4"
+      - "NETWORK_BOOSTER>4:4.0:10"
+      - "KOMUT>wmb ver {name} 10"
+  mvipplusaylik:
+    slot: 23
+    days: 31
+    permission: "group.mvipplus"
+    icon: "STAINED_CLAY:5 : 1 : name>&a&lMVIP&c&l+ {color}&lMonthly Reward : desc>&8[REWARD]\\n \\n&fAvailable only to &aMVIP&c+ &fplayers.\\n \\n&f* Contents:\\n&7 &8-> &6500 Credits\\n&7 &8-> &d13 Mystery Boxes\\n&7 &8-> &c5 &l[5x Booster] &c[Global] &7(4 hours)\\n&7 &8-> &35 &l[5x Booster] &3[Server] &7(10 hours)\\n"
+    message: "&3Lobby &8-> &aMVIP&c+ &6Monthly &eReward collected successfully."
+    rewards:
+      - "CASH>500"
+      - "PRIVATE_BOOSTER>5:5.0:4"
+      - "NETWORK_BOOSTER>5:5.0:10"
+      - "KOMUT>wmb ver {name} 13"
+  previpaylik:
+    slot: 24
+    days: 31
+    permission: "group.previp"
+    icon: "STAINED_CLAY:5 : 1 : name>&9&lPre&cVIP {color}&lMonthly Reward : desc>&8[REWARD]\\n \\n&fAvailable only to &9Pre&cVIP &fplayers.\\n \\n&f* Contents:\\n&7 &8-> &61000 Credits\\n&7 &8-> &d17 Mystery Boxes\\n&7 &8-> &c10 &l[7x Booster] &c[Global] &7(6 hours)\\n&7 &8-> &33 &l[7x Booster] &3[Server] &7(14 hours)\\n"
+    message: "&3Lobby &8-> &9Pre&cVIP Monthly &eReward collected successfully."
+    rewards:
+      - "CASH>1000"
+      - "PRIVATE_BOOSTER>10:7.0:6"
+      - "NETWORK_BOOSTER>3:7.0:14"
+      - "KOMUT>wmb ver {name} 17"
+  previpplusaylik:
+    slot: 25
+    days: 31
+    permission: "group.previpplus"
+    icon: "STAINED_CLAY:5 : 1 : name>&9&lPre&cVIP&5&l+ {color}&lMonthly Reward : desc>&8[REWARD]\\n \\n&fAvailable only to &9Pre&cVIP&5+ &fplayers.\\n \\n&f* Contents:\\n&7 &8-> &62000 Credits\\n&7 &8-> &d34 Mystery Boxes\\n&7 &8-> &c20 &l[14x Booster] &c[Global] &7(6 hours)\\n&7 &8-> &36 &l[14x Booster] &3[Server] &7(20 hours)\\n"
+    message: "&3Lobby &8-> &9Pre&cVIP&5+ &6Monthly &eReward collected successfully."
+    rewards:
+      - "CASH>2000"
+      - "PRIVATE_BOOSTER>20:14.0:6"
+      - "NETWORK_BOOSTER>6:14.0:20"
+      - "KOMUT>wmb ver {name} 34"
+# Integration Quick Reference (BetterSocial, ChatColor, AlonsoLeagues)
+# BetterSocial + ChatColor:
+#   1. Install BetterSocial and ChatColor+ alongside PlaceholderAPI so their placeholders work in menus and chat.
+#   2. Grant the permissions you want per group (e.g. bettersocial.edit, bettersocial.others, chatcolor.use) and let players use `&` colour codes defined below.
+#   3. Use BetterSocial placeholders in menus or holograms as needed (docs: https://github.com/AlonsoAliaga/BetterSocial/wiki/Placeholders).
+# Downloads:
+#   - BetterSocial: https://www.spigotmc.org/resources/83437/
+#   - ChatColor+: https://www.spigotmc.org/resources/chatcolor-%E2%9C%A8-custom-patterns-%E2%9C%85-full-configurable.93186/
+# AlonsoLeagues merge steps:
+#   1. Install AlonsoLeagues (https://www.spigotmc.org/resources/92575/) on the same server and keep it synced via MySQL if you run multiple instances.
+#   2. Make sure the identifiers under 'alonsoleagues.levels' match the IDs you configured in AlonsoLeagues' leagues.yml.
+#   3. Customise the progress bar and description strings here; the plugin swaps in live data for {appearance}, {player}, {current}, {required}, {percent}, and {bar}.
+#   4. Use AlonsoLeagues PlaceholderAPI placeholders (e.g. %alonsoleagues_league_displayname%) in scoreboards, menus or holograms for consistent data across the lobby.
