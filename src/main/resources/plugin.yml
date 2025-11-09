@@ -1,0 +1,113 @@
+author: WhiteEffect - Orcun Donmez
+name: ZonelyCore
+version: 1.3
+description: ZONELY.GEN.TR
+depend: [ProtocolLib, PlaceholderAPI]
+api-version: 1.13
+main: dev.zonely.whiteeffect.Core
+commands:
+  store:
+    description: "Opens the store menu."
+    usage: "/store"
+  punish:
+    description: "Provides the punishment menu and moderation sub-commands."
+    usage: "/punish <subcommand>"
+    permission: zonely.punish
+    permission-message: "You do not have permission to use this command."
+  lastcredits:
+    description: "Shows the most recent credit purchase statistics."
+    usage: "/lastcredits"
+  creditvoucher:
+    description: "Creates a credit voucher."
+    usage: "/creditvoucher <player> <amount>"
+    aliases: [kredikagit]
+  auction:
+    description: "Submit items to the auction house."
+    usage: "/auction <creditCost>"
+    permission: zonely.auction
+    permission-message: "You do not have permission to use this command."
+    aliases: [mezatver]
+  auctions:
+    description: "Opens the auction house."
+    usage: "/auctions"
+    aliases: [mezatlar]
+  mypurchases:
+    description: "Shows the auctions you have purchased."
+    usage: "/mypurchases"
+    aliases: [satinaldiklarim]
+  auctiongive:
+    description: "Delivers an auction item to a player by auction ID."
+    usage: "/auctiongive <playerName> <auctionId>"
+    aliases: [mezatoyunver]
+    permission: zonely.auction.manage
+    permission-message: "You do not have permission to use this command."
+  report:
+    description: "Report a player via command."
+    usage: "/report <player> <reason>"
+    aliases: [sikayet]
+  reports:
+    description: "Opens the staff report panel."
+    usage: "/reports"
+    aliases: [raporlar]
+  login:
+    description: "Authenticate your Zonely account."
+    usage: "/login <password>"
+    aliases: [l]
+  register:
+    description: "Register a new Zonely account."
+    usage: "/register <password> <confirm>"
+    aliases: [reg]
+  email:
+    description: "Manage your account email."
+    usage: "/email <set|resend|status>"
+    aliases: [mail]
+  twofactor:
+    description: "Manage two-factor authentication."
+    usage: "/2fa <setup|confirm|cancel|disable|code|recovery>"
+    aliases: [2fa]
+  passwordreset:
+    description: "Generate a password reset link."
+    usage: "/passwordreset"
+  support:
+    description: "Interact with the live support system."
+    usage: "/support <subcommand>"
+    aliases: [destek]
+permissions:
+  zonely.punish:
+    default: op
+  zonely.punish.menu:
+    default: op
+  zonely.punish.ban:
+    default: op
+  zonely.punish.mute:
+    default: op
+  zonely.punish.warning:
+    default: op
+  zonely.punish.history:
+    default: op
+  zonely.punish.notify:
+    default: op
+  zonely.punish.ipban:
+    default: op
+  zonely.punish.hwidban:
+    default: op
+  zonely.punish.ipmute:
+    default: op
+  zonely.punish.hwidmute:
+    default: op
+  zonely.punish.ipwarning:
+    default: op
+  zonely.punish.hwidwarning:
+    default: op
+  zonely.auction:
+    default: true
+  zonely.auction.manage:
+    default: op
+  zonely.lobby.creative:
+    default: op
+  zonely.reports.view:
+    default: op
+  zonely.support.staff:
+    default: op
+  zonely.support.ban:
+    default: op

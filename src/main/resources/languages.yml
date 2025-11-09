@@ -1,0 +1,1658 @@
+# 
+#  ________  ________  ________   _______   ___           ___    ___ ________  ________  ________  _______      
+# |\_____  \|\   __  \|\   ___  \|\  ___ \ |\  \         |\  \  /  /|\   ____\|\   __  \|\   __  \|\  ___ \     
+#  \|___/  /\ \  \|\  \ \  \\ \  \ \   __/|\ \  \        \ \  \/  / | \  \___|\ \  \|\  \ \  \|\  \ \   __/|    
+#      /  / /\ \  \\\  \ \  \\ \  \ \  \_|/_\ \  \        \ \    / / \ \  \    \ \  \\\  \ \   _  _\ \  \_|/__  
+#     /  /_/__\ \  \\\  \ \  \\ \  \ \  \_|\ \ \  \____    \/  /  /   \ \  \____\ \  \\\  \ \  \\  \\ \  \_|\ \ 
+#    |\________\ \_______\ \__\\ \__\ \_______\ \_______\__/  / /      \ \_______\ \_______\ \__\\ _\\ \_______\
+#     \|_______|\|_______|\|__| \|__|\|_______|\|_______|\___/ /        \|_______|\|_______|\|__|\|__|\|_______|
+#                                                       \|___|/                                                                                                                                                         
+#                                                                                                               
+# --------------------------------------------------------------------------------------
+default: en_US
+languages:
+  en_US:
+    meta:
+      display-name: '&f&lEnglish'
+      description:
+      - '&7Default ZonelyCore language.'
+      icon: 'SKULL_ITEM:3 : 1 : skin>eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOWRjMzQzYmE2YjM5MDI0MDUyY2YxYTJhOTE5YmNhNjY1YTZjN2JiYzZjMzVjODFjOTNlZTFiNTYyYTdhMWRhYSJ9fX0='
+      skin: ''
+    prefix:
+      lobby: '&3Lobby &8>> '
+      disguise: '&5Disguise &8>> '
+      punish: '&cPunish &8>> '
+    time:
+      unit:
+        day:
+          singular: day
+          plural: days
+        hour:
+          singular: hour
+          plural: hours
+        minute:
+          singular: minute
+          plural: minutes
+        second:
+          singular: second
+          plural: seconds
+      phrase:
+        permanent: Permanent
+        expired: Expired
+        no-duration: No duration available
+    updater:
+      console:
+        checking: '&e[ZonelyCore] Checking for plugin updates.'
+        offline: '&c[ZonelyCore] Cannot check for updates while offline. Connect to
+          the network and try again.'
+        latest: '&a[ZonelyCore] You are running the latest version. Thank you for
+          staying up to date.'
+        available: '&6[ZonelyCore] A newer version is available. Use /zc update to
+          download it.'
+      player:
+        applying: '&aApplying update...'
+        size: '&7Detected file size: &b{size}kb'
+        size-unknown: '&7Detected file size: &cUnknown'
+        progress-bar:
+          template: '{file} &7[{bar}]'
+          filled: '&a#'
+          empty: '&7#'
+          segments: 25
+        restart: '&aPlease restart the server to finish the update.'
+        download-error: '&cUnable to download the update: {error}'
+    roles:
+      default:
+        name: '&7Oyuncu'
+        prefix: '&7'
+    punishments:
+      ban:
+        kick: |-
+          &cYou have been banned from the network!
+          &7Reason: &f{reason}
+          &7Duration: &f{duration}
+        broadcast: '&c[Punish] &7{executor} &cbanned: &e{target} &7({duration}) &7Reason:
+          &f{reason}'
+      mute:
+        notify: '{prefix}&cYour chat access has been restricted! &7({duration})'
+        reason: '&7Reason: &f{reason}'
+        broadcast: '&e[Punish] &7{executor} &emuted: &f{target} &7({duration}) &7Reason:
+          &f{reason}'
+      warn:
+        notify: |-
+          {prefix}&eYou have received a warning.
+          &7Reason: &f{reason}
+        broadcast: '&e[Punish] &7{executor} &ewarned: &f{target} &7Reason: &f{reason}'
+    listeners:
+      chat-filter:
+        muted: '{prefix}&cYou cannot chat while muted. Remaining time: &e{remaining}'
+        profanity-detected: '{prefix}&cProfanity detected! &7(Level &e{level}&7) &cDuration:
+          &e{duration}'
+        advertising-detected: '{prefix}&cAdvertising is not allowed. You have been
+          muted for &e{duration}.'
+        profanity-reason: Profanity (Level {level})
+        advertising-reason: Advertising
+      launcher-auth:
+        denied: |-
+          &c&lA Special Launcher is Required for Our Server
+          &f
+          &eThis server can only be joined using the &eofficial Server Launcher&7.
+          &ePlease close &fMinecraft&7 completely and start it again from the &eServer Launcher&7.
+          &f
+          &8If you keep seeing this message, make sure you are using the latest version of the &eServer Launcher&8.
+      ban-login:
+        reason-fallback: No reason provided
+        duration-fallback: '&cPermanent'
+        name:
+          disallow: |-
+            &cYou are banned from the server!
+            &7Reason: &f{reason}{expires}
+          expire: |2-
+
+            &7Ban expires: &e{expiry}
+          permanent: |2-
+
+            &cThis ban does not expire.
+        ip:
+          disallow: |-
+            &cYour IP address is banned from the server!
+            &7Reason: &f{reason}{expires}
+          expire: |2-
+
+            &7Ban expires: &e{expiry}
+          permanent: |2-
+
+            &cThis ban does not expire.
+        active:
+          disallow: |-
+            &cYou are banned from the server!
+            &7Reason: &f{reason}
+            &7Duration: &f{duration}
+      general:
+        update:
+          message: '{prefix}&eA new update is available for &6ZonelyCore &b{version}&e. '
+          button-hover: '&7Click to download and apply the update.'
+          button-label: '&a[ACCEPT]'
+          trailing: "&7.\n "
+      chat:
+        hover: |-
+          {coloredPlayer}
+          &fRank: {role}
+          &eClick to send a private message.
+    auth:
+      join:
+        registered: '{prefix}&7Please login with &b/login <password>&7.'
+        unregistered: '{prefix}&7Please register with &b/register <password> <confirm>&7.'
+      login:
+        success: '{prefix}&aLogged in successfully.'
+        already: '{prefix}&eYou are already logged in.'
+        fail: '{prefix}&cIncorrect password.'
+        attempts-remaining: '{prefix}&cIncorrect password. Attempts remaining: &f{remaining}'
+        locked: '{prefix}&cToo many incorrect attempts. Please reconnect and try again later.'
+        usage: '{prefix}&7Usage: &b/{command} <password>'
+      register:
+        success: '{prefix}&aAccount created successfully.'
+        already: '{prefix}&cThis account is already registered.'
+        mismatch: '{prefix}&cPasswords do not match.'
+        invalid-password: '{prefix}&cPassword must be between {min} and {max} characters.'
+        invalid-username: '{prefix}&cThis username does not meet the requirements.'
+        usage: '{prefix}&7Usage: &b/{command} <password> <confirm>'
+      session:
+        restored: '{prefix}&aSession restored automatically.'
+      protection:
+        chat-blocked: '{prefix}&cYou must login before chatting.'
+        command-blocked: '{prefix}&cYou must login before using other commands.'
+        movement-blocked: '{prefix}&cPlease login before moving.'
+        timeout: '{prefix}&cLogin timed out.'
+      disabled: '{prefix}&cAuthentication module is disabled.'
+      two-factor:
+        already-enabled: '{prefix}&eTwo-factor authentication is already enabled.'
+        not-enabled: '{prefix}&cTwo-factor authentication is not enabled.'
+        usage: '{prefix}&7Usage: /2fa <setup|confirm|cancel|disable|code|recovery>'
+        setup-start: '{prefix}&aTOTP setup started. Scan the QR code or enter the secret below.'
+        setup-secret: '{prefix}&7Secret: &b{secret}'
+        setup-link: '{prefix}&7Scan: &b{url}'
+        setup-confirm: '{prefix}&7Enter &b/2fa confirm <code>&7 in your authenticator app.'
+        setup-timeout: '{prefix}&cSetup timed out. Please start again.'
+        setup-success: '{prefix}&aTwo-factor authentication enabled successfully.'
+        setup-cancelled: '{prefix}&ePending two-factor setup cancelled.'
+        setup-not-started: '{prefix}&cYou do not have a pending setup. Use &b/2fa setup&c first.'
+        setup-invalid: '{prefix}&cInvalid authenticator code. Please try again.'
+        disable-requires-code: '{prefix}&cYou must supply a valid authenticator code to disable two-factor authentication.'
+        disable-success: '{prefix}&aTwo-factor authentication disabled.'
+        login-prompt: '{prefix}&eEnter your authenticator code with &b/2fa code <123456>&e.'
+        login-success: '{prefix}&aTwo-factor verification successful.'
+        login-failed: '{prefix}&cInvalid authenticator code.'
+        recovery-disabled: '{prefix}&cTwo-factor recovery links are disabled.'
+        recovery-created: '{prefix}&aRecovery link: &b{url}'
+        recovery-cooldown: '{prefix}&cPlease wait before requesting another recovery link.'
+      password-reset:
+        disabled: '{prefix}&cPassword reset feature is disabled.'
+        mail-sending: '{prefix}&7Sending a password reset email to &f{email}&7...'
+        mail-sent: '{prefix}&aPassword reset email sent to &f{email}&a.'
+        mail-failed: '{prefix}&cUnable to email a reset link. Use this URL: &b{url}'
+        created: '{prefix}&aPassword reset link: &b{url}'
+        missing-email: '{prefix}&cNo email address is associated with this account.'
+        no-account: '{prefix}&cYour web account could not be located.'
+        usage: '{prefix}&7Usage: /passwordreset'
+      email:
+        prompt-set: '{prefix}&cYou must set an email address. Use &b/email set <address>&c.'
+        verification-required: '{prefix}&eVerify your email via the link sent. Use &b/email resend&7 for a new link and &b/email status&7 after confirming.'
+        verification-link: '{prefix}&7Verification link: &b{url}'
+        resend-cooldown: '{prefix}&cPlease wait {seconds}s before requesting another verification email.'
+        resend-success: '{prefix}&aVerification email generated.'
+        send-success: '{prefix}&aVerification email sent to &f{email}&a.'
+        send-failure: '{prefix}&cFailed to send verification email. Use &b/email resend&c or contact staff.'
+        set-success: '{prefix}&aEmail updated. Please check your inbox.'
+        invalid: '{prefix}&cInvalid email address.'
+        already-set: '{prefix}&eThis email is already on your account.'
+        disabled: '{prefix}&cEmail verification is disabled.'
+        error: '{prefix}&cEmail update failed. Please contact staff.'
+        status-verified: '{prefix}&aEmail verified. Thank you!'
+        status-pending: '{prefix}&eEmail pending verification.'
+        usage: '{prefix}&7Usage: /email <set|resend|status>'
+      bossbar:
+        login: '&cPlease login with /login <password>'
+        register: '&cRegister with /register <password> <confirm>'
+        two-factor: '&eEnter your 2FA code with /2fa code <123456>'
+        email-missing: '&cSet an email with /email set <address>'
+        email-pending: '&eVerify your email or use /email resend'
+    store:
+      common:
+        back-arrow: '&e<--'
+        forward-arrow: '&e-->'
+        back-to-categories: '&cBack to Categories'
+        back-to-products: '&cBack to Products'
+        cancel: '&cCancel'
+        confirm: '&aConfirm'
+      product-menu:
+        data-not-ready: '{prefix}&eStore data is still loading; please try again shortly.'
+        loading: '&7Loading...'
+        credits:
+          title: '&6My Credits: &e{amount}'
+        filters:
+          title: '&b&lFilters'
+          hint: '&7Click to edit filter options.'
+          flag-popular: '&e- Most Popular'
+          flag-price: '&e- Price: {min} - {max}'
+          none: '&7No filters selected.'
+          popular-on: '&a[ON] Most Popular Only'
+          popular-off: '&c[OFF] Most Popular Only'
+          popular-desc: '&7Only show products with multiple options.'
+          price:
+            0-100:
+              'true': '&a[ON] Price: 0 - 100'
+              'false': '&ePrice: 0 - 100'
+            100-500:
+              'true': '&a[ON] Price: 100 - 500'
+              'false': '&ePrice: 100 - 500'
+            500+:
+              'true': '&a[ON] Price: 500+'
+              'false': '&ePrice: 500+'
+          reset: '&cReset Filters'
+        inv:
+          categories-title: '&8Store Categories'
+          products-title: '&8{category} Products'
+          subproducts-title: '&8{product} Options'
+          filters-title: '&8Filter Options'
+          confirm-title: '&8Confirm Purchase'
+          confirm-bundle-title: '&8Confirm Bundle'
+          purchased-title: '&8My Purchases'
+        no-categories: '{prefix}&cThere are no categories to display.'
+        no-products-for-category: '{prefix}&cNo product data for this category.'
+        no-packets-for-category: '{prefix}&cNo bundle data for this category.'
+        no-product-data: '{prefix}&cNo product data exists for this category.'
+        no-items-after-filter: '{prefix}&cNo products or bundles match your current
+          filters.'
+        no-items-matching: '{prefix}&cNo products or packages match your current filters
+          in this category.'
+        no-subproducts: '{prefix}&cNo options were found for this product.'
+        no-subproducts-page: '{prefix}&cNo options were found on this page.'
+        no-sub-entries: '{prefix}&cNo sub-entries were found for this item.'
+        option-not-found: '{prefix}&cOption not found!'
+        click-to-view: '&eClick to view options'
+        click-to-buy: '&eClick to buy for &6{price} credits'
+        click-to-buy-bundle: '&eClick to purchase this bundle'
+        product:
+          multiple-options: '&fMultiple options available; click to open the list.'
+        price:
+          old: '&fOld price: &c{price} credits'
+          new: '&fNew price: &a{price} credits'
+          single: '&fPrice: &e{price} credits'
+        stock:
+          limited: '&fStock: &c{count} pcs'
+          unlimited: '&fStock: &aUnlimited'
+        bundle:
+          start: '{prefix}&aYour bundle purchase is starting; please wait...'
+          success: '{prefix}&eBundle purchase completed successfully!'
+          contents: '&7Contains: &f{items}'
+          expiry: '&7Expires: &f{expiry}'
+          item-name: '&6Bundle Contents'
+        purchase:
+          start: '{prefix}&aYour purchase is starting; please wait...'
+          db-lost: '{prefix}&cDatabase connection lost; purchase could not be completed.'
+          db-connect-failed: '{prefix}&cDatabase connection could not be established;
+            purchase failed.'
+          account-missing: '{prefix}&cYour web account could not be found; purchase
+            aborted.'
+          player-missing: '{prefix}&cPlayer record not found; purchase aborted.'
+          not-enough-credit: '{prefix}&cNot enough credit; purchase cancelled.'
+          item-create-failed: '{prefix}&cItem could not be created; purchase incomplete.'
+          item-register-failed: '{prefix}&cUnable to register the item; purchase incomplete.'
+          success: '&aPurchase completed successfully!'
+          unexpected-error: '&cAn unexpected error occurred during purchase.'
+        package:
+          start: '{prefix}&aYour package purchase is starting; please wait a few seconds...'
+          db-lost: '{prefix}&cDatabase connection lost; package purchase could not
+            be completed.'
+          db-connect-failed: '{prefix}&cDatabase connection could not be established;
+            package purchase failed.'
+          account-missing: '{prefix}&cYour web account could not be found; package
+            purchase aborted.'
+          player-missing: '{prefix}&cPlayer record not found; package purchase aborted.'
+          not-enough-credit: '{prefix}&cNot enough credit; package purchase cancelled.'
+          license-register-failed: '{prefix}&cPackage license record could not be
+            created; the process was left incomplete.'
+          success: '{prefix}&ePackage purchase completed successfully!'
+          unexpected-error: '{prefix}&cAn unexpected error occurred during the package
+            purchase.'
+        errors:
+          db-open: '{prefix}&cDatabase connection could not be established.'
+          db-lost: '{prefix}&cDatabase connection lost; purchase could not be completed.'
+          insufficient-credits: '{prefix}&cNot enough credit; purchase cancelled.'
+          license-create: '{prefix}&cItem could not be created; purchase incomplete.'
+          license-record-create: '{prefix}&cUnable to register the item; purchase
+            incomplete.'
+          bundle-license-fail: '{prefix}&cBundle item creation failed; purchase incomplete.'
+          bundle-license-record-fail: '{prefix}&cBundle registration failed; purchase
+            incomplete.'
+          user-missing: '{prefix}&cPlayer record not found; purchase aborted.'
+          web-user-missing: '{prefix}&cYour web account could not be found; purchase
+            aborted.'
+        last-credits:
+          title: '&8Last Credits'
+          l1: '&7Latest top-ups'
+          l2: '&7Click to view details'
+        purchased:
+          title: '&8My Purchases'
+          loading: '{prefix}&eYour purchases are still loading; please try again shortly.'
+          empty: '{prefix}&cYou have not purchased anything yet.'
+          none: '{prefix}&cNo purchase entries to display.'
+          product-id: '&7Product ID: &f{product}'
+          date: '&7Purchased: &f{date}'
+        purchases:
+          loading: '{prefix}&eYour purchases are still loading; please try again shortly.'
+          empty: '{prefix}&cYou have not purchased anything yet.'
+          none: '{prefix}&cNo purchase entries to display.'
+          pending: '&d{amount} &erewards waiting.'
+      last-credits:
+        only-player: '{prefix}&cOnly players can use this command.'
+      store:
+        only-player: '{prefix}&cOnly players can use this command.'
+        no-permission: '{prefix}&cYou do not have permission to use this command.'
+      punish:
+        disabled: '{prefix}&cPunishment commands are disabled.'
+        not-allowed: '{prefix}&cThis punishment action is disabled in the configuration.'
+        no-permission: '{prefix}&cYou do not have permission to perform this action.'
+        invalid-subcommand: '{prefix}&cUnknown sub-command. Use /punish help.'
+        invalid-duration: '{prefix}&cDuration must end with s, m, h, or d.'
+        duration:
+          permanent: Permanent
+        usage:
+          ban: '{prefix}&cUsage: /punish ban <player> [duration] [reason]'
+          ipban: '{prefix}&cUsage: /punish ipban <player|ip> [duration] [reason]'
+          hwidban: '{prefix}&cUsage: /punish hwidban <hwid> [duration] [reason]'
+          mute: '{prefix}&cUsage: /punish mute <player> [duration] [reason]'
+          ipmute: '{prefix}&cUsage: /punish ipmute <player|ip> [duration] [reason]'
+          hwidmute: '{prefix}&cUsage: /punish hwidmute <hwid> [duration] [reason]'
+          unban: '{prefix}&cUsage: /punish unban <player>'
+          unipban: '{prefix}&cUsage: /punish unipban <ip>'
+          unhwidban: '{prefix}&cUsage: /punish unhwidban <hwid>'
+          unmute: '{prefix}&cUsage: /punish unmute <player>'
+          unipmute: '{prefix}&cUsage: /punish unipmute <ip>'
+          unhwidmute: '{prefix}&cUsage: /punish unhwidmute <hwid>'
+          warning: '{prefix}&cUsage: /punish warning <player> [reason]'
+          ipwarning: '{prefix}&cUsage: /punish ipwarning <ip> [reason]'
+          hwidwarning: '{prefix}&cUsage: /punish hwidwarning <hwid> [reason]'
+          unwarning: '{prefix}&cUsage: /punish unwarning <player>'
+          unipwarning: '{prefix}&cUsage: /punish unipwarning <ip>'
+          unhwidwarning: '{prefix}&cUsage: /punish unhwidwarning <hwid>'
+          history: '{prefix}&cUsage: /punish history <player>'
+        result:
+          ban:
+          - '&6&m----------------------------'
+          - '&2'
+          - '&e&lPunishment System'
+          - '&2'
+          - '&c{target} &fhas been &4banned&f from the network.'
+          - '&2'
+          - '&fDuration:&6 {duration}'
+          - '&fReason:&b {reason}'
+          - '&2'
+          - '&6&m----------------------------'
+          ipban:
+          - '&6&m----------------------------'
+          - '&2'
+          - '&e&lPunishment System'
+          - '&2'
+          - '&c{target} &fhas been &4banned&f from the network.'
+          - '&2'
+          - '&fDuration:&6 {duration}'
+          - '&fReason:&b {reason}'
+          - '&2'
+          - '&6&m----------------------------'
+          hwidban:
+          - '&6&m----------------------------'
+          - '&2'
+          - '&e&lPunishment System'
+          - '&2'
+          - '&c{target} &fhas been &4banned&f from the network.'
+          - '&2'
+          - '&fDuration:&6 {duration}'
+          - '&fReason:&b {reason}'
+          - '&2'
+          - '&6&m----------------------------'
+          mute:
+          - '&6&m----------------------------'
+          - '&2'
+          - '&e&lPunishment System'
+          - '&2'
+          - '&c{target} &fhas been &6muted&f on the network.'
+          - '&2'
+          - '&fDuration:&6 {duration}'
+          - '&fReason:&b {reason}'
+          - '&2'
+          - '&6&m----------------------------'
+          ipmute:
+          - '&6&m----------------------------'
+          - '&2'
+          - '&e&lPunishment System'
+          - '&2'
+          - '&c{target} &fhas been &6muted&f on the network.'
+          - '&2'
+          - '&fDuration:&6 {duration}'
+          - '&fReason:&b {reason}'
+          - '&2'
+          - '&6&m----------------------------'
+          hwidmute:
+          - '&6&m----------------------------'
+          - '&2'
+          - '&e&lPunishment System'
+          - '&2'
+          - '&c{target} &fhas been &6muted&f on the network.'
+          - '&2'
+          - '&fDuration:&6 {duration}'
+          - '&fReason:&b {reason}'
+          - '&2'
+          - '&6&m----------------------------'
+          warning:
+          - '&6&m----------------------------'
+          - '&2'
+          - '&e&lPunishment System'
+          - '&2'
+          - '&c{target} &fhas received a warning.'
+          - '&2'
+          - '&fReason:&b {reason}'
+          - '&2'
+          - '&6&m----------------------------'
+          ipwarning:
+          - '&6&m----------------------------'
+          - '&2'
+          - '&e&lPunishment System'
+          - '&2'
+          - '&c{target} &fhas received a warning.'
+          - '&2'
+          - '&fReason:&b {reason}'
+          - '&2'
+          - '&6&m----------------------------'
+          hwidwarning:
+          - '&6&m----------------------------'
+          - '&2'
+          - '&e&lPunishment System'
+          - '&2'
+          - '&c{target} &fhas received a warning.'
+          - '&2'
+          - '&fReason:&b {reason}'
+          - '&2'
+          - '&6&m----------------------------'
+        success:
+          unban:
+            player: '{prefix}&aRemoved the player ban for {target}.'
+            ip: '{prefix}&aRemoved the IP ban for {target}.'
+            hwid: '{prefix}&aRemoved the HWID ban for {target}.'
+          unmute:
+            player: '{prefix}&aRemoved the player mute for {target}.'
+            ip: '{prefix}&aRemoved the IP mute for {target}.'
+            hwid: '{prefix}&aRemoved the HWID mute for {target}.'
+          unwarning:
+            player: '{prefix}&aRemoved the warning for {target}.'
+            ip: '{prefix}&aRemoved the IP warning for {target}.'
+            hwid: '{prefix}&aRemoved the HWID warning for {target}.'
+        error:
+          ban: '{prefix}&cFailed to ban {target}.'
+          ipban: '{prefix}&cFailed to ban IP {target}.'
+          hwidban: '{prefix}&cFailed to ban HWID {target}.'
+          mute: '{prefix}&cFailed to mute {target}.'
+          ipmute: '{prefix}&cFailed to mute IP {target}.'
+          hwidmute: '{prefix}&cFailed to mute HWID {target}.'
+          unban:
+            player: '{prefix}&cCould not remove the player ban for {target}.'
+            ip: '{prefix}&cCould not remove the IP ban for {target}.'
+            hwid: '{prefix}&cCould not remove the HWID ban for {target}.'
+          unmute:
+            player: '{prefix}&cCould not remove the player mute for {target}.'
+            ip: '{prefix}&cCould not remove the IP mute for {target}.'
+            hwid: '{prefix}&cCould not remove the HWID mute for {target}.'
+          warning: '{prefix}&cFailed to warn {target}.'
+          ipwarning: '{prefix}&cFailed to warn IP {target}.'
+          hwidwarning: '{prefix}&cFailed to warn HWID {target}.'
+          unwarning:
+            player: '{prefix}&cCould not remove the warning for {target}.'
+            ip: '{prefix}&cCould not remove the IP warning for {target}.'
+            hwid: '{prefix}&cCould not remove the HWID warning for {target}.'
+        history:
+          header:
+          - '&2'
+          - '&6&m----- Punishment History ({page}/{pages}) -----'
+          footer:
+          - '&6&m---------------------------'
+          entry: '&7{index}. &e{date} &7| &a{type} &7| &f{duration} &7| &f{reason}
+            &7| &fExecutor: &e{executor}'
+          next-page: '{prefix}&7Use &e/punish history {target} page <2-{pages}>&7
+            to view additional pages.'
+          empty: '{prefix}&eNo punishment history was found for {target}.'
+        help:
+        - '&6&m----------------------------'
+        - '&2'
+        - '&e&lPunishment System'
+        - '&2'
+        - '&e/punish ban <player> [duration] [reason] &2- &fBan a player.'
+        - '&e/punish ipban <player|ip> [duration] [reason] &2- &fBan a player''s IP.'
+        - '&e/punish hwidban <hwid> [duration] [reason] &2- &fBan a hardware ID.'
+        - '&e/punish mute <player> [duration] [reason] &2- &fMute a player.'
+        - '&e/punish warning <player> [reason] &2- &fSend a warning.'
+        - '&e/punish unban <player> &2- &fRemove a ban.'
+        - '&e/punish unmute <player> &2- &fRemove a mute.'
+        - '&e/punish unwarning <player> &2- &fRemove a warning.'
+        - '&e/punish history <player> &2- &fView the punishment history.'
+        - '&2'
+        - '&6&m----------------------------'
+        type:
+          ban: Player Ban
+          ip-ban: IP Ban
+          hwid-ban: HWID Ban
+          mute: Player Mute
+          ip-mute: IP Mute
+          hwid-mute: HWID Mute
+          warning: Player Warning
+          ip-warning: IP Warning
+          hwid-warning: HWID Warning
+    npc:
+      web-profile:
+        display-name: '&bWeb Profile'
+        item: '339 : 1 : name>&bWeb Profile Menu'
+        hologram-offset: '1.50'
+        holograms:
+        - '&e&lView now!'
+        - '&aWeb Profile &7[v1.4]'
+        - '&e&lCLICK TO OPEN'
+        skin:
+          value: ewogICJ0aW1lc3RhbXAiIDogMTc0NzEwMTQxODQ1NCwKICAicHJvZmlsZUlkIiA6ICI1MzE4YWJhNDJiMTk0ODNiODFiMWY2N2Y1ODVjNDdkNSIsCiAgInByb2ZpbGVOYW1lIiA6ICJocHllZiIsCiAgInNpZ25hdHVyZVJlcXVpcmVkIiA6IHRydWUsCiAgInRleHR1cmVzIiA6IHsKICAgICJTS0lOIiA6IHsKICAgICAgInVybCIgOiAiaHR0cDovL3RleHR1cmVzLm1pbmVjcmFmdC5uZXQvdGV4dHVyZS84MzE0ZWM1ZjI5Mzg5ODZmZjFjZWM4MmVlYzVjMDdmYTMzNDY4ZGE5M2Y2MTJiM2QxNjA4YjFiOThhNTlhODhjIiwKICAgICAgIm1ldGFkYXRhIiA6IHsKICAgICAgICAibW9kZWwiIDogInNsaW0iCiAgICAgIH0KICAgIH0KICB9Cn0=
+          signature: e2ROZ0kobFphisdbs/CtYy2ePkdAYyOZupr++hv1d9KiuHKyZ6UqJlJC1c5s31jHTWoXhAPDJLdmobwMLTf4JlHBqVZwpcihCSDkAby0p95u2aOOqPrpRAIevcAwc/pwy4IML6QygwS/ogDTVwtl8u3kggrxtfo37wxhhgYrYMXQb8J0n7JQkKqCDO1AGfVSq48zUmxhuFb/ZLiTN1JEYvy9g1NP4oOEgC7hFgYiGBFQZB8SOZaz+DHXuM7LeFJiHPSViR5pn7LUVpEWoZfPtLyjyHqgnMmtAdoQWbiPbauDhb1zgqnaQ9XzIoo8V/+q4/Amw72wEyQe6JuGuqz/NFo5VYVeXDbJNlGWe+7p/gqTLJBMkQZNreJ07HZul/PeO2PRpoh8e6yNw3ftXC6fRywzGmMB6PX6OE9TNvB7yM+ndff/9yCMZqGTsHDqH9ZbggY5fetCUS2YghUwDFf8D3ur5lHqyjtXfY14cYTWx/7jEqr/qdp9zNr0tCO1fzCNphLx6gB4YFcSzU3PYq2Vie/euVdZMlEKqmNrc7KKG7dtFKy5uhBrYiRPTSTztjfNMdI27EoCpcAegTfO2rg7YpH6XGj7BW8tswfwKDgwhpJElPyK3YP80RXAxwSEoJBEuMHNCf/AxCAJ8e3ryv1yKSfXuy+iSreIOWLmfmuBg0g=
+          tl_value: ''
+          username: ''
+      auctions:
+        display-name: '&dAuctions'
+        item: 'STICK : 1 : name>&dAuctions'
+        hologram-offset: '1.50'
+        holograms:
+        - '&e&lView now!'
+        - '&bAuctions &7[v1.4]'
+        - '&e&lCLICK TO OPEN'
+        skin:
+          value: ewogICJ0aW1lc3RhbXAiIDogMTYyMjc5MTg2ODEyMiwKICAicHJvZmlsZUlkIiA6ICI2MWUwNmYxMjFjNTk0ZDdiYjY5MmQ0ZDg1MDljNDdmOSIsCiAgInByb2ZpbGVOYW1lIiA6ICJEcmFnb25fTWluZWNhcnQiLAogICJzaWduYXR1cmVSZXF1aXJlZCIgOiB0cnVlLAogICJ0ZXh0dXJlcyIgOiB7CiAgICAiU0tJTiIgOiB7CiAgICAgICJ1cmwiIDogImh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvMzE5NzFkNzk2ZGM0ZGM5YWYzOGNjOTcwNjc5NjNkZTRlZDJiZjk5OTIyNDI1NzQxNmRmYjg0MTQ4OGZkOWUwZCIKICAgIH0KICB9Cn0=
+          signature: ba7/EIgMq4E/M0FtPKXV1QtduoItQ5q9VZ5e1Sm5M5V1VC9EdowfWBFREwoV3T7NQs/plOsHg22pXR8uJzl/Hddacll3PNo7uzLgRO0KLaYnvNTERTT/+trwwpR1VI+qHK2Yk86x5NtlQiNFbntXFkFLpOhRlIKa42KvyGwstSpIRbW8ZyeC3C9sqIFbAesLWqHitolhbFphzQ148ZDoUJ8gX8aP1moGmQDB7lXE3CLQc8pA0d3dnMZYSo7ueGFjhyJY1GNXEVmVR8EVddjc+c/zrY4QlCa+SFMjA/E5SUB+mkmOG1QzHu6HdcZZcwJWlmrsNvzvl4gyVa5K+p0rT74CgMbLOkboLmqKuOTpspbMQuE0SVANjLCarsBEwr+JZHPeh6Y9LJBu2FrwumyoJnuQDj4N/JgQxm0L6e/zEZhLJQFd0VLXADj00DmyGyWtHkXE/nB+kH9oTp3aMh4k96OtfGadbfeIRDl7O0fM59p+6wmYPY/eeQZxSLPKOLFkMFT7E5QFGGHFsxz4zbY2Co2JhAWlppLHOsmbUNSGuFkY0o+PHCNWh/dFiMFmIiQDdBxne+YZv+hNL+Jg1xDUMjUWHBIJA8RDwDqNQno9iPIVG4ZrfpjoyOg1yMW/JDURPl+D2c3mEzW/hs7Z+XXClYmmzhDM6vBfd2dQ/akCrjo=
+          tl_value: ''
+          username: ''
+        villager-variant: DESERT:WEAPONSMITH
+      supports:
+        display-name: '&dSupport Desk'
+        item: 'BOOK : 1 : name>&dSupport Desk'
+        hologram-offset: '1.50'
+        holograms:
+        - '&e&lView now!'
+        - '&dSupport Desk &7[v1.4]'
+        - '&e&lCLICK TO OPEN'
+        skin:
+          value: 'eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOWRjMzQzYmE2YjM5MDI0MDUyY2YxYTJhOTE5YmNhNjY1YTZjN2JiYzZjMzVjODFjOTNlZTFiNTYyYTdhMWRhYSJ9fX0='
+          signature: ''
+          tl_value: ''
+          username: ''
+        villager-variant: SWAMP:LIBRARIAN
+      last-credits:
+        display-name: '&6Latest Top-Ups'
+        item: 'GOLD_INGOT : 1 : name>&6Latest Top-Ups'
+        hologram-offset: '1.50'
+        holograms:
+        - '&e&lView now!'
+        - '&dLast Credit Loaders &7[v1.4]'
+        - '&e&lCLICK TO OPEN'
+        skin:
+          value: ewogICJ0aW1lc3RhbXAiIDogMTY1NzI0MTE2ODQ4NywKICAicHJvZmlsZUlkIiA6ICIzOTg5OGFiODFmMjU0NmQxOGIyY2ExMTE1MDRkZGU1MCIsCiAgInByb2ZpbGVOYW1lIiA6ICI4YjJjYTExMTUwNGRkZTUwIiwKICAic2lnbmF0dXJlUmVxdWlyZWQiIDogdHJ1ZSwKICAidGV4dHVyZXMiIDogewogICAgIlNLSU4iIDogewogICAgICAidXJsIiA6ICJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlLzEwYzk0NzE2OTAyYWM3ZjVmOGVhMDgzZDg1ZTk4ZjdlN2UwNGNmMTdjN2JmYTRiYTg4ZDNjNDM2YzI3NTk2M2MiLAogICAgICAibWV0YWRhdGEiIDogewogICAgICAgICJtb2RlbCIgOiAic2xpbSIKICAgICAgfQogICAgfQogIH0KfQ==
+          signature: oXwY7IYLGHIrp6o3uPFAB5SUmnQhQ6qxfqLu8tx1k0lkxW/ghIXL6LrHhzXfZRPe49TDBoofJ2vWfTsmPeMlFJWs8y1h18wwWS78F5sWPZYpFOGn5J3+M3ZJe2k9/i+l1kkKdnlh9UQongn8KU5Kb+M0ZSYvUJFuR6X1xrlG+mWBMC46eUeTBlJlg1RcmGLRlxIM9GUyJ+bsaQ/qtzpZHjZE6pz5j5ysba/fHGXON8BorsJdywwV3Jj6QcjoiCheu/yMBUdnS/TfraQ7Q0ojyscV8LgYeCrJQm3eFolnEZogcgaGfEVr5M9poulF/WZGKQAyJtFUezHTT5bO2LS8M2dSjeKeWLugfjlgW6Yj2ZWK006/sZ2reFKsNY6EfUnR7/eLUq5pYN2QUuW3v2iWIwYYW+v/emWW0heu4lRMYA6siDf9AyW/e2A5A9U0ItW/h7SxQuKEhQV80yTEs5cTCApm1vj89savwiy/RUhUH7Y9ST+0OKVnrRw4SS1J4sCQZ0EkkaxuQAYzt57isAicrJgsBd/A65QUuf9tkfF8w+RZA3CDlGVqw5jSzvQ32AKeRfBywkLKhmX2OWE/gi+EyOPJYyL5mEa/zFnIrJlPBE83gAr34EGYoIwY1RSRI8sBe5TmOGpimgj9CDuAKNpCGP10+uNSHZIHyLkC1VF6adg=
+          tl_value: ''
+          username: ''
+        villager-variant: SAVANNA:FARMER
+      web-store:
+        display-name: '&aWeb Store'
+        item: 'EMERALD : 1 : name>&aWeb Store'
+        hologram-offset: '1.50'
+        holograms:
+        - '&e&lView now!'
+        - '&6Web Store &7[v1.4]'
+        - '&e&lCLICK TO OPEN'
+        skin:
+          value: ewogICJ0aW1lc3RhbXAiIDogMTYyMTI2NDY0NzU3MSwKICAicHJvZmlsZUlkIiA6ICIyM2YxYTU5ZjQ2OWI0M2RkYmRiNTM3YmZlYzEwNDcxZiIsCiAgInByb2ZpbGVOYW1lIiA6ICIyODA3IiwKICAic2lnbmF0dXJlUmVxdWlyZWQiIDogdHJ1ZSwKICAidGV4dHVyZXMiIDogewogICAgIlNLSU4iIDogewogICAgICAidXJsIiA6ICJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlLzY3YWUzZTI1MzlhNDQyNTE4MTMwMzcwZDNiMmQzYjE4MzdhNDkxZWUyM2Q1YWZmMjBmMDE1YWUyODRhMjhjOTAiCiAgICB9CiAgfQp9
+          signature: MW5WQL3EU8nQKrtbZdG9lY9v1h46OzsXD71FJYiXHIZnu+gn0wVTreX/ZeekwLAXV0mJA/2z2NXpKB8v41Fi5dXLd7S+MjghmcwjtFEPvJLddSIl1VPkik8Wcq1HTfLbHGydgz4NkBHT//ZL5zzjzxN0Lf9lvw7q/b2FoXOK6rLQlXiQbOWIiBG0wkyQ8fa82nHVe5eMQdIpWKwytg7ShIO1J/wzCE0GmkKP5kfkrXEKQWrW7qpB/xAL80uLYiDXJ2Q0gtgRjNGxB6dS1YonGTUk7brNb9M9Yq7uwpKdPq5atV0j9iNSQo3yEJiw5EhEzKMkygvIqhReLGgy27GYyp+x1rZL/yxezSlwovE7RtyYTVC1hSeIn1/+JwRge6xu69RxSKERgRQ4uTyd606khUJr64aAGWeqOes6HwqLvaCUVrZuTufLTB2mZK7HRyqQG25N2omiQXqMqoF0UFO945MUTqWx/z0McdinMJZLo5UUjyffOxZXUM3VF8b1KWaYxl0wnjplDaV+LOjo509LZ5+mx0DoACpk0ib5AP6TJSJ6gbKD+VTSb4VbG8EvZUZJeVoj3XVjKDzqUN/ht1yRgx0eTYPOgVHzzAMQCmjWnPmaV/TrcTgzpGjm40bytNXC706l9wRv0t/2JWgNYSeU034+6M5WMDPLRzreiSzdZUs=
+          tl_value: ''
+          username: ''
+        villager-variant: JUNGLE:BUTCHER
+      deliveries:
+        display-name: '&aDeliveries'
+        item: 'EMERALD : 1 : name>&aDeliveries'
+        hologram-offset: '1.50'
+        holograms:
+        - '&e&lView now!'
+        - '&9Deliveries &7[v1.4]'
+        - '&e&lCLICK TO OPEN'
+        skin:
+          value: ewogICJ0aW1lc3RhbXAiIDogMTYyMTI2NDY0NzU3MSwKICAicHJvZmlsZUlkIiA6ICIyM2YxYTU5ZjQ2OWI0M2RkYmRiNTM3YmZlYzEwNDcxZiIsCiAgInByb2ZpbGVOYW1lIiA6ICIyODA3IiwKICAic2lnbmF0dXJlUmVxdWlyZWQiIDogdHJ1ZSwKICAidGV4dHVyZXMiIDogewogICAgIlNLSU4iIDogewogICAgICAidXJsIiA6ICJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlLzY3YWUzZTI1MzlhNDQyNTE4MTMwMzcwZDNiMmQzYjE4MzdhNDkxZWUyM2Q1YWZmMjBmMDE1YWUyODRhMjhjOTAiCiAgICB9CiAgfQp9
+          signature: MW5WQL3EU8nQKrtbZdG9lY9v1h46OzsXD71FJYiXHIZnu+gn0wVTreX/ZeekwLAXV0mJA/2z2NXpKB8v41Fi5dXLd7S+MjghmcwjtFEPvJLddSIl1VPkik8Wcq1HTfLbHGydgz4NkBHT//ZL5zzjzxN0Lf9lvw7q/b2FoXOK6rLQlXiQbOWIiBG0wkyQ8fa82nHVe5eMQdIpWKwytg7ShIO1J/wzCE0GmkKP5kfkrXEKQWrW7qpB/xAL80uLYiDXJ2Q0gtgRjNGxB6dS1YonGTUk7brNb9M9Yq7uwpKdPq5atV0j9iNSQo3yEJiw5EhEzKMkygvIqhReLGgy27GYyp+x1rZL/yxezSlwovE7RtyYTVC1hSeIn1/+JwRge6xu69RxSKERgRQ4uTyd606khUJr64aAGWeqOes6HwqLvaCUVrZuTufLTB2mZK7HRyqQG25N2omiQXqMqoF0UFO945MUTqWx/z0McdinMJZLo5UUjyffOxZXUM3VF8b1KWaYxl0wnjplDaV+LOjo509LZ5+mx0DoACpk0ib5AP6TJSJ6gbKD+VTSb4VbG8EvZUZJeVoj3XVjKDzqUN/ht1yRgx0eTYPOgVHzzAMQCmjWnPmaV/TrcTgzpGjm40bytNXC706l9wRv0t/2JWgNYSeU034+6M5WMDPLRzreiSzdZUs=
+          tl_value: ''
+          username: ''
+        villager-variant: SNOW:FLETCHER
+      reports:
+        display-name: '&cReports'
+        item: 'EMERALD : 1 : name>&cReports'
+        hologram-offset: '1.50'
+        holograms:
+        - '&e&lView now!'
+        - '&cReports &7[v1.4]'
+        - '&e&lCLICK TO OPEN'
+        skin:
+          value: ewogICJ0aW1lc3RhbXAiIDogMTYyMTI2NDY0NzU3MSwKICAicHJvZmlsZUlkIiA6ICIyM2YxYTU5ZjQ2OWI0M2RkYmRiNTM3YmZlYzEwNDcxZiIsCiAgInByb2ZpbGVOYW1lIiA6ICIyODA3IiwKICAic2lnbmF0dXJlUmVxdWlyZWQiIDogdHJ1ZSwKICAidGV4dHVyZXMiIDogewogICAgIlNLSU4iIDogewogICAgICAidXJsIiA6ICJodHRwOi8vdGV4dHVyZXMubWluZWNyYWZ0Lm5ldC90ZXh0dXJlLzY3YWUzZTI1MzlhNDQyNTE4MTMwMzcwZDNiMmQzYjE4MzdhNDkxZWUyM2Q1YWZmMjBmMDE1YWUyODRhMjhjOTAiCiAgICB9CiAgfQp9
+          signature: MW5WQL3EU8nQKrtbZdG9lY9v1h46OzsXD71FJYiXHIZnu+gn0wVTreX/ZeekwLAXV0mJA/2z2NXpKB8v41Fi5dXLd7S+MjghmcwjtFEPvJLddSIl1VPkik8Wcq1HTfLbHGydgz4NkBHT//ZL5zzjzxN0Lf9lvw7q/b2FoXOK6rLQlXiQbOWIiBG0wkyQ8fa82nHVe5eMQdIpWKwytg7ShIO1J/wzCE0GmkKP5kfkrXEKQWrW7qpB/xAL80uLYiDXJ2Q0gtgRjNGxB6dS1YonGTUk7brNb9M9Yq7uwpKdPq5atV0j9iNSQo3yEJiw5EhEzKMkygvIqhReLGgy27GYyp+x1rZL/yxezSlwovE7RtyYTVC1hSeIn1/+JwRge6xu69RxSKERgRQ4uTyd606khUJr64aAGWeqOes6HwqLvaCUVrZuTufLTB2mZK7HRyqQG25N2omiQXqMqoF0UFO945MUTqWx/z0McdinMJZLo5UUjyffOxZXUM3VF8b1KWaYxl0wnjplDaV+LOjo509LZ5+mx0DoACpk0ib5AP6TJSJ6gbKD+VTSb4VbG8EvZUZJeVoj3XVjKDzqUN/ht1yRgx0eTYPOgVHzzAMQCmjWnPmaV/TrcTgzpGjm40bytNXC706l9wRv0t/2JWgNYSeU034+6M5WMDPLRzreiSzdZUs=
+    holograms:
+      last-credits:
+        lines:
+        - '&e&lClick to cycle categories.'
+        - '&7{category_buttons}'
+        - '&fCategory: {category_display}'
+        - '{entry_10}'
+        - '{entry_9}'
+        - '{entry_8}'
+        - '{entry_7}'
+        - '{entry_6}'
+        - '{entry_5}'
+        - '{entry_4}'
+        - '{entry_3}'
+        - '{entry_2}'
+        - '{entry_1}'
+        - '&6&lLast Credit Loaders'
+        entry-format: '&e#{rank} &f{player} &7- &6{amount}'
+        empty-entry: '&7#{rank} - &8No data recorded.'
+        buttons:
+          active: '&a&l> &f{raw_label} &a&l<'
+          inactive: '&7{raw_label}'
+          separator: '&8 | '
+        categories:
+          recent: '&eRecent'
+          all_time: '&6All-Time'
+          yearly: '&bYearly'
+          monthly: '&aMonthly'
+          daily: '&dDaily'
+        category-switched: '&eShowing {category}'
+    commands:
+      reports:
+        only-player: '&cOnly players can use this command.'
+        gui-usage: '{prefix}&eUsage: /report <player>'
+        self: '{prefix}&cYou cannot report yourself.'
+        offline: '{prefix}&cThat player must be online to be reported.'
+        history:
+          usage: '{prefix}&eUsage: /reports history <player>'
+        no-permission: '{prefix}&cYou do not have permission.'
+        created: '{prefix}&aReport submitted. Ticket ID: &e#{id}'
+        error: '{prefix}&cYour report could not be saved. Please try again later.'
+        action:
+          approved: '&aReport approved and player punished.'
+          rejected: '&eReport rejected.'
+          failed: '&cUnable to process this report.'
+        replay:
+          missing: '&cNo replay is attached to this report.'
+          start: '&aStarting NPC replay for {player}.'
+          limited: '{prefix}&eAdvanced replay data is unavailable for this report.
+            Display may be limited.'
+          paused: '&eReplay toggled.'
+          speed: '&eSpeed: &f{speed}x'
+          restart: '&aRestarted replay from the beginning.'
+        punish:
+          reason: 'Report Approved: {reason}'
+        notify:
+          approved: '{prefix}&aYour report for {target} was approved. Thank you!'
+          rejected: '{prefix}&eYour report for {target} was reviewed and rejected.'
+        seek:
+          usage: '{prefix}&eUsage: /reports seek <seconds>'
+          not-playing: '{prefix}&cYou are not watching a replay.'
+          invalid-number: '{prefix}&cPlease enter a valid number of seconds.'
+          success: '{prefix}&aMoved replay by {seconds} seconds.'
+          failed: '{prefix}&cUnable to move replay.'
+      support:
+        disabled: '{prefix}&cSupport module is disabled.'
+      core:
+        only-player: '{prefix}&cOnly players can use this command.'
+        help:
+          lines:
+          - '&6&m----------------------------'
+          - '&2'
+          - '&e/zc update &2- &fCheck for plugin updates.'
+          - '&e/zc reload &2- &fReload plugin.'
+          - '&e/zc convert &2- &fConvert stored data to another database type.'
+          - '&e/webprofile &2- &fOpen the web profile menu.'
+          - '&e/credit &2- &fInspect credits.'
+          - '&e/lastcredits &2- &fList the most recent credit purchasers.'
+          - '&e/store &2- &fView store products.'
+          - '&e/creditvoucher &2- &fShare credits between players.'
+          - '&e/punish &2- &fManage player punishments.'
+          - '&e/auction [amount] &2- &fSubmit an item for auction.'
+          - '&e/auctions &2- &fOpen the auction house.'
+          - '&e/reports &2- &fYou view reports.'
+          - '&e/report <player> &2- &fReports a player'
+          - '&e/support &2- &fView supports'
+          - '&e/2fa &2- &f2fa setup.'
+          - '&e/disguise &2- &fUse the disguise system.'
+          - '&e/zc npc spawn <type> <id> &2- &fCreate or move a lobby NPC.'
+          - '&e/zc hologram lastcredits <id> &2- &fPlace the last-credit leaderboard
+            hologram.'
+          - '&2'
+          - '&6&m----------------------------'
+        update:
+          already-downloaded: '{prefix}&eThe update is already downloaded and will
+            apply on restart. Use /stop to apply now.'
+          up-to-date: '{prefix}&cThe plugin is already on the latest version.'
+        convert:
+          start: '{prefix}&fCurrent database: &b{database}'
+        reload:
+          success: '{prefix}&aConfiguration and language files reloaded in {ms}ms.'
+          failed: '{prefix}&cReload failed. Check console for details.'
+        menu:
+          usage: '{prefix}&cUsage: /zcore menu <player>'
+          not-found: '{prefix}&cCould not load profile data for {target}.'
+        npc:
+          usage: '{prefix}&cUsage: /zc npc spawn <type> [id]'
+          usage-remove: '{prefix}&cUsage: /zc npc remove <type> [id]'
+          invalid-type: '{prefix}&cUnknown NPC type. Available: {types}'
+          spawned: '{prefix}&a{type} NPC saved and spawned at your location.'
+          failed: '{prefix}&cFailed to spawn the NPC. Check the console for details.'
+          unavailable: '{prefix}&cNPC manager is not initialised yet.'
+          removed: '{prefix}&aNPC removed and location cleared.'
+          none: '{prefix}&cNo NPC to remove.'
+        hologram:
+          usage: '{prefix}&cUsage: /zc hologram lastcredits <id>'
+          invalid-type: '{prefix}&cUnknown hologram target. Available: lastcredits'
+          invalid-id: '{prefix}&cPlease provide a valid hologram id (letters, numbers,
+            _, -).'
+          set: '{prefix}&aLast-credit leaderboard hologram saved at your location.'
+          failed: '{prefix}&cUnable to place the hologram here.'
+          unavailable: '{prefix}&cHologram manager is not initialised yet.'
+          removed: '{prefix}&aHologram removed and location cleared.'
+          none: '{prefix}&cNo hologram to remove.'
+      punish:
+        help:
+        - '&6&m----------------------------'
+        - '&2'
+        - '&e&lPunishment System'
+        - '&2'
+        - '&e/punish ban <player> [duration] [reason] &2- &fBan a player.'
+        - '&e/punish ipban <player|ip> [duration] [reason] &2- &fBan a player''s IP.'
+        - '&e/punish hwidban <hwid> [duration] [reason] &2- &fBan a hardware ID.'
+        - '&e/punish mute <player> [duration] [reason] &2- &fMute a player.'
+        - '&e/punish warning <player> [reason] &2- &fSend a warning.'
+        - '&e/punish unban <player> &2- &fRemove a ban.'
+        - '&e/punish unmute <player> &2- &fRemove a mute.'
+        - '&e/punish unwarning <player> &2- &fRemove a warning.'
+        - '&e/punish history <player> &2- &fView the punishment history.'
+        - '&2'
+        - '&6&m----------------------------'
+        result:
+          ban:
+          - '&6&m----------------------------'
+          - '&2'
+          - '&e&lPunishment System'
+          - '&2'
+          - '&c{target} &fhas been &4banned&f from the network.'
+          - '&2'
+          - '&fDuration:&6 {duration}'
+          - '&fReason:&b {reason}'
+          - '&2'
+          - '&6&m----------------------------'
+        success:
+          unban:
+            player: '{prefix}&aRemoved the player ban for {target}.'
+        error:
+          unban:
+            player: '{prefix}&cCould not remove the player ban for {target}.'
+      credit:
+        usage:
+        - '&6&m----------------------------'
+        - '&2'
+        - '&e&lCredit System'
+        - '&2'
+        - '&e/credit [player] &2- &fShows the player''s balance.'
+        - '&e/credit set [player] [amount] &2- &fSets the player''s balance.'
+        - '&e/credit add [player] [amount] &2- &fAdds credits to the player.'
+        - '&e/credit remove [player] [amount] &2- &fRemoves credits from the player.'
+        - '&2'
+        - '&6&m----------------------------'
+      credit-voucher:
+        usage: '{prefix}&eUsage: /creditvoucher <player> <amount>'
+      fake:
+        book:
+          author: WhiteEffect
+          title: Sayfa Sec
+          roles:
+            intro:
+            - '&6&l[DISGUISE - GIZLENME]'
+            - ' '
+            - '&0Oyunculardan gizlenmek amaciyla kimliginin yetkisini sec:'
+            entry:
+              text: '&0> {role_display}'
+              hover: '&fYeni ismin {role_prefix}&f olarak gorunecek.'
+              command: /disguise {role_id}
+    items:
+      credit-voucher:
+        name: '&aCredit Voucher ({amount})'
+        lore:
+        - '&7Target: {target}'
+        - '&7Target ID: {targetId}'
+        - '&7Amount: {amount}'
+        - '&aRight-click to confirm.'
+    placeholders:
+      status: {}
+    titles:
+      icon:
+        template: '%material%:%durability% : 1 : hide>genel : name>&l%highligtedname%
+          : desc>&f\n%description%\n \n&7 &8-> &fTitle: &e%title%\n \n%action%'
+        action:
+          select: '&6&l>> &eClick to equip.'
+          deselect: '&4&l>> &cClick to unequip.'
+          locked: '&4&l>> &cYou do not own this title.'
+      items:
+        tbk:
+          name: '&cBridge Slayer'
+          description: '&fUnlock this cosmetic by earning the &cBridge Slayer &ftitle.\n&7Equip
+            it from the Profile > Titles menu once unlocked.'
+        tbw:
+          name: '&6Bridge Guardian'
+          description: '&fUnlock this cosmetic by earning the &6Bridge Guardian &ftitle.\n&7Equip
+            it from the Profile > Titles menu once unlocked.'
+        tbp:
+          name: '&eScore Master'
+          description: '&fUnlock this cosmetic by earning the &eScore Master &ftitle.\n&7Equip
+            it from the Profile > Titles menu once unlocked.'
+        swk:
+          name: '&cCelestial Presence'
+          description: '&fUnlock this cosmetic by earning the &cCelestial Presence
+            &ftitle.\n&7Equip it from the Profile > Titles menu once unlocked.'
+        sww:
+          name: '&bSkybreaker'
+          description: '&fUnlock this cosmetic by earning the &bSkybreaker &ftitle.\n&7Equip
+            it from the Profile > Titles menu once unlocked.'
+        swa:
+          name: '&6Guardian Angel'
+          description: '&fUnlock this cosmetic by earning the &6Guardian Angel &ftitle.\n&7Equip
+            it from the Profile > Titles menu once unlocked.'
+        mmd:
+          name: '&6Detective'
+          description: '&fUnlock this cosmetic by earning the &6Detective &ftitle.\n&7Equip
+            it from the Profile > Titles menu once unlocked.'
+        mmk:
+          name: '&4Serial Killer'
+          description: '&fUnlock this cosmetic by earning the &4Serial Killer &ftitle.\n&7Equip
+            it from the Profile > Titles menu once unlocked.'
+        bwk:
+          name: '&cBed Breaker'
+          description: '&fUnlock this cosmetic by earning the &cBed Breaker &ftitle.\n&7Equip
+            it from the Profile > Titles menu once unlocked.'
+        bww:
+          name: '&6Sleepy Angel'
+          description: '&fUnlock this cosmetic by earning the &6Sleepy Angel &ftitle.\n&7Equip
+            it from the Profile > Titles menu once unlocked.'
+        bwp:
+          name: '&4Nightmare'
+          description: '&fUnlock this cosmetic by earning the &4Nightmare &ftitle.\n&7Equip
+            it from the Profile > Titles menu once unlocked.'
+    menus:
+      reports:
+        common:
+          record-yes: '&aAvailable'
+          record-no: '&cNot Available'
+        replay:
+          title: '&8NPC Replay Controls'
+          pause: 'INK_SACK:8 : 1 : name>&ePause/Resume : desc>&7Toggle playback'
+          slower: 'FEATHER : 1 : name>&aSlow Down : desc>&7Reduce speed'
+          faster: 'SUGAR : 1 : name>&cSpeed Up : desc>&7Increase speed'
+          restart: 'ARROW : 1 : name>&bRestart : desc>&7Start from beginning'
+          stop: 'BARRIER : 1 : name>&cStop : desc>&7Stop and despawn NPC'
+          approve: 'INK_SACK:10 : 1 : name>&aApprove Report : desc>&7Open the punishment
+            menu for this report.'
+          controls:
+            items:
+              toggle-pause:
+                slot: 0
+                item: 'SLIME_BALL : 1 : name>&aPause/Play : desc>&7Toggle playback.'
+              seek-back:
+                slot: 1
+                item: 'ARROW : 1 : name>&e<< 5s Rewind : desc>&7Rewind 5 seconds.'
+              seek-forward:
+                slot: 2
+                item: 'SPECTRAL_ARROW : 1 : name>&e>> 5s Forward : desc>&7Fast-forward
+                  5 seconds.'
+              speed-down:
+                slot: 3
+                item: 'FEATHER : 1 : name>&b- Speed : desc>&7Decrease playback speed.'
+              speed-up:
+                slot: 4
+                item: 'SUGAR : 1 : name>&b+ Speed : desc>&7Increase playback speed.'
+              restart:
+                slot: 7
+                item: 'CLOCK : 1 : name>&dRestart : desc>&7Restart the replay from
+                  the beginning.'
+              exit:
+                slot: 8
+                item: 'BARRIER : 1 : name>&cExit : desc>&7Stop replay playback.'
+            hotbar:
+              selected-slot: 0
+            scoreboard:
+              enabled: true
+              title: '&6Replay Actors'
+              lines:
+              - '&eCurrent: &f{current_time}'
+              - '&eTotal: &f{max_time}'
+              - '&bSpeed: &f{speed}x'
+              - '&aState: &f{state}'
+            messages:
+              state:
+                playing: '&aPlaying'
+                paused: '&cPaused'
+            hud: '&e{current_time} &7/ &e{max_time} &b{speed}x'
+          messages:
+            exit: '&cStopped replay playback.'
+            paused: '&eReplay paused.'
+            seek-forward:
+              success: '&bAdvanced 5 seconds.'
+            seek-back:
+              success: '&bRewound 5 seconds.'
+            speed: '&eReplay speed: {speed}x'
+        detail:
+          title: '&8Report Details'
+          target: 'SKULL_ITEM:3 : 1 : name>&c{player} : desc>&7Reporter: &f{reporter}\n&7Status:
+            &f{status}\n&7Reason: &f{reason}\n&7Server: &f{server}\n&7Moderator: &f{moderator}\n&7Action:
+            &f{action}\n&7Duration: &f{duration}\n&7Punish Reason: &f{punish_reason}\n
+            \n&7Health: &f{health}\n&7Food: &f{food}\n&7XP: &fLvl {xp_level} ({xp_progress})\n&7Speed:
+            &f{speed}'
+          approve: 'INK_SACK:10 : 1 : name>&aApprove : desc>&7Approve report and punish
+            the player.\n \n&6>> &eClick: Approve'
+          reject: 'INK_SACK:1 : 1 : name>&cReject : desc>&7Reject this report.\n \n&6>>
+            &eClick: Reject'
+          replay: 'ENDER_EYE : 1 : name>&dWatch Replay : desc>&7Open the attached
+            replay (if any).\n \n&6>> &eRight-Click: Controls'
+          history: 'BOOK : 1 : name>&eDetails : desc>&7Reporter: &f{reporter}\n&7Reason:
+            &f{reason}\n&7Server: &f{server}\n \n&6>> &eClick: History'
+        history:
+          title: '&8Reports for &c{player}'
+          entry: 'PAPER : 1 : name>&6Report #{id} : desc>&7Reporter: &f{reporter}\n&7Reason:
+            &f{reason}\n&7Date: &f{date}\n&7Server: &f{server}\n&7Status: &e{status}'
+          empty: 'BARRIER : 1 : name>&cNo reports on this player.'
+        list:
+          title: '&8Active Reports'
+          items:
+            filler: 'STAINED_GLASS_PANE:7 : 1 : name>&r'
+            info: 'BOOK : 1 : name>&6Report System : desc>&7Total: &e{total}\n&7Page:
+              &e{page}'
+            approved-button: 'COMPASS : 1 : name>&aApproved Reports : desc>&7View
+              closed reports.'
+            entry: 'SKULL_ITEM:3 : 1 : name>&c{player} : desc>&7ID: &f#{id}\n&7Reporter:
+              &f{reporter}\n&7Reason: &f{reason}\n&7Date: &f{date}\n&7Server: &f{server}\n&7Status:
+              &ePending\n \n&7Health: &f{health}\n&7Food: &f{food}\n&7XP: &fLvl {xp_level}
+              ({xp_progress})\n&7Speed: &f{speed}\n \n&2[+] &aReplay: {record}\n \n&6>>
+              &eLeft-Click: Replay\n&6>> &eRight-Click: Manage'
+            empty: 'BARRIER : 1 : name>&cNo active reports'
+          rows: 6
+          layout:
+            content-slots:
+            - 10
+            - 11
+            - 12
+            - 13
+            - 14
+            - 15
+            - 16
+            - 19
+            - 20
+            - 21
+            - 22
+            - 23
+            - 24
+            - 25
+            - 28
+            - 29
+            - 30
+            - 31
+            - 32
+            - 33
+            - 34
+            - 37
+            - 38
+            - 39
+            - 40
+            - 41
+            - 42
+            - 43
+            filler:
+              slots:
+              - 0
+              - 1
+              - 2
+              - 3
+              - 4
+              - 5
+              - 6
+              - 7
+              - 8
+            controls:
+              info-slot: 49
+              approved-slot: 48
+            navigation:
+              previous:
+                slot: 45
+                item: 'ARROW : 1 : name>&ePrevious Page'
+              next:
+                slot: 53
+                item: 'ARROW : 1 : name>&eNext Page'
+        approved:
+          title: '&8Approved Reports'
+          items:
+            filler: 'STAINED_GLASS_PANE:7 : 1 : name>&r'
+            info: 'BOOK : 1 : name>&6Approved Reports : desc>&7Total: &e{total}\n&7Page:
+              &e{page}'
+            back-button: 'ARROW : 1 : name>&e<- Active Reports'
+            entry: 'SKULL_ITEM:3 : 1 : name>&a{player} : desc>&7ID: &f#{id}\n&7Reporter:
+              &f{reporter}\n&7Reason: &f{reason}\n&7Created: &f{created}\n&7Resolved:
+              &f{resolved}\n&7Server: &f{server}\n&7Approved By: &a{moderator}\n&7Action:
+              &f{action}\n&7Punish Reason: &f{punish_reason}\n&7Duration: &f{duration}\n
+              \n&2[+] &aReplay: {record}\n \n&6>> &eLeft-Click: Replay\n&6>> &eRight-Click:
+              Details'
+            empty: 'BARRIER : 1 : name>&cNo approved reports'
+          rows: 6
+          layout:
+            content-slots:
+            - 10
+            - 11
+            - 12
+            - 13
+            - 14
+            - 15
+            - 16
+            - 19
+            - 20
+            - 21
+            - 22
+            - 23
+            - 24
+            - 25
+            - 28
+            - 29
+            - 30
+            - 31
+            - 32
+            - 33
+            - 34
+            - 37
+            - 38
+            - 39
+            - 40
+            - 41
+            - 42
+            - 43
+            filler:
+              slots:
+              - 0
+              - 1
+              - 2
+              - 3
+              - 4
+              - 5
+              - 6
+              - 7
+              - 8
+            controls:
+              info-slot: 49
+              back-slot: 48
+            navigation:
+              previous:
+                slot: 45
+                item: 'ARROW : 1 : name>&ePrevious Page'
+              next:
+                slot: 53
+                item: 'ARROW : 1 : name>&eNext Page'
+        create:
+          title: '&8Report {target}'
+          items:
+            filler: 'STAINED_GLASS_PANE:7 : 1 : name>&r'
+            empty: 'BARRIER : 1 : name>&cNo reasons configured'
+          confirm:
+            title: '&8Confirm Report'
+            items:
+              filler: 'STAINED_GLASS_PANE:7 : 1 : name>&r'
+              info: 'SKULL_ITEM:3 : 1 : name>&c{target} : desc>&7Reason: &f{reason}\n&7Reporter:
+                &f{reporter}'
+              confirm: 'INK_SACK:10 : 1 : name>&aSubmit Report : desc>&7Click to file
+                the report.'
+              cancel: 'INK_SACK:1 : 1 : name>&cCancel : desc>&7Click to abort.'
+            rows: 3
+            layout:
+              controls:
+                confirm-slot: 14
+                cancel-slot: 12
+                info-slot: 13
+              filler:
+                slots:
+                - 0
+                - 1
+                - 2
+                - 3
+                - 4
+                - 5
+                - 6
+                - 7
+                - 8
+          rows: 3
+          layout:
+            content-slots:
+            - 10
+            - 11
+            - 12
+            - 13
+            - 14
+            - 15
+            - 16
+            - 19
+            - 20
+            - 21
+            - 22
+            - 23
+            - 24
+            - 25
+            filler:
+              slots:
+              - 0
+              - 1
+              - 2
+              - 3
+              - 4
+              - 5
+              - 6
+              - 7
+              - 8
+          reasons:
+            cheating:
+              reason: Cheating / Hacks
+              item: 'IRON_SWORD : 1 : name>&cCheating/Hacks : desc>&7Use if the player
+                is suspected of hacking.'
+            macro:
+              reason: Macro / AutoClicker
+              item: 'BOW : 1 : name>&6Macro/AutoClicker : desc>&7Excessive CPS or
+                macro usage.'
+            bug-abuse:
+              reason: Bug Abuse
+              item: 'REDSTONE_COMPARATOR : 1 : name>&eBug Abuse : desc>&7Taking advantage
+                of glitches or exploits.'
+            griefing:
+              reason: Griefing / Sabotage
+              item: 'FLINT_AND_STEEL : 1 : name>&dGriefing/Sabotage : desc>&7Breaking
+                or sabotaging builds.'
+            scam:
+              reason: Scam / Fraud
+              item: 'EMERALD : 1 : name>&aScam/Fraud : desc>&7Scamming or stealing
+                items.'
+            chat:
+              reason: Chat Offence
+              item: 'BOOK_AND_QUILL : 1 : name>&bChat Offence : desc>&7Insults, spam
+                or profanity in chat.'
+        punish:
+          title: '&8Apply Punishment'
+          actions:
+            ban: 'IRON_AXE : 1 : name>&cBan : desc>&7Ban the player with a custom
+              duration.'
+            mute: 'BLAZE_POWDER : 1 : name>&6Mute : desc>&7Mute the player for chat
+              offences.'
+            warning: 'PAPER : 1 : name>&eWarning : desc>&7Issue a written warning.'
+            kick: 'FEATHER : 1 : name>&bKick : desc>&7Kick the player immediately.'
+            none: 'INK_SACK:8 : 1 : name>&7Mark Reviewed : desc>&7Mark this report
+              as handled without punishment.'
+          prompts:
+            reason-title: '&7Enter reason'
+            duration-title: '&7Enter duration'
+          success: '&aPunishment applied successfully.'
+      common:
+        filler: 'STAINED_GLASS_PANE:7 : 1 : name>&r'
+        back: 'ARROW : 1 : name>&e<-'
+      credit-voucher:
+        console-only: '&cThis command can only be used in-game.'
+        usage: '{prefix}&eUsage: /creditvoucher <player> <amount>'
+        invalid-amount: '{prefix}&cInvalid amount.'
+        missing-giver-id: '{prefix}&cYour account ID could not be found.'
+        giver-credit-read-failed: '{prefix}&cFailed to read your credit balance.'
+        not-enough-credit: '{prefix}&cYou do not have enough credit.'
+        target-not-found: '{prefix}&cTarget player not found.'
+        deduct-failed: '{prefix}&cUnable to deduct credit.'
+        issued: '{prefix}&aVoucher issued. Removed {amount} credits. Remaining balance:
+          {remaining}.'
+        invalid-data: '{prefix}&cVoucher data is invalid.'
+        target-credit-read-failed: '{prefix}&cCould not read the target credit balance.'
+        target-credit-updated: '{prefix}&aCredit added for {target}. New total: {total}.'
+        target-credit-update-failed: '{prefix}&cUnable to update target credit.'
+        confirm:
+          title: '&8Credit Voucher Confirmation'
+      auctions:
+        only-player: '&cOnly players can use this command.'
+        buy:
+          unavailable: '{prefix}&cThis auction is no longer available.'
+          invalid-id: '{prefix}&cInvalid auction ID.'
+          error: '{prefix}&cAn error occurred while opening that auction.'
+        submit:
+          usage: '{prefix}&cUsage: /{label} <credits> or /{label} approve <id>'
+          no-permission: '{prefix}&cYou do not have permission to create auctions.'
+          invalid-cost: '{prefix}&cInvalid credit amount.'
+          no-item: '{prefix}&cYou must hold an item to create an auction.'
+          success: '{prefix}&aAuction request created (ID: {id}, x{amount}).'
+          error: '{prefix}&cAn error occurred while submitting the auction.'
+        approve:
+          no-permission: '{prefix}&cYou do not have permission to approve auctions.'
+          invalid-id: '{prefix}&cInvalid auction ID.'
+          not-found: '{prefix}&cAuction not found (ID: {id}).'
+          error: '{prefix}&cAn error occurred while approving the auction.'
+          quantity: ' x{amount}'
+          broadcast: '&aAuction started: &f{title}{quantity} '
+          button: '&a[BUY]'
+          hover:
+          - '&7Price: &e{price} credits'
+          - '&7Amount: &e{amount}'
+          - '&7Description: &f{description}'
+        give:
+          invalid-sender: '{prefix}&cOnly players or the console can run this command.'
+          usage: '{prefix}&cUsage: /{label} <player> <auctionId>'
+          offline: '{prefix}&cPlayer is offline or not found: {target}.'
+          invalid-id: '{prefix}&cAuction ID must be a whole number: {input}.'
+          fetching: '{prefix}&eFetching auction data...'
+          database-error: '{prefix}&cDatabase error: {error}'
+          not-owned: '{prefix}&cNo purchase found for auction ID {id}.'
+          deserialize-error: '{prefix}&cUnable to read item data: {error}'
+          delivered: '{prefix}&a{target} received auction item &b#{id}&a.'
+      notify:
+        new: '&eNew auction request [{id}] {title}{quantity} '
+        button: '&a[APPROVE]'
+        hover:
+        - '&7Click to approve this auction.'
+      fake:
+        only-player: '{prefix}&cOnly players can use this command.'
+        no-permission: '{prefix}&cYou do not have permission to use this command.'
+        in-game: '{prefix}&cYou cannot use this command while in a game.'
+        not-disguised: '{prefix}&cYou are not currently disguised.'
+        names-unavailable: '{prefix}&cNo disguise names are currently available.'
+        list:
+          header:
+          - '&6&m----------------------------'
+          - '&2'
+          - '&6&lActive Disguise Names'
+          - '&2'
+          footer:
+          - '&2'
+          - '&6&m----------------------------'
+          entry: '&c{name} &2-> &azcorefakereal:{name}'
+          empty: '&cNo players are currently using disguise names.'
+      credit:
+        balance: '{prefix}&b{player} &ehas &6{amount} &ecredits.'
+        no-permission: '{prefix}&cYou do not have permission to use this command.'
+        invalid-amount: '{prefix}&cAmount must be a positive integer.'
+        set: '{prefix}&aSet {player}''s balance to &6{amount}&e.'
+        add: '{prefix}&aAdded &6{amount}&e credits to {player}.'
+        remove: '{prefix}&aRemoved &6{amount}&e credits from {player}.'
+        error: '{prefix}&cError: {error}'
+        usage:
+        - '&6&m----------------------------'
+        - '&2'
+        - '&e&lCredit System'
+        - '&2'
+        - '&e/credit [player] &2- &fShows the player''s balance.'
+        - '&e/credit set [player] [amount] &2- &fSets the player''s balance.'
+        - '&e/credit add [player] [amount] &2- &fAdds credits to the player.'
+        - '&e/credit remove [player] [amount] &2- &fRemoves credits from the player.'
+        - '&2'
+        - '&6&m----------------------------'
+      message:
+        only-player: '{prefix}&cOnly players can use this command.'
+        usage: '{prefix}&cUsage: /{label} <player> <message>'
+        offline: '{prefix}&cThat player is not online.'
+        sent: '&3Message &8->> &f[to {target}] &7{message}'
+        received: '&3Message &8->> &f[{sender}] &7{message}'
+      deliveries:
+        icon:
+          permission-denied: |2-
+
+            &4&l! &cOnly players with the required permission can claim this reward.
+          cooldown: "\n&7 &8- &fTime left: &e{time}\n \n&4&l! &cWait until the cooldown\
+            \ expires to claim again."
+          ready: |2-
+
+            &6&l! &eClick to collect this reward.
+      profile:
+        only-player: '{prefix}&cOnly players can use this command.'
+        not-found: '{prefix}&cProfile data could not be found.'
+        title: '&8Profile &0&l> &8Overview'
+        items:
+          player-info:
+            slot: 4
+            item: "SKULL_ITEM:3 : 1 : name>&e&l{player} : desc>\n&8- &fRank: &b{role}\n\
+              &8- &fCredits: &6{credits}\n&8- &fMystery Fragments: &d{fragments}\n\
+              &8- &fMystery Boxes: &b{boxes}\n \n&8- &fFirst Login: &f{first_login}\n\
+              &8- &fLast Login: &f{last_login}"
+          close:
+            slot: 49
+            item: '324 : 1 : name>&cClose'
+          preferences:
+            slot: 19
+            item: |-
+              404 : 1 : name>&4&lSettings : desc>&8[Player Preferences]
+
+              &fConfigure personal settings across the network.
+
+              &8- &7Player Visibility: {player_visibility}
+              &8- &7Private Messages: {private_messages}
+              &8- &7Hit Effect: {blood_effect}
+              &8- &7Transfer Countdown: {lobby_protection}
+
+              &4&l-> &cClick to open.
+          titles:
+            slot: 20
+            item: |-
+              323 : 1 : name>&3&lTitles : desc>&8[Chat Prefixes]
+
+              &fUnlock rare titles to showcase after your name in chat.
+
+              &3&l-> &9Click to open.
+          boosters:
+            slot: 22
+            item: |-
+              384 : 1 : name>&d&lBoosters : desc>&8[Coin Booster]
+
+              &fMultiply the rewards you earn with active boosters.
+
+              &5&l-> &dClick to open.
+          deliveries:
+            slot: 24
+            item: |-
+              407 : 1 : name>&2&lDaily Rewards : desc>&8[Timed Rewards]
+
+              &fClaim time-based rewards from this courier.
+
+              &2&l-> &aClick to open.
+          store:
+            slot: 25
+            item: |-
+              EMERALD : 1 : name>&a&lStore : desc>&8[Cosmetics & Packages]
+
+              &fBrowse purchasable items and categories.
+
+              &a&l-> &2Click to open.
+          level:
+            slot: 29
+            item: |-
+              158 : 1 : name>&5&lLevel : desc>&8[Ranks]
+
+              &fSpend earned experience to advance your level.
+
+              &8- &7Current Level: {level}
+
+              &5&l-> &dClick to open.
+          last-credits:
+            slot: 30
+            item: |-
+              BOOKSHELF : 1 : name>&6&lLatest Top-Ups : desc>&8[Credit Activity]
+
+              &fSee the most recent players who loaded credits.
+
+              &6&l-> &eClick to open.
+          language:
+            slot: 31
+            item: |-
+              380 : 1 : name>&3&lLanguage : desc>&8[Translation]
+
+              &fChoose the language you prefer to use in game.
+
+              &8- &7Current: {language}
+
+              &3&l-> &9Click to open.
+          vip-color:
+            status:
+              default: '&7Default'
+            data:
+              slot: 32
+              item: |-
+                357 : 1 : name>&4&lVIP Color : desc>&8[Name Colors]
+
+                &fChoose the colour applied to your chat name.
+
+                &8- &fSelected Color: {selected_color}
+
+                &4&l-> &cClick to open.
+          social:
+            slot: 33
+            item: |-
+              379 : 1 : name>&2&lSocial Media : desc>&8[Links]
+
+              &fManage the social media links visible to other players.
+
+              &2&l-> &aClick to open.
+        titles:
+          title: '&8Profile &0&l> &8Titles'
+    support:
+      prefix: '&dSupport &8>> '
+      general:
+        cancelled: '{prefix}&eAction cancelled.'
+      error:
+        account-missing: 'Linked web account could not be found.'
+        ticket-already-open: 'You already have an open support ticket (#{id}).'
+        no-active-ticket: 'You do not have an active support ticket.'
+      status:
+        online: '&aonline'
+        offline: '&coffline'
+      command:
+        console-only: '&cOnly players can use this command.'
+        no-permission: '{prefix}&cYou do not have permission to do that.'
+        error:
+          invalid-id: '{prefix}&cInvalid ticket id.'
+        reply:
+          usage: '{prefix}&cUsage: /support reply <message>'
+          sent: '{prefix}&aYour reply has been sent. Support will respond soon.'
+          error: '{prefix}&cCould not send reply: {error}'
+        close:
+          staff:
+            success: '{prefix}&aTicket #{id} has been closed.'
+            error: '{prefix}&cUnable to close ticket: {error}'
+          player:
+            success: '{prefix}&aYour ticket has been closed.'
+            error: '{prefix}&cUnable to close ticket: {error}'
+        view:
+          not-found: '{prefix}&cNo support ticket found.'
+          error: '{prefix}&cUnable to load ticket: {error}'
+          title-unknown: 'No title'
+          header: '{prefix}&dSupport #{id} &7- &f{title}'
+          status: '{prefix}&7Status: &f{status} &8| &7Created: &f{created}'
+          initial: '{prefix}&6Initial message: &f{message}'
+          no-messages: '{prefix}&7No replies yet.'
+          message: '{prefix}&3{author}&7: &f{message}'
+          reply:
+            label: '&a[Send Reply]'
+            hover: '&7Write a reply to support.'
+          author:
+            customer-missing: 'Customer'
+            customer: '&e{display}'
+            staff-missing: 'Support'
+            staff: '&b{display}'
+        respond:
+          usage: '{prefix}&cUsage: /support respond <id> <message>'
+          success: '{prefix}&aReply sent for ticket #{id}.'
+          error: '{prefix}&cCould not send reply: {error}'
+        ban:
+          usage: '{prefix}&cUsage: /support ban <id>'
+          success: '{prefix}&aTicket #{id} is now banned from creating new requests.'
+          error: '{prefix}&cUnable to apply ban: {error}'
+        staff:
+          summary: '{prefix}&d#{id} &7[{status}&7] &f{title}'
+        help:
+          centered:
+            player:
+              - '&6&m----------------------------'
+              - '&2'
+              - '&e&lSupport System'
+              - '&2'
+              - '&e/support create &2- &fOpen a new support ticket.'
+              - '&e/support reply <message> &2- &fReply to your ticket.'
+              - '&e/support view &2- &fShow your ticket conversation.'
+              - '&e/support close &2- &fClose your active ticket.'
+              - '&2'
+              - '&6&m----------------------------'
+            staff:
+              - '&e/support list [all] &2- &fOpen the staff ticket panel.'
+              - '&e/support view <id> &2- &fInspect a specific ticket.'
+              - '&e/support respond <id> <message> &2- &fSend a staff reply.'
+              - '&e/support close <id> &2- &fClose a ticket.'
+            staff-ban:
+              - '&e/support ban <id> &2- &fPrevent new tickets from that user.'
+      create:
+        menu-open: '{prefix}&7Select a category from the menu. Type ''cancel'' to abort.'
+        title-too-short: '{prefix}&cPlease enter a longer title (minimum 3 characters).'
+        title-prompt: '{prefix}&7Please write the ticket title. Type ''cancel'' to abort.'
+        message-prompt: '{prefix}&7Please write the ticket message. Type ''cancel'' to abort.'
+        message-too-short: '{prefix}&cPlease enter a longer message (minimum 3 characters).'
+        menu:
+          title: '&5Support Categories'
+        category-item:
+          name: '&b{category}'
+          lore:
+          - '&7Create a ticket in this category.'
+          - '&eClick to continue.'
+        categories-empty: '{prefix}&cNo support categories are available.'
+        categories-load-fail: '{prefix}&cUnable to load support categories. Please try again later.'
+        category-selected: '{prefix}&aSelected category: &f{category}'
+        category-missing: '{prefix}&cThat category is no longer available.'
+        default-title: '{player} - Minecraft Support'
+        submitting: '{prefix}&eCreating your ticket...'
+        created: '{prefix}&aTicket created (#{id}).'
+        error: '{prefix}&cTicket could not be created: {error}'
+        cancel:
+          name: '&cCancel'
+          lore:
+          - '&7Close the menu.'
+      player:
+        awaiting-response: '{prefix}&aA new reply is available. Use /support view.'
+        staff-response-notice: '{prefix}&aSupport replied. Use /support view to read it.'
+        staff-message-line: '{prefix}&dSupport &8#{id} &7({author}): &f{text}'
+        reply-button:
+          label: '{prefix}&aClick to continue [Write Message]'
+          hover: '&7Send a quick reply to support.'
+      staff:
+        panel:
+          load-fail: '{prefix}&cSupport panel could not be opened. Please try again.'
+          menu-title: '&8Support Tickets'
+          menu-title-all: '&5Support Tickets (All)'
+          nav:
+            previous:
+              slot: 45
+              material: 'ARROW'
+              name: '&e<< Previous Page'
+              lore:
+                - '&7Page: &f{current}/{pages}'
+                - '&7Target: &f{target}'
+              disabled-lore:
+                - '&8No previous page.'
+            next:
+              slot: 53
+              material: 'ARROW'
+              name: '&aNext Page >>'
+              lore:
+                - '&7Page: &f{current}/{pages}'
+                - '&7Target: &f{target}'
+              disabled-lore:
+                - '&8No next page.'
+          create:
+            slot: 49
+            material: 'BOOK'
+            name: '&dCreate Support Ticket'
+            lore:
+              - '&7Open the ticket creation flow.'
+          empty:
+            name: '&6No tickets to show'
+            lore:
+            - '&7Waiting for new tickets.'
+          ticket:
+            material: 'PAPER'
+            name: '&d#{id}&f {title}'
+            staff-active: '&7Moderator: &aactive'
+            unread: '&cUnread staff responses!'
+            lore:
+            - '&7Category: &e{category}'
+            - '&7Player: &b{player} &7({player_status})'
+            - '{staff_state}'
+            - '&7Status: &b{status}'
+            - '&7Updated: &b{updated}'
+            - '{unread}'
+            - '&eClick to view details.'
+        detail:
+          load-fail: '{prefix}&cTicket details could not be loaded. Please try again.'
+          menu-title: '&5Support #{id}'
+          info:
+            name: '&dTicket Info'
+            lore:
+            - '&7Title: &f{title}'
+            - '&7Category: &e{category}'
+            - '&7Status: &b{status}'
+            - '&7Created: &b{created}'
+            - '&7Updated: &b{updated}'
+            - '&7Player: &b{player}'
+          messages:
+            name: '&bView Messages'
+            lore:
+            - '&eOpen the conversation in chat.'
+          reply:
+            name: '&aSend Reply'
+            lore:
+            - '&eWrite a response in chat.'
+          close:
+            name: '&cClose Ticket'
+            lore:
+            - '&7Close the ticket.'
+          back:
+            name: '&6Back'
+            lore:
+            - '&7Return to the list.'
+          ban:
+            name: '&4Ban User'
+            lore:
+            - '&7Prevent further tickets from this user.'
+        ticket-missing: '{prefix}&cTicket could not be found.'
+        response:
+          prompt: '{prefix}&aType your response in chat. Use ''cancel'' to abort.'
+          sending: '{prefix}&eSending response...'
+          success: '{prefix}&aResponse sent.'
+          error: '{prefix}&cResponse could not be delivered: {error}'
+        close:
+          sending: '{prefix}&eClosing ticket...'
+          success: '{prefix}&aTicket closed.'
+          error: '{prefix}&cTicket could not be closed: {error}'
+        ban:
+          sending: '{prefix}&eApplying ban...'
+          success: '{prefix}&aThe user can no longer open tickets.'
+          error: '{prefix}&cBan failed: {error}'
+        broadcast: '{prefix}&dSupport &8#{id} &7> &f{preview}'
+        alert:
+          message: '{prefix}&dSupport &8#{id} &7({status}) '
+          buttons:
+            view:
+              label: '&a[View]'
+              hover: '&7View the ticket.'
+            respond:
+              label: '&b[Reply]'
+              hover: '&7Write a response.'
+            close:
+              label: '&c[Close]'
+              hover: '&7Close the ticket.'
+            ban:
+              label: '&4[Ban]'
+              hover: '&7Prevent new tickets.'
+    sale:
+        no-permission: '{prefix}&cYou do not have permission to use this command.'
+        usage-add: '{prefix}&cUsage: /{label} add <player> <product>'
+        updated: '{prefix}&aLast sale updated: &b{player} &7-> &b{product}'
+        cleared: '{prefix}&aLast sale cleared.'
+        unknown: '{prefix}&cUnknown sub-command.'
+        display:
+          header:
+          - '&6&m----- Last Sale -----'
+          empty: '&cNo sales have been recorded yet.'
+          buyer: '&ePlayer: &b{buyer}'
+          product: '&eProduct: &b{product}'
+          footer:
+          - '&6&m-----------------------'
+
+
