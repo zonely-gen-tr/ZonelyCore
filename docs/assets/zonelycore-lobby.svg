@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="567" viewBox="0 0 1200 567" role="img" aria-labelledby="title desc">
+<title id="title">Lobi ve oyuncu profilleri</title>
+<desc id="desc">Menü açan NPC&#x27;ler: 8 menü türü; özel isim, skin ve hologram. Hologramlar ve kredi sıralamaları: Kredi verileri ve PlaceholderAPI değerleri. Web profili: Hesap, kredi, mağaza ve ödüller tek menüde. Gruplar ve yetkiler: Rol bilgileri ve yetkilere bağlı erişim. Unvanlar, booster ve lig görünümü: Profil menüleri; isteğe bağlı AlonsoLeagues. Sohbet renkleri: Yetkiye göre menüden renk seçimi. Disguise / farklı kimlik: Oyun içinde farklı isim, rol ve skin kullan.</desc>
+<rect width="1200" height="567" fill="#C84B0C"/>
+<g fill="#fff" font-family="Segoe UI,Arial,sans-serif">
+<text x="52" y="70" font-size="36" font-weight="700">Lobi ve oyuncu profilleri</text>
+<text x="52" y="139" font-size="24" font-weight="700">Menü açan NPC&#x27;ler</text>
+<text x="52" y="173" font-size="20">8 menü türü; özel isim, skin ve hologram.</text>
+<text x="612" y="139" font-size="24" font-weight="700">Hologramlar</text>
+<text x="612" y="173" font-size="20">Kredi verileri ve PlaceholderAPI değerleri.</text>
+<text x="52" y="247" font-size="24" font-weight="700">Web profili</text>
+<text x="52" y="281" font-size="20">Hesap, kredi, mağaza ve ödüller tek menüde.</text>
+<text x="612" y="247" font-size="24" font-weight="700">Gruplar ve yetkiler</text>
+<text x="612" y="281" font-size="20">Rol bilgileri ve yetkilere bağlı erişim.</text>
+<text x="52" y="355" font-size="24" font-weight="700">Unvan, booster ve lig</text>
+<text x="52" y="389" font-size="20">Profil menüleri; isteğe bağlı AlonsoLeagues.</text>
+<text x="612" y="355" font-size="24" font-weight="700">Sohbet renkleri</text>
+<text x="612" y="389" font-size="20">Yetkiye göre menüden renk seçimi.</text>
+<text x="52" y="463" font-size="24" font-weight="700">Disguise / farklı kimlik</text>
+<text x="52" y="497" font-size="20">Oyun içinde farklı isim, rol ve skin kullan.</text>
+</g></svg>

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+<title id="title">Hesap ve güvenlik</title>
+<desc id="desc">Web hesabıyla giriş ve kayıt: Web hesabını oyun girişinde de kullan. Otomatik giriş: IP ve süre koşullarına göre oturum aç. Bossbar yönlendirmeleri: Giriş ve doğrulama adımlarını ekranda göster. E-posta doğrulama: Adres tanımlama ve doğrulama e-postaları. E-posta değiştirme: Yeni adresi tanımla ve doğrulamayı tamamla. İki aşamalı doğrulama — TOTP: Doğrulayıcı uygulama ve kurtarma kodları. Şifre sıfırlama: Süreli bağlantıyla web üzerinden şifre yenile. BungeeCord aktarımı: Girişten sonra hedef sunucuya yönlendirme. Launcher doğrulaması: ZonelyLauncher oturumu ile erişim kontrolü.</desc>
+<rect width="1200" height="675" fill="#C84B0C"/>
+<g fill="#fff" font-family="Segoe UI,Arial,sans-serif">
+<text x="52" y="70" font-size="36" font-weight="700">Hesap ve güvenlik</text>
+<text x="52" y="139" font-size="24" font-weight="700">Giriş ve kayıt</text>
+<text x="52" y="173" font-size="20">Web hesabını oyun girişinde de kullan.</text>
+<text x="612" y="139" font-size="24" font-weight="700">Otomatik giriş</text>
+<text x="612" y="173" font-size="20">IP ve süre koşullarına göre oturum aç.</text>
+<text x="52" y="247" font-size="24" font-weight="700">Bossbar yönlendirmeleri</text>
+<text x="52" y="281" font-size="20">Giriş ve doğrulama adımlarını ekranda göster.</text>
+<text x="612" y="247" font-size="24" font-weight="700">E-posta doğrulama</text>
+<text x="612" y="281" font-size="20">Adres tanımlama ve doğrulama e-postaları.</text>
+<text x="52" y="355" font-size="24" font-weight="700">E-posta değiştirme</text>
+<text x="52" y="389" font-size="20">Yeni adresi tanımla ve doğrulamayı tamamla.</text>
+<text x="612" y="355" font-size="24" font-weight="700">İki aşamalı doğrulama</text>
+<text x="612" y="389" font-size="20">Doğrulayıcı uygulama ve kurtarma kodları.</text>
+<text x="52" y="463" font-size="24" font-weight="700">Şifre sıfırlama</text>
+<text x="52" y="497" font-size="20">Süreli bağlantıyla web üzerinden şifre yenile.</text>
+<text x="612" y="463" font-size="24" font-weight="700">BungeeCord aktarımı</text>
+<text x="612" y="497" font-size="20">Girişten sonra hedef sunucuya yönlendirme.</text>
+<text x="52" y="571" font-size="24" font-weight="700">Launcher doğrulaması</text>
+<text x="52" y="605" font-size="20">ZonelyLauncher oturumu ile erişim kontrolü.</text>
+</g></svg>

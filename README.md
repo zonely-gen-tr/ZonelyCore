@@ -1,259 +1,41 @@
-# ZonelyCore
+![ZonelyCore](docs/assets/zonelycore-cover.svg)
 
-**Minecraft sunucun ile Zonely web panelin arasında tek bağlantı.**
+Minecraft sunucun ile Zonely web panelini bağla; mağaza, hesaplar, oyuncular ve turnuvaları birlikte yönet.
 
-ZonelyCore; web mağazasını, oyuncu hesaplarını, kredileri, destek taleplerini ve yönetim araçlarını oyun içine taşır. Oyuncu sitedeki hesabıyla giriş yapar, aynı kredi bakiyesiyle alışveriş yapar ve satın aldığı ürünü ilgili sunucuda teslim alır. Yetkililer raporları, cezaları ve destek taleplerini oyun içinden takip edebilir.
+[JAR indir](https://github.com/zonely-gen-tr/ZonelyCore/releases/latest) · [Kurulum](docs/KURULUM.md) · [Mağaza](docs/MAGAZA.md) · [API](docs/ZonelyCoreAPI.md) · [SpigotMC](https://www.spigotmc.org/resources/zonelycore-one-core-for-minecraft.129652/) · [Destek](https://github.com/zonely-gen-tr/ZonelyCore/issues)
 
-Lobi NPC'lerinden turnuva maçlarına, e-posta doğrulamasından launcher girişine kadar farklı sistemler aynı çekirdekte toplanır. Menü metinleri, açıklamalar ve mesajlar dil dosyasından düzenlenebilir; kullanılmayan modüller yapılandırmadan kapatılabilir.
+![Mağaza, kredi ve ödüller](docs/assets/zonelycore-store.svg)
 
-[JAR indir](https://github.com/zonely-gen-tr/ZonelyCore/releases/latest) · [Kurulum](docs/KURULUM.md) · [Mağaza rehberi](docs/MAGAZA.md) · [Geliştirici API](docs/ZonelyCoreAPI.md) · [SpigotMC](https://www.spigotmc.org/resources/zonelycore-one-core-for-minecraft.129652/) · [Destek](https://github.com/zonely-gen-tr/ZonelyCore/issues)
+![Hesap ve güvenlik](docs/assets/zonelycore-accounts.svg)
 
-## Sistemler
+![Lobi ve oyuncu profilleri](docs/assets/zonelycore-lobby.svg)
 
-### Mağaza, kredi ve ödüller
+![Topluluk ve yönetim](docs/assets/zonelycore-community.svg)
 
-**Web mağazası**
+![Kulüpler ve turnuvalar](docs/assets/zonelycore-esports.svg)
 
-Panelde oluşturulan kategoriler, alt kategoriler ve ürünler oyun içi menülerde gösterilir. Oyuncular site kredileriyle alışveriş yapabilir. Ürün adı, açıklaması, seçenekleri ve oyun içindeki görünürlüğü panel üzerinden yönetilir; uzun açıklamalar lore satırlarına bölünür.
+![Web ve entegrasyonlar](docs/assets/zonelycore-integration.svg)
 
-**Ürün seçenekleri ve paketler**
+[Sistemlerin ayrıntıları](docs/SISTEMLER.md)
 
-Bir ürünün farklı seçenekleri ayrı fiyat ve stok bilgileriyle sunulabilir. Paket ürünler tek satın alma altında işlenir. Satın alma sırasında güncel fiyat, stok ve teslimat koşulları kontrol edilir; bakiye ve sipariş kayıtları birlikte oluşturulur.
+![19 dil desteği](docs/assets/zonelycore-languages.svg)
 
-**Sunucular arası teslimat**
+Varsayılan dil: `tr_TR`. Dil ve metinler `languages.yml` dosyasından düzenlenir.
 
-Ürünün hangi sunucularda, hangi konsol komutlarıyla verileceği panelden belirlenir. Yalnızca alışverişin yapıldığı sunucuya teslimat yapılabilir veya seçilen diğer sunuculara da gönderilebilir. Hedef sunucu kapalıysa teslimat kuyrukta bekler; çevrimiçi oyuncu şartı açıksa oyuncu o sunucuya girince işlenir.
+## Kurulum
 
-**Kredi yönetimi**
+Zonely web paneli, MySQL/MariaDB, ProtocolLib ve PlaceholderAPI gerekir.
 
-Oyuncular kredi bakiyelerini oyun içinden görebilir. Yetkililer başka bir oyuncunun bakiyesini sorgulayabilir, kredi ekleyebilir, çıkarabilir veya belirli bir tutara ayarlayabilir. Mağaza ve açık artırma işlemleri aynı kredi sistemiyle çalışır.
+1. [JAR'ı indir](https://github.com/zonely-gen-tr/ZonelyCore/releases/latest) ve `plugins/` klasörüne koy.
+2. `config.yml` içine panel veritabanını ve bu sunucunun `web-token` değerini yaz.
+3. Kullanacağın modülleri etkinleştir, panelde ürün ve komutları eşleştir; sunucuyu yeniden başlat.
 
-**Kredi kuponları**
+Test ortamı: **Paper 1.20.4 · Java 21 · ProtocolLib 5.4.0 · PlaceholderAPI 2.11.6**.
 
-Krediler, başka bir oyuncuya verilebilen kupon eşyalarına dönüştürülebilir. Kupon oluşturulurken ilgili bakiye düşülür; kupon kullanıldığında kredi alıcıya aktarılır. Böylece kredi paylaşımı oyun içi bir eşya üzerinden yapılabilir.
-
-**Açık artırma**
-
-Oyuncular ellerindeki eşyayı kredi karşılığında satışa çıkarabilir. Açık artırma menüsünden ilanlar incelenebilir; satılan ve satın alınan eşyalar ayrı ekranlardan takip edilebilir. Panel ve oyun aynı açık artırma kayıtlarını kullanır.
-
-**Zamanlı ödüller**
-
-Oyuncular uygun oldukları ödülleri teslimat menüsünden alabilir. Ödülün yetki ve bekleme süresi koşulları kontrol edilir. Alınabilecek ödüller profil menüsünde veya ödül NPC'si üzerinden gösterilebilir.
-
-**Son kredi yüklemeleri**
-
-Kredi yükleyen oyuncular menüden görüntülenebilir. Son işlemler ile günlük, aylık, yıllık ve tüm zamanlara ait sıralamalar ayrı kategorilerde incelenebilir. Aynı veriler lobi hologramlarında ve PlaceholderAPI üzerinden de kullanılabilir.
-
-### Hesap, giriş ve doğrulama
-
-**Web hesabıyla giriş ve kayıt**
-
-Oyuncular web panelinde oluşturdukları hesapla sunucuya giriş yapabilir; oyun içinden kayıt akışını da kullanabilir. Giriş tamamlanana kadar uygulanacak kısıtlamalar, deneme sınırları ve süreler yapılandırılabilir.
-
-**Otomatik giriş**
-
-Başarılı bir girişin ardından oturum, yapılandırılan süre ve IP koşullarına göre yeniden kullanılabilir. Aynı IP ile giriş, süre sınırı ve oturum geri yükleme davranışı ayrı ayarlarla yönetilir.
-
-**Bossbar yönlendirmeleri**
-
-Giriş, kayıt ve doğrulama adımlarında oyuncuya bossbar üzerinden bilgi verilir. Oyuncu hangi işlemi tamamlaması gerektiğini oyun ekranında takip edebilir; ilgili metinler dil dosyasından düzenlenir.
-
-**E-posta doğrulama**
-
-Oyuncu e-posta adresini oyun içinden tanımlayabilir ve doğrulama durumunu sorgulayabilir. Doğrulama e-postası, yeniden gönderme süresi ve hatırlatmalar yapılandırılabilir. E-posta göndermek için ilgili posta ayarlarının hazır olması gerekir.
-
-**E-posta değiştirme**
-
-Adres güncelleme işlemleri doğrulama akışı üzerinden yürütülür. Oyuncu yeni adresi tanımlayıp kendisine gönderilen doğrulamayı tamamlayabilir; e-posta ve hesap işlemleri panel kayıtlarıyla birlikte çalışır.
-
-**İki aşamalı doğrulama — TOTP**
-
-Oyuncu hesabına doğrulayıcı uygulama üzerinden tek kullanımlık kod ekleyebilir. Kurulum, onaylama, giriş kodu, devre dışı bırakma ve kurtarma işlemleri `/2fa` komutlarıyla yönetilir. Kod süresi ve girişte zorunlu tutulması yapılandırılabilir.
-
-**Şifre sıfırlama**
-
-Oyuncu `/passwordreset` ile şifre sıfırlama akışını başlatabilir. Süresi sınırlı bir bağlantı üzerinden web sitesine yönlendirilir ve yeni şifresini panelde belirler. Kullanılacak site adresi ve sıfırlama yolu ayarlanabilir.
-
-**BungeeCord aktarımı**
-
-Giriş veya kayıt tamamlandığında oyuncu, proxy üzerinde tanımlı hedef sunucuya gönderilebilir. Otomatik geri yüklenen oturumlarda aktarım yapılıp yapılmayacağı ve aktarım gecikmesi ayrıca seçilebilir.
-
-**Launcher doğrulaması**
-
-Sunucuya erişim, yapılandırılan ZonelyLauncher doğrulamasına bağlanabilir. Geçerli launcher oturumu bulunmayan bağlantılar için giriş davranışı ve bilgilendirme ayarlanabilir. Bu özellik ayrı launcher ve web API yapılandırması gerektirir.
-
-### Lobi, profiller ve kişiselleştirme
-
-**Menü açan NPC'ler**
-
-Profil, mağaza, açık artırma, son krediler, raporlar, ödüller, destek ve turnuva menüleri için NPC oluşturulabilir. Aynı türden birden fazla NPC farklı kimliklerle yerleştirilebilir. İsim, görünüm, skin ve üzerindeki hologram satırları özelleştirilebilir.
-
-**Hologramlar ve kredi sıralamaları**
-
-Son kredi yüklemeleri ve sıralamalar lobi içinde gösterilebilir. Adlandırılmış hologramlar farklı konumlara yerleştirilebilir; desteklenen tıklama akışından ilgili kredi menüsüne ulaşılabilir. PlaceholderAPI değerleri hologram metinlerinde kullanılabilir.
-
-**Web profili**
-
-Oyuncunun panel hesabına bağlı bilgileri oyun içi profil ekranında gösterilir. Kredi bakiyesi, mağaza, zamanlı ödüller ve son yüklemeler gibi alanlara tek menüden erişilebilir. Menü öğeleri ve açıklamaları dil dosyası üzerinden düzenlenebilir.
-
-**Gruplar ve yetkiler**
-
-Oyuncu grupları, yetki düğümleri üzerinden sunucudaki yetki sistemiyle birlikte kullanılabilir. Grup adı ve rol bilgileri menülerde, oyuncu gösterimlerinde ve yer tutucularda kullanılabilir. Mağaza veya yönetim erişimi ilgili yetkilerle sınırlandırılır.
-
-**Unvanlar, booster ve lig görünümü**
-
-Unvan ve booster sistemleri için profil menüleri bulunur. Lig ekranı AlonsoLeagues entegrasyonuyla yapılandırılabilir; lig kimlikleri ve gösterim ayarları ilgili eklentiyle eşleştirilir. Bu entegrasyonlar kendi bağımlılıklarıyla birlikte kullanılır.
-
-**Sohbet renkleri**
-
-Yetkisi olan oyuncular sohbet renklerini menüden seçebilir. Seçilen renk oyuncunun sohbet gösterimine uygulanır; menüdeki seçenek ve açıklamalar özelleştirilebilir.
-
-**Disguise / farklı kimlik**
-
-Yetkili oyuncular isim, rol ve skin seçimleriyle oyun içinde farklı bir kimlik kullanabilir. Kimlik seçimi ve listeleme akışları ilgili menüler ve komutlarla yönetilir. Görünüm metinleri dil desteğiyle düzenlenebilir.
-
-### Topluluk, destek ve yönetim
-
-**Arkadaş sistemi**
-
-Oyuncular arkadaşlık isteği gönderebilir, gelen isteği kabul veya reddedebilir ve arkadaş listesini menüden açabilir. Arkadaş kaldırma ve arkadaşlara özel mesaj gönderme komutları bulunur. Arkadaş sayısı sınırı sunucu ayarından değiştirilebilir.
-
-**Canlı destek talepleri**
-
-Oyuncular paneldeki destek kategorilerini kullanarak oyun içinden talep açabilir. Yetkililer talepleri listeleyebilir, cevaplayabilir, kapatabilir ve destek erişimini yönetebilir. Web sitesindeki ve oyun içindeki mesajlar aynı talep kayıtlarında tutulur.
-
-**Oyuncu raporları**
-
-Oyuncular kural ihlallerini `/report` ile bildirebilir. Yetkililer raporları ayrı bir menüde inceleyebilir, oyuncu ve olay bilgilerine ulaşabilir ve ilgili yönetim işlemlerini başlatabilir.
-
-**Replay inceleme**
-
-Rapor sistemindeki kayıtlar replay araçlarıyla incelenebilir. Yetkililer kaydı izleyerek olayın akışını değerlendirebilir; rapor ve ceza araçlarını birlikte kullanabilir. Kayıt ve oynatma davranışı rapor/replay modülünün ayarlarına bağlıdır.
-
-**Ceza yönetimi**
-
-Ban, IP ban, mute ve uyarı işlemleri komut veya menü üzerinden uygulanabilir. Süre ve sebep girilebilir; oyuncunun geçmiş cezaları görüntülenebilir. Ceza kayıtları web panelinde de yönetilebilir.
-
-**Sohbet filtreleri**
-
-Yasaklı kelimeler ve reklam içeriği için filtreler tanımlanabilir. Reklam anahtarları, küfür listeleri ve uygulanacak susturma süreleri yapılandırılır. Tekrarlanan ihlaller için farklı süreler belirlenebilir.
-
-**Oyuncu analizi ve etkinlik kayıtları**
-
-Oyuncuların oyun süresi ve günlük etkinlikleri panel istatistikleri için kaydedilebilir. Sohbet ve komut etkinliklerinin tutulması, verilerin ne sıklıkla yazılacağı ve saklama süresi ayrı ayarlarla yönetilir.
-
-### E-spor, kulüpler ve turnuvalar
-
-**Kulüp yönetimi**
-
-Kulüp oluşturma, isim/etiket, üyeler, yönetim ve banner tasarımı için oyun içi ekranlar bulunur. Kulüpler turnuva kayıtlarında ve maç eşleşmelerinde kullanılır; kulüp durumu ilgili menülerden takip edilebilir.
-
-**Turnuva akışı**
-
-Kayıt, bekleme lobisi, eşleşme, canlı maç, kazanan ve temizlik aşamaları aynı sistemde yönetilir. Turnuvalar menüden oluşturulabilir ve takip edilebilir. Tekrarlama planı, kayıt süresi ve maç ayarları turnuva yapılandırmasına göre belirlenir.
-
-**Maç ve izleyici yönetimi**
-
-Katılımcılar başlangıç noktalarına yerleştirilir, maç durumu takip edilir ve izleyici akışı yönetilir. Maç bitiminde sonuçlar işlenir; ilgili oyuncu ve arena temizliği uygulanır. Turnuva ve kulüp bilgileri menülerde ve yer tutucularda gösterilebilir.
-
-**Maç içi olaylar**
-
-Zamanlı seviye sandıkları, özel kullanım eşyaları, dinamik hologramlar, meteor ve tren olayları maç akışına eklenebilir. Maç özeti ve kazanan kutlamaları bulunur. Olayların zamanlaması ve kullanılacak arena ayarları turnuva sisteminden yönetilir.
-
-**Turnuva scoreboard'u ve istatistikleri**
-
-E-spor maçları için skor tablosu ve başlık ayarları bulunur. Maç süresi, oyuncu sayısı, öldürme, ölüm, kırılan blok ve kulüp skorları PlaceholderAPI üzerinden diğer gösterimlere de aktarılabilir.
-
-### Web bağlantısı ve entegrasyonlar
-
-**Panel komutları / SecureSocket**
-
-Panelin oyun sunucusuna ilettiği komutlar, yapılandırılan token ve bağlantı ayarlarıyla işlenir. Komutların hedefi paneldeki sunucu kayıtlarıyla belirlenir. Mağaza teslimatlarında hedef sunucunun kendi komut kuyruğu kullanılır.
-
-**ChatBridge**
-
-Web sitesi ile oyun sohbeti arasında bağlantı kurulur. Panelde seçilen sunucunun sohbeti, çevrimiçi oyuncuları ve komut akışı takip edilebilir. Sunucu kimliği, sorgu aralığı ve kayıt saklama süresi yapılandırılabilir.
-
-**Envanter görüntüleri**
-
-Oyuncunun giriş ve çıkışında envanter görüntüsü alınabilir. Panel bu kayıtları oyuncunun web profilinde envanter görünümü olarak kullanabilir. Sunucu eşlemesi ve kayıt davranışı ayrı ayarlardan yönetilir.
-
-**MySQL / MariaDB ve PlaceholderAPI**
-
-Panel verileri SQL veritabanı üzerinden kullanılır; kredi, profil, teslimat ve turnuva alanları yer tutucularla diğer eklentilere aktarılabilir. ZonelyCore kendi PlaceholderAPI genişletmelerini kaydeder. Aşağıda genel ve turnuva yer tutucularının listesi bulunur.
-
-**Modüler yapı ve Java API**
-
-Socket, kupon, açık artırma, rapor, son kredi, destek, arkadaş, giriş, launcher ve e-spor sistemleri ilgili ayarlardan yönetilebilir. Java API üzerinden kredi, kupon, ödül, son kredi, açık artırma ve socket servislerine erişilebilir.
-
-**GitHub üzerinden güncelleme**
-
-`/zc update`, bu deponun son kararlı Release kaydını kontrol eder. Yeni JAR arka planda indirilir ve doğrulanır; sunucu yeniden başlatıldığında uygulanır. [Güncelleme rehberi](docs/GUNCELLEME.md).
-
-## Diller
-
-![Desteklenen 19 dil: Türkçe, İngilizce, Almanca, İspanyolca, Fransızca, Çekçe, Hintçe, Macarca, İtalyanca, Japonca, Norveççe Bokmål, Felemenkçe, Lehçe, Brezilya Portekizcesi, Rumence, Rusça, İsveççe, Vietnamca ve Çince](docs/assets/zonelycore-languages.svg)
-
-Menü başlıkları, eşya isimleri, lore satırları ve sistem mesajları `languages.yml` üzerinden düzenlenir. Varsayılan dili Türkçe yapmak için:
-
-```yaml
-default: tr_TR
-```
+[Kurulum rehberi](docs/KURULUM.md) · [Mağaza ve sunucular arası teslimat](docs/MAGAZA.md) · [GitHub güncellemesi](docs/GUNCELLEME.md)
 
 <details>
-<summary>Dil kodları</summary>
-
-| Dil | Kod | Dil | Kod |
-| --- | --- | --- | --- |
-| Türkçe | `tr_TR` | İngilizce | `en_US` |
-| Almanca | `de_DE` | İspanyolca | `es_ES` |
-| Fransızca | `fr_FR` | Çekçe | `cs_CZ` |
-| Hintçe | `hi_IN` | Macarca | `hu_HU` |
-| İtalyanca | `it_IT` | Japonca | `ja_JP` |
-| Norveççe — Bokmål | `nb_NO` | Felemenkçe | `nl_NL` |
-| Lehçe | `pl_PL` | Portekizce — Brezilya | `pt_BR` |
-| Rumence | `ro_RO` | Rusça | `ru_RU` |
-| İsveççe | `sv_SE` | Vietnamca | `vi_VN` |
-| Çince | `zh_CN` | | |
-
-</details>
-
-## Gereksinimler ve kurulum
-
-ZonelyCore, **Zonely Minecraft web paneliyle birlikte** çalışmak üzere geliştirilmiştir. Panel kurulumu, veritabanı ve oyun sunucusu kaydı hazır olmalıdır. Özellikleri kullanmak için ilgili modülü ve bağlantı ayarlarını etkinleştirin.
-
-| Gereksinim | Açıklama |
-| --- | --- |
-| Zonely web paneli | Hesap, mağaza, sunucu ve yönetim kayıtları. |
-| MySQL / MariaDB | Panel veritabanına erişim. |
-| [ProtocolLib](https://www.spigotmc.org/resources/protocollib.1997/) | Sunucu sürümüne uygun paket/metadata desteği. |
-| [PlaceholderAPI](https://www.spigotmc.org/resources/placeholderapi.6245/) | Yer tutucular ve diğer gösterimlerle entegrasyon. |
-| Uygun Java sürümü | Kullanılan Minecraft sunucusunun gerektirdiği Java. |
-
-1. ProtocolLib ve PlaceholderAPI'yi sunucuya kur.
-2. [ZonelyCore JAR'ını indir](https://github.com/zonely-gen-tr/ZonelyCore/releases/latest) ve `plugins/` içine koy.
-3. İlk çalıştırmada oluşan `plugins/ZonelyCore/config.yml` dosyasına panel veritabanı bilgilerini yaz.
-4. Panelde bu sunucu için tanımlanan token değerini `web-token` alanına ekle.
-5. Kullanacağın modülleri ve paneldeki ürün/komut eşlemelerini ayarla; sunucuyu yeniden başlat.
-
-**Test ortamı:** Paper 1.20.4 build 499 · Java 21 · ProtocolLib 5.4.0 · PlaceholderAPI 2.11.6.
-
-[Ayrıntılı kurulum](docs/KURULUM.md) · [Mağaza ayarları](docs/MAGAZA.md)
-
-## Mağaza sunucu ayarı
-
-```yaml
-web-token: "BU_SUNUCUYA_OZEL_PANEL_TOKENI"
-store:
-  # false: Bu sunucu. true: Panelde seçilen diğer sunucular da.
-  send-to-other-servers: false
-  # Oyuncu hedef sunucuya girene kadar teslimatı bekletir.
-  require-player-online: true
-```
-
-Mağaza için ayrıca `store.server-id` girilmez; sunucu kendi `web-token` değeriyle panel kaydına eşleşir. Her sunucuya farklı token tanımlanmalıdır. Diğer sunuculara teslimat için o sunucularda da ZonelyCore çalışmalıdır. Panelde kategori, üst kategoriler ve ürün/seçenek için **Oyunda Göster** ayarını etkinleştirin.
-
-## Komutlar
+<summary>Komutlar ve NPC türleri</summary>
 
 | Komut | Açıklama |
 | --- | --- |
@@ -299,7 +81,10 @@ NPC türleri: `web-profile`, `auctions`, `last-credits`, `reports`, `deliveries`
 /zc hologram lastcredits krediler
 ```
 
-## Yetkiler
+</details>
+
+<details>
+<summary>Yetkiler</summary>
 
 | Yetki | Kullanım |
 | --- | --- |
@@ -318,7 +103,10 @@ NPC türleri: `web-profile`, `auctions`, `last-credits`, `reports`, `deliveries`
 | `zcore.cmd.disguise` · `zcore.cmd.disguiselist` | Disguise ve kimlik listesi. |
 | `esports.manage` | Turnuva yönetimi. |
 
-## PlaceholderAPI
+</details>
+
+<details>
+<summary>PlaceholderAPI</summary>
 
 Yer tutucular scoreboard, menü ve hologram eklentilerinde kullanılabilir. Son kredi alanlarında `<sıra>`, `1` gibi bir kayıt sırasıdır. Gösterilecek kayıt veya etkin turnuva yoksa ilgili değer boş dönebilir.
 
@@ -376,7 +164,10 @@ Maç istatistiklerinin bir bölümü oyuncuya özeldir. Kulüp etiketiyle kullan
 
 </details>
 
-## Geliştirici API
+</details>
+
+<details>
+<summary>Geliştirici API</summary>
 
 ZonelyCore etkinleştirildikten sonra `ZonelyCoreAPI.get()` ile API'ye erişilebilir. Kendi eklentinizin bağımlılıklarına `ZonelyCore` ekleyin.
 
@@ -398,10 +189,6 @@ long bakiye = api.cash().getBalance("Oyuncu");
 
 [API rehberi](docs/ZonelyCoreAPI.md) · [Kaynaktan derleme](docs/GELISTIRME.md)
 
-## Lisans ve destek
+</details>
 
-Zonely tarafından geliştirilen kod [MIT lisansı](LICENSE) altındadır. [Üçüncü taraf bileşenler](THIRD_PARTY_NOTICES.md) kendi lisanslarına tabidir. Web paneli, launcher ve ayrı Zonely ürünleri bu deponun lisansına dahil değildir.
-
-[Zonely](https://zonely.gen.tr) · [SpigotMC](https://www.spigotmc.org/resources/zonelycore-one-core-for-minecraft.129652/) · [GitHub Releases](https://github.com/zonely-gen-tr/ZonelyCore/releases) · [Hata bildirimi](https://github.com/zonely-gen-tr/ZonelyCore/issues)
-
-WhiteEffect · Orçun Dönmez · Zonely
+[MIT lisansı](LICENSE) · [Üçüncü taraf lisansları](THIRD_PARTY_NOTICES.md) · [Zonely](https://zonely.gen.tr)

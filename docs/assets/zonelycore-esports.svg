@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="459" viewBox="0 0 1200 459" role="img" aria-labelledby="title desc">
+<title id="title">Kulüpler ve turnuvalar</title>
+<desc id="desc">Kulüp yönetimi: Üyeler, etiketler ve banner tasarımı. Turnuva akışı: Kayıt, eşleşme, maç ve sonuç yönetimi. Maç ve izleyici yönetimi: Başlangıç noktaları, izleyiciler ve sonuçlar. Maç içi olaylar: Meteor, tren, sandıklar ve kazanan kutlaması. Turnuva scoreboard&#x27;u ve istatistikleri: Maç süresi, skorlar ve oyuncu istatistikleri.</desc>
+<rect width="1200" height="459" fill="#C84B0C"/>
+<g fill="#fff" font-family="Segoe UI,Arial,sans-serif">
+<text x="52" y="70" font-size="36" font-weight="700">Kulüpler ve turnuvalar</text>
+<text x="52" y="139" font-size="24" font-weight="700">Kulüp yönetimi</text>
+<text x="52" y="173" font-size="20">Üyeler, etiketler ve banner tasarımı.</text>
+<text x="612" y="139" font-size="24" font-weight="700">Turnuva akışı</text>
+<text x="612" y="173" font-size="20">Kayıt, eşleşme, maç ve sonuç yönetimi.</text>
+<text x="52" y="247" font-size="24" font-weight="700">Maç ve izleyici yönetimi</text>
+<text x="52" y="281" font-size="20">Başlangıç noktaları, izleyiciler ve sonuçlar.</text>
+<text x="612" y="247" font-size="24" font-weight="700">Maç içi olaylar</text>
+<text x="612" y="281" font-size="20">Meteor, tren, sandıklar ve kazanan kutlaması.</text>
+<text x="52" y="355" font-size="24" font-weight="700">Scoreboard ve istatistikler</text>
+<text x="52" y="389" font-size="20">Maç süresi, skorlar ve oyuncu istatistikleri.</text>
+</g></svg>

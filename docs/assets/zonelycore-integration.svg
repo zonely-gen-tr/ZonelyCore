@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="459" viewBox="0 0 1200 459" role="img" aria-labelledby="title desc">
+<title id="title">Web ve entegrasyonlar</title>
+<desc id="desc">Panel komutları / SecureSocket: Panelden oyun sunucusuna komut iletimi. ChatBridge: Web ve oyun sohbeti; çevrimiçi oyuncular. Envanter görüntüleri: Giriş ve çıkış envanterini panelde göster. MySQL / MariaDB ve PlaceholderAPI: Ortak veritabanı ve dinamik yer tutucular. Modüler yapı ve Java API: Modül ayarları ve geliştirici servisleri. GitHub üzerinden güncelleme: /zc update ile doğrulanan JAR indirme.</desc>
+<rect width="1200" height="459" fill="#C84B0C"/>
+<g fill="#fff" font-family="Segoe UI,Arial,sans-serif">
+<text x="52" y="70" font-size="36" font-weight="700">Web ve entegrasyonlar</text>
+<text x="52" y="139" font-size="24" font-weight="700">Panel komutları</text>
+<text x="52" y="173" font-size="20">Panelden oyun sunucusuna komut iletimi.</text>
+<text x="612" y="139" font-size="24" font-weight="700">ChatBridge</text>
+<text x="612" y="173" font-size="20">Web ve oyun sohbeti; çevrimiçi oyuncular.</text>
+<text x="52" y="247" font-size="24" font-weight="700">Envanter görüntüleri</text>
+<text x="52" y="281" font-size="20">Giriş ve çıkış envanterini panelde göster.</text>
+<text x="612" y="247" font-size="24" font-weight="700">SQL ve PlaceholderAPI</text>
+<text x="612" y="281" font-size="20">Ortak veritabanı ve dinamik yer tutucular.</text>
+<text x="52" y="355" font-size="24" font-weight="700">Modüler yapı ve Java API</text>
+<text x="52" y="389" font-size="20">Modül ayarları ve geliştirici servisleri.</text>
+<text x="612" y="355" font-size="24" font-weight="700">GitHub üzerinden güncelleme</text>
+<text x="612" y="389" font-size="20">/zc update ile doğrulanan JAR indirme.</text>
+</g></svg>

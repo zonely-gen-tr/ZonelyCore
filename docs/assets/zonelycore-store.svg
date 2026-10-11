@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="567" viewBox="0 0 1200 567" role="img" aria-labelledby="title desc">
+<title id="title">Mağaza, kredi ve ödüller</title>
+<desc id="desc">Web mağazası: Paneldeki kategoriler ve ürünler oyun içinde. Ürün seçenekleri ve paketler: Seçenek, paket, fiyat ve stok yönetimi. Sunucular arası teslimat: Bu sunucuya veya panelde seçilen sunuculara. Kredi yönetimi: Bakiye sorgula, kredi ekle, çıkar veya ayarla. Kredi kuponları: Krediyi eşya olarak oluştur, paylaş ve kullan. Açık artırma: Eşyaları ortak kredi sistemiyle alıp sat. Zamanlı ödüller: Yetki ve bekleme süresine bağlı ödüller. Son kredi yüklemeleri: Son işlemler ve dönemlere göre sıralamalar.</desc>
+<rect width="1200" height="567" fill="#C84B0C"/>
+<g fill="#fff" font-family="Segoe UI,Arial,sans-serif">
+<text x="52" y="70" font-size="36" font-weight="700">Mağaza, kredi ve ödüller</text>
+<text x="52" y="139" font-size="24" font-weight="700">Web mağazası</text>
+<text x="52" y="173" font-size="20">Paneldeki kategoriler ve ürünler oyun içinde.</text>
+<text x="612" y="139" font-size="24" font-weight="700">Ürün seçenekleri ve paketler</text>
+<text x="612" y="173" font-size="20">Seçenek, paket, fiyat ve stok yönetimi.</text>
+<text x="52" y="247" font-size="24" font-weight="700">Sunucular arası teslimat</text>
+<text x="52" y="281" font-size="20">Bu sunucuya veya panelde seçilen sunuculara.</text>
+<text x="612" y="247" font-size="24" font-weight="700">Kredi yönetimi</text>
+<text x="612" y="281" font-size="20">Bakiye sorgula, kredi ekle, çıkar veya ayarla.</text>
+<text x="52" y="355" font-size="24" font-weight="700">Kredi kuponları</text>
+<text x="52" y="389" font-size="20">Krediyi eşya olarak oluştur, paylaş ve kullan.</text>
+<text x="612" y="355" font-size="24" font-weight="700">Açık artırma</text>
+<text x="612" y="389" font-size="20">Eşyaları ortak kredi sistemiyle alıp sat.</text>
+<text x="52" y="463" font-size="24" font-weight="700">Zamanlı ödüller</text>
+<text x="52" y="497" font-size="20">Yetki ve bekleme süresine bağlı ödüller.</text>
+<text x="612" y="463" font-size="24" font-weight="700">Son kredi yüklemeleri</text>
+<text x="612" y="497" font-size="20">Son işlemler ve dönemlere göre sıralamalar.</text>
+</g></svg>

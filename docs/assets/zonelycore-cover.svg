@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="370" viewBox="0 0 1200 370" role="img" aria-labelledby="title desc">
+<title id="title">ZonelyCore</title>
+<desc id="desc">Minecraft sunucusu ile Zonely web paneli arasında bağlantı.</desc>
+<rect width="1200" height="370" fill="#C84B0C"/>
+<g fill="#fff" font-family="Segoe UI,Arial,sans-serif">
+<text x="52" y="226" font-size="115" font-weight="800" letter-spacing="-5">ZonelyCore</text>
+</g>
+<g transform="translate(870 120)">
+<polygon points="0,30 65,-5 130,30 65,65" fill="#fff"/>
+<polygon points="0,30 65,65 65,175 0,140" fill="#FFD5AD"/>
+<polygon points="65,65 130,30 130,140 65,175" fill="#FF9C55"/>
+<polygon points="10,56 55,80 55,91 10,67" fill="#C84B0C"/>
+<polygon points="10,84 55,108 55,119 10,95" fill="#C84B0C"/>
+<polygon points="10,112 55,136 55,147 10,123" fill="#C84B0C"/>
+<polygon points="146,61 238,110 238,210 146,161" fill="#fff"/>
+<polygon points="156,88 228,127 228,192 156,153" fill="#C84B0C"/>
+<polygon points="166,115 181,123 181,160 166,152" fill="#FFD5AD"/>
+<polygon points="188,127 218,143 218,153 188,137" fill="#FFD5AD"/>
+<polygon points="188,148 218,164 218,174 188,158" fill="#FFD5AD"/>
+<polygon points="50,-56 75,-70 100,-56 75,-42" fill="#fff"/>
+<polygon points="50,-56 75,-42 75,-14 50,-28" fill="#FFD5AD"/>
+<polygon points="75,-42 100,-56 100,-28 75,-14" fill="#FF9C55"/>
+</g></svg>

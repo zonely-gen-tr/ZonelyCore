@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="567" viewBox="0 0 1200 567" role="img" aria-labelledby="title desc">
+<title id="title">Topluluk ve yönetim</title>
+<desc id="desc">Arkadaş sistemi: İstek, arkadaş listesi ve özel mesajlar. Canlı destek talepleri: Web ile ortak talepler ve yetkili cevapları. Oyuncu raporları: İhlal bildirimi ve yetkililere özel inceleme. Replay inceleme: Rapor kayıtlarını izleyerek olayı değerlendir. Ceza yönetimi: Ban, IP ban, mute, uyarı ve ceza geçmişi. Sohbet filtreleri: Reklam ve yasaklı kelime filtreleri. Oyuncu analizi ve etkinlik kayıtları: Oyun süresi, sohbet ve komut etkinlikleri.</desc>
+<rect width="1200" height="567" fill="#C84B0C"/>
+<g fill="#fff" font-family="Segoe UI,Arial,sans-serif">
+<text x="52" y="70" font-size="36" font-weight="700">Topluluk ve yönetim</text>
+<text x="52" y="139" font-size="24" font-weight="700">Arkadaş sistemi</text>
+<text x="52" y="173" font-size="20">İstek, arkadaş listesi ve özel mesajlar.</text>
+<text x="612" y="139" font-size="24" font-weight="700">Canlı destek talepleri</text>
+<text x="612" y="173" font-size="20">Web ile ortak talepler ve yetkili cevapları.</text>
+<text x="52" y="247" font-size="24" font-weight="700">Oyuncu raporları</text>
+<text x="52" y="281" font-size="20">İhlal bildirimi ve yetkililere özel inceleme.</text>
+<text x="612" y="247" font-size="24" font-weight="700">Replay inceleme</text>
+<text x="612" y="281" font-size="20">Rapor kayıtlarını izleyerek olayı değerlendir.</text>
+<text x="52" y="355" font-size="24" font-weight="700">Ceza yönetimi</text>
+<text x="52" y="389" font-size="20">Ban, IP ban, mute, uyarı ve ceza geçmişi.</text>
+<text x="612" y="355" font-size="24" font-weight="700">Sohbet filtreleri</text>
+<text x="612" y="389" font-size="20">Reklam ve yasaklı kelime filtreleri.</text>
+<text x="52" y="463" font-size="24" font-weight="700">Oyuncu analizi</text>
+<text x="52" y="497" font-size="20">Oyun süresi, sohbet ve komut etkinlikleri.</text>
+</g></svg>
