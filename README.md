@@ -2,6 +2,8 @@
 
 Minecraft sunucun ile Zonely web panelini bağla; mağaza, hesaplar, oyuncular ve turnuvaları birlikte yönet.
 
+**Tanıtım videosu:** [YouTube’da izle](https://www.youtube.com/watch?v=qQuz-bhDHg4)
+
 [JAR indir](https://github.com/zonely-gen-tr/ZonelyCore/releases/latest) · [Kurulum](docs/KURULUM.md) · [Mağaza](docs/MAGAZA.md) · [API](docs/ZonelyCoreAPI.md) · [SpigotMC](https://www.spigotmc.org/resources/zonelycore-one-core-for-minecraft.129652/) · [Destek](https://github.com/zonely-gen-tr/ZonelyCore/issues)
 
 ![Mağaza, kredi ve ödüller](docs/assets/zonelycore-store.svg)
