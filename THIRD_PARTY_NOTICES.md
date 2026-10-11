@@ -6,7 +6,7 @@ Kök dizindeki MIT lisansı Zonely tarafından geliştirilen kod için geçerlid
 | --- | --- | --- |
 | PacketWrapper | `src/main/java/com/comphenix/packetwrapper` | GNU LGPL v2 veya sonrası; kaynak başlıkları korunmuştur. [Upstream](https://github.com/dmulloy2/PacketWrapper). |
 | JSON.simple | `src/main/java/org/json/simple` | Apache License 2.0. [Upstream](https://github.com/fangyidong/json-simple). |
-| Feather Icons 4.29.2 | `docs/assets/zonelycore-*.svg` | MIT; Cole Bemis. [Upstream](https://github.com/feathericons/feather/tree/v4.29.2) · [Lisans metni](docs/assets/FEATHER-LICENSE.txt). |
+| Feather Icons 4.29.2 | `docs/assets/zonelycore-*.svg`, `docs/assets/forum/` | MIT; Cole Bemis. [Upstream](https://github.com/feathericons/feather/tree/v4.29.2) · [Lisans metni](docs/assets/FEATHER-LICENSE.txt). |
 | jBCrypt | `src/main/java/dev/zonely/whiteeffect/auth/crypto/BCrypt.java` | Damien Miller, ISC izin bildirimi kaynak dosyasında korunmuştur. [Upstream](https://www.mindrot.org/projects/jBCrypt/). |
 
 Maven bağımlılıkları ve çalışma anında kullanılan sunucu/eklenti API'leri kendi lisanslarına tabidir. Spigot, ProtocolLib, PlaceholderAPI, MongoDB sürücüleri ve yerel Zonely entegrasyon JAR'ları bu kaynak paketinde dağıtılmaz. Derleme bağımlılıkları `pom.xml` ve `docs/GELISTIRME.md` içinde listelenir.
