@@ -27,8 +27,10 @@ Varsayılan dil: `tr_TR`. Dil ve metinler `languages.yml` dosyasından düzenlen
 Zonely web paneli, MySQL/MariaDB, ProtocolLib ve PlaceholderAPI gerekir.
 
 1. [JAR'ı indir](https://github.com/zonely-gen-tr/ZonelyCore/releases/latest) ve `plugins/` klasörüne koy.
-2. `config.yml` içine panel veritabanını ve bu sunucunun `web-token` değerini yaz.
-3. Kullanacağın modülleri etkinleştir, panelde ürün ve komutları eşleştir; sunucuyu yeniden başlat.
+2. `config.yml` içine panel veritabanı bilgilerini yaz.
+3. Kullanacağın modülleri etkinleştir ve sunucuyu yeniden başlat.
+
+**Mağazayı bağlayacaksan:** `web-token` alanına paneldeki bu sunucunun token değerini yaz; ürün ve teslimat komutlarını eşleştir. Genel kurulumda bu alanı doldurman gerekmez.
 
 Test ortamı: **Paper 1.20.4 · Java 21 · ProtocolLib 5.4.0 · PlaceholderAPI 2.11.6**.
 

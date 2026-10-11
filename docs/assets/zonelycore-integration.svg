@@ -3,17 +3,24 @@
 <desc id="desc">Panel komutları / SecureSocket: Panelden oyun sunucusuna komut iletimi. ChatBridge: Web ve oyun sohbeti; çevrimiçi oyuncular. Envanter görüntüleri: Giriş ve çıkış envanterini panelde göster. MySQL / MariaDB ve PlaceholderAPI: Ortak veritabanı ve dinamik yer tutucular. Modüler yapı ve Java API: Modül ayarları ve geliştirici servisleri. GitHub üzerinden güncelleme: /zc update ile doğrulanan JAR indirme.</desc>
 <rect width="1200" height="459" fill="#C84B0C"/>
 <g fill="#fff" font-family="Segoe UI,Arial,sans-serif">
-<text x="52" y="70" font-size="36" font-weight="700">Web ve entegrasyonlar</text>
-<text x="52" y="139" font-size="24" font-weight="700">Panel komutları</text>
-<text x="52" y="173" font-size="20">Panelden oyun sunucusuna komut iletimi.</text>
-<text x="612" y="139" font-size="24" font-weight="700">ChatBridge</text>
-<text x="612" y="173" font-size="20">Web ve oyun sohbeti; çevrimiçi oyuncular.</text>
-<text x="52" y="247" font-size="24" font-weight="700">Envanter görüntüleri</text>
-<text x="52" y="281" font-size="20">Giriş ve çıkış envanterini panelde göster.</text>
-<text x="612" y="247" font-size="24" font-weight="700">SQL ve PlaceholderAPI</text>
-<text x="612" y="281" font-size="20">Ortak veritabanı ve dinamik yer tutucular.</text>
-<text x="52" y="355" font-size="24" font-weight="700">Modüler yapı ve Java API</text>
-<text x="52" y="389" font-size="20">Modül ayarları ve geliştirici servisleri.</text>
-<text x="612" y="355" font-size="24" font-weight="700">GitHub üzerinden güncelleme</text>
-<text x="612" y="389" font-size="20">/zc update ile doğrulanan JAR indirme.</text>
+<g data-feather="link" transform="translate(52 40) scale(1.5000)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></g>
+<text x="106" y="70" font-size="36" font-weight="700">Web ve entegrasyonlar</text>
+<g data-feather="terminal" transform="translate(52 115) scale(1.1667)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></g>
+<text x="96" y="139" font-size="24" font-weight="700">Panel komutları</text>
+<text x="96" y="173" font-size="20">Panelden oyun sunucusuna komut iletimi.</text>
+<g data-feather="message-square" transform="translate(612 115) scale(1.1667)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></g>
+<text x="656" y="139" font-size="24" font-weight="700">ChatBridge</text>
+<text x="656" y="173" font-size="20">Web ve oyun sohbeti; çevrimiçi oyuncular.</text>
+<g data-feather="archive" transform="translate(52 223) scale(1.1667)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></g>
+<text x="96" y="247" font-size="24" font-weight="700">Envanter görüntüleri</text>
+<text x="96" y="281" font-size="20">Giriş ve çıkış envanterini panelde göster.</text>
+<g data-feather="database" transform="translate(612 223) scale(1.1667)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></g>
+<text x="656" y="247" font-size="24" font-weight="700">SQL ve PlaceholderAPI</text>
+<text x="656" y="281" font-size="20">Ortak veritabanı ve dinamik yer tutucular.</text>
+<g data-feather="code" transform="translate(52 331) scale(1.1667)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></g>
+<text x="96" y="355" font-size="24" font-weight="700">Modüler yapı ve Java API</text>
+<text x="96" y="389" font-size="20">Modül ayarları ve geliştirici servisleri.</text>
+<g data-feather="download" transform="translate(612 331) scale(1.1667)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></g>
+<text x="656" y="355" font-size="24" font-weight="700">GitHub üzerinden güncelleme</text>
+<text x="656" y="389" font-size="20">/zc update ile doğrulanan JAR indirme.</text>
 </g></svg>

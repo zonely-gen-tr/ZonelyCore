@@ -3,19 +3,27 @@
 <desc id="desc">Arkadaş sistemi: İstek, arkadaş listesi ve özel mesajlar. Canlı destek talepleri: Web ile ortak talepler ve yetkili cevapları. Oyuncu raporları: İhlal bildirimi ve yetkililere özel inceleme. Replay inceleme: Rapor kayıtlarını izleyerek olayı değerlendir. Ceza yönetimi: Ban, IP ban, mute, uyarı ve ceza geçmişi. Sohbet filtreleri: Reklam ve yasaklı kelime filtreleri. Oyuncu analizi ve etkinlik kayıtları: Oyun süresi, sohbet ve komut etkinlikleri.</desc>
 <rect width="1200" height="567" fill="#C84B0C"/>
 <g fill="#fff" font-family="Segoe UI,Arial,sans-serif">
-<text x="52" y="70" font-size="36" font-weight="700">Topluluk ve yönetim</text>
-<text x="52" y="139" font-size="24" font-weight="700">Arkadaş sistemi</text>
-<text x="52" y="173" font-size="20">İstek, arkadaş listesi ve özel mesajlar.</text>
-<text x="612" y="139" font-size="24" font-weight="700">Canlı destek talepleri</text>
-<text x="612" y="173" font-size="20">Web ile ortak talepler ve yetkili cevapları.</text>
-<text x="52" y="247" font-size="24" font-weight="700">Oyuncu raporları</text>
-<text x="52" y="281" font-size="20">İhlal bildirimi ve yetkililere özel inceleme.</text>
-<text x="612" y="247" font-size="24" font-weight="700">Replay inceleme</text>
-<text x="612" y="281" font-size="20">Rapor kayıtlarını izleyerek olayı değerlendir.</text>
-<text x="52" y="355" font-size="24" font-weight="700">Ceza yönetimi</text>
-<text x="52" y="389" font-size="20">Ban, IP ban, mute, uyarı ve ceza geçmişi.</text>
-<text x="612" y="355" font-size="24" font-weight="700">Sohbet filtreleri</text>
-<text x="612" y="389" font-size="20">Reklam ve yasaklı kelime filtreleri.</text>
-<text x="52" y="463" font-size="24" font-weight="700">Oyuncu analizi</text>
-<text x="52" y="497" font-size="20">Oyun süresi, sohbet ve komut etkinlikleri.</text>
+<g data-feather="users" transform="translate(52 40) scale(1.5000)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></g>
+<text x="106" y="70" font-size="36" font-weight="700">Topluluk ve yönetim</text>
+<g data-feather="user-plus" transform="translate(52 115) scale(1.1667)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></g>
+<text x="96" y="139" font-size="24" font-weight="700">Arkadaş sistemi</text>
+<text x="96" y="173" font-size="20">İstek, arkadaş listesi ve özel mesajlar.</text>
+<g data-feather="headphones" transform="translate(612 115) scale(1.1667)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></g>
+<text x="656" y="139" font-size="24" font-weight="700">Canlı destek talepleri</text>
+<text x="656" y="173" font-size="20">Web ile ortak talepler ve yetkili cevapları.</text>
+<g data-feather="flag" transform="translate(52 223) scale(1.1667)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></g>
+<text x="96" y="247" font-size="24" font-weight="700">Oyuncu raporları</text>
+<text x="96" y="281" font-size="20">İhlal bildirimi ve yetkililere özel inceleme.</text>
+<g data-feather="play-circle" transform="translate(612 223) scale(1.1667)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></g>
+<text x="656" y="247" font-size="24" font-weight="700">Replay inceleme</text>
+<text x="656" y="281" font-size="20">Rapor kayıtlarını izleyerek olayı değerlendir.</text>
+<g data-feather="slash" transform="translate(52 331) scale(1.1667)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></g>
+<text x="96" y="355" font-size="24" font-weight="700">Ceza yönetimi</text>
+<text x="96" y="389" font-size="20">Ban, IP ban, mute, uyarı ve ceza geçmişi.</text>
+<g data-feather="filter" transform="translate(612 331) scale(1.1667)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></g>
+<text x="656" y="355" font-size="24" font-weight="700">Sohbet filtreleri</text>
+<text x="656" y="389" font-size="20">Reklam ve yasaklı kelime filtreleri.</text>
+<g data-feather="bar-chart-2" transform="translate(52 439) scale(1.1667)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></g>
+<text x="96" y="463" font-size="24" font-weight="700">Oyuncu analizi</text>
+<text x="96" y="497" font-size="20">Oyun süresi, sohbet ve komut etkinlikleri.</text>
 </g></svg>

@@ -8,6 +8,8 @@ Katalog aralıklarla yenilenir. `/zc reload` ile yeniden yükleyebilir veya boş
 
 ## Teslimat hedefi
 
+`web-token` genel kurulum için zorunlu değildir; mağaza satın alma ve teslimatını paneldeki sunucuya bağlamak için doldurulur.
+
 Mağaza için ayrıca `store.server-id` yazılmaz. `web-token`, panelin `plugin_servers.password` alanıyla eşleşerek bu sunucuyu belirler. Aynı token birden fazla sunucu kaydında kullanılmamalıdır.
 
 ```yaml

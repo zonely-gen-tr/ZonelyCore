@@ -3,21 +3,30 @@
 <desc id="desc">Web mağazası: Paneldeki kategoriler ve ürünler oyun içinde. Ürün seçenekleri ve paketler: Seçenek, paket, fiyat ve stok yönetimi. Sunucular arası teslimat: Bu sunucuya veya panelde seçilen sunuculara. Kredi yönetimi: Bakiye sorgula, kredi ekle, çıkar veya ayarla. Kredi kuponları: Krediyi eşya olarak oluştur, paylaş ve kullan. Açık artırma: Eşyaları ortak kredi sistemiyle alıp sat. Zamanlı ödüller: Yetki ve bekleme süresine bağlı ödüller. Son kredi yüklemeleri: Son işlemler ve dönemlere göre sıralamalar.</desc>
 <rect width="1200" height="567" fill="#C84B0C"/>
 <g fill="#fff" font-family="Segoe UI,Arial,sans-serif">
-<text x="52" y="70" font-size="36" font-weight="700">Mağaza, kredi ve ödüller</text>
-<text x="52" y="139" font-size="24" font-weight="700">Web mağazası</text>
-<text x="52" y="173" font-size="20">Paneldeki kategoriler ve ürünler oyun içinde.</text>
-<text x="612" y="139" font-size="24" font-weight="700">Ürün seçenekleri ve paketler</text>
-<text x="612" y="173" font-size="20">Seçenek, paket, fiyat ve stok yönetimi.</text>
-<text x="52" y="247" font-size="24" font-weight="700">Sunucular arası teslimat</text>
-<text x="52" y="281" font-size="20">Bu sunucuya veya panelde seçilen sunuculara.</text>
-<text x="612" y="247" font-size="24" font-weight="700">Kredi yönetimi</text>
-<text x="612" y="281" font-size="20">Bakiye sorgula, kredi ekle, çıkar veya ayarla.</text>
-<text x="52" y="355" font-size="24" font-weight="700">Kredi kuponları</text>
-<text x="52" y="389" font-size="20">Krediyi eşya olarak oluştur, paylaş ve kullan.</text>
-<text x="612" y="355" font-size="24" font-weight="700">Açık artırma</text>
-<text x="612" y="389" font-size="20">Eşyaları ortak kredi sistemiyle alıp sat.</text>
-<text x="52" y="463" font-size="24" font-weight="700">Zamanlı ödüller</text>
-<text x="52" y="497" font-size="20">Yetki ve bekleme süresine bağlı ödüller.</text>
-<text x="612" y="463" font-size="24" font-weight="700">Son kredi yüklemeleri</text>
-<text x="612" y="497" font-size="20">Son işlemler ve dönemlere göre sıralamalar.</text>
+<g data-feather="shopping-bag" transform="translate(52 40) scale(1.5000)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></g>
+<text x="106" y="70" font-size="36" font-weight="700">Mağaza, kredi ve ödüller</text>
+<g data-feather="shopping-cart" transform="translate(52 115) scale(1.1667)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></g>
+<text x="96" y="139" font-size="24" font-weight="700">Web mağazası</text>
+<text x="96" y="173" font-size="20">Paneldeki kategoriler ve ürünler oyun içinde.</text>
+<g data-feather="package" transform="translate(612 115) scale(1.1667)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></g>
+<text x="656" y="139" font-size="24" font-weight="700">Ürün seçenekleri ve paketler</text>
+<text x="656" y="173" font-size="20">Seçenek, paket, fiyat ve stok yönetimi.</text>
+<g data-feather="send" transform="translate(52 223) scale(1.1667)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></g>
+<text x="96" y="247" font-size="24" font-weight="700">Sunucular arası teslimat</text>
+<text x="96" y="281" font-size="20">Bu sunucuya veya panelde seçilen sunuculara.</text>
+<g data-feather="credit-card" transform="translate(612 223) scale(1.1667)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></g>
+<text x="656" y="247" font-size="24" font-weight="700">Kredi yönetimi</text>
+<text x="656" y="281" font-size="20">Bakiye sorgula, kredi ekle, çıkar veya ayarla.</text>
+<g data-feather="gift" transform="translate(52 331) scale(1.1667)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></g>
+<text x="96" y="355" font-size="24" font-weight="700">Kredi kuponları</text>
+<text x="96" y="389" font-size="20">Krediyi eşya olarak oluştur, paylaş ve kullan.</text>
+<g data-feather="tag" transform="translate(612 331) scale(1.1667)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></g>
+<text x="656" y="355" font-size="24" font-weight="700">Açık artırma</text>
+<text x="656" y="389" font-size="20">Eşyaları ortak kredi sistemiyle alıp sat.</text>
+<g data-feather="clock" transform="translate(52 439) scale(1.1667)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></g>
+<text x="96" y="463" font-size="24" font-weight="700">Zamanlı ödüller</text>
+<text x="96" y="497" font-size="20">Yetki ve bekleme süresine bağlı ödüller.</text>
+<g data-feather="trending-up" transform="translate(612 439) scale(1.1667)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></g>
+<text x="656" y="463" font-size="24" font-weight="700">Son kredi yüklemeleri</text>
+<text x="656" y="497" font-size="20">Son işlemler ve dönemlere göre sıralamalar.</text>
 </g></svg>

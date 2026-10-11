@@ -5,19 +5,6 @@
 <g fill="#fff" font-family="Segoe UI,Arial,sans-serif">
 <text x="52" y="226" font-size="115" font-weight="800" letter-spacing="-5">ZonelyCore</text>
 </g>
-<g transform="translate(870 120)">
-<polygon points="0,30 65,-5 130,30 65,65" fill="#fff"/>
-<polygon points="0,30 65,65 65,175 0,140" fill="#FFD5AD"/>
-<polygon points="65,65 130,30 130,140 65,175" fill="#FF9C55"/>
-<polygon points="10,56 55,80 55,91 10,67" fill="#C84B0C"/>
-<polygon points="10,84 55,108 55,119 10,95" fill="#C84B0C"/>
-<polygon points="10,112 55,136 55,147 10,123" fill="#C84B0C"/>
-<polygon points="146,61 238,110 238,210 146,161" fill="#fff"/>
-<polygon points="156,88 228,127 228,192 156,153" fill="#C84B0C"/>
-<polygon points="166,115 181,123 181,160 166,152" fill="#FFD5AD"/>
-<polygon points="188,127 218,143 218,153 188,137" fill="#FFD5AD"/>
-<polygon points="188,148 218,164 218,174 188,158" fill="#FFD5AD"/>
-<polygon points="50,-56 75,-70 100,-56 75,-42" fill="#fff"/>
-<polygon points="50,-56 75,-42 75,-14 50,-28" fill="#FFD5AD"/>
-<polygon points="75,-42 100,-56 100,-28 75,-14" fill="#FF9C55"/>
-</g></svg>
+<g data-feather="server" transform="translate(850 110) scale(5.8333)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></g>
+<g data-feather="monitor" transform="translate(1024 164) scale(4.1667)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></g>
+</svg>
