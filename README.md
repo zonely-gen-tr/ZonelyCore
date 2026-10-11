@@ -1,312 +1,138 @@
-# ZonelyCore
+<div align="center">
 
-<p align="center">
-  <a href="https://builtbybit.com/resources/zonely-website-for-game-servers-4-etc.79906/">
-    <strong>This plugin was made for the Zonely “All Built Into One” Minecraft edition.</strong>
-  </a>
-</p>
+<img src="docs/assets/zonelycore-banner.svg" alt="ZonelyCore — Minecraft sunucun ve web panelin, aynı dünyada." width="100%" />
+
+**Web mağazası · Oyuncu hesapları · Lobi deneyimi · Sunucu yönetimi**
+
+[![Sürüm](https://img.shields.io/badge/sürüm-5.0.1-38bdf8?style=flat-square)](CHANGELOG.md)
+[![Lisans](https://img.shields.io/badge/lisans-MIT-a78bfa?style=flat-square)](LICENSE)
+[![SpigotMC](https://img.shields.io/badge/SpigotMC-kaynak_sayfası-f59e0b?style=flat-square)](https://www.spigotmc.org/resources/zonelycore-one-core-for-minecraft.129652/)
+[![Dil](https://img.shields.io/badge/belgeler-Türkçe-34d399?style=flat-square)](docs/KURULUM.md)
+
+[Kurulum](docs/KURULUM.md) · [Mağaza ayarları](docs/MAGAZA.md) · [Güncelleme notları](CHANGELOG.md) · [Geliştirici API](docs/ZonelyCoreAPI.md) · [Hata bildir](https://github.com/zonely-gen-tr/ZonelyCore/issues)
+
+</div>
 
 ---
 
-## Why Zonely?
+## Sunucun ile web siten birlikte çalışsın
 
-Zonely is a powerful software platform that offers innovative solutions in e-commerce, whose development was started by our company on January 2, 2025. This software brings many digital domains together under one roof. Such as in-game marketing, digital marketing, promotional marketing, distributed server marketing, and domain management. Thanks to its advanced integrations and user-friendly interface, it enables users to set up their websites easily and establish a strong presence in the digital world. With its high-performance, ultra-secure infrastructure, Zonely strengthens its partners’ digital assets and aims to elevate them to the top of their industries.
+ZonelyCore, Zonely web panelini Minecraft sunucuna bağlar. Oyuncular web hesaplarıyla giriş yapabilir, site kredileriyle oyun içinden alışveriş yapabilir ve profillerine ulaşabilir. Yetkililer destek taleplerini, raporları ve cezaları oyun içinden yönetebilir.
 
-## ZonelyCore Plugin Introduction
+Mağaza içeriğini panelden düzenle; oyuncuna kategori, ürün ve seçenek menüleriyle sun. Aynı ürünün farklı sunuculardaki teslimat komutlarını panelden tanımla. Her ZonelyCore sunucusu kendi teslimat kuyruğunu işler.
 
-Our plugin is designed to make your game server compatible with your website. You can sync the categories and products you’ve added to your website into the game. Players can purchase in-game using their site credits and share their purchases. With SecureSocket support, you can send commands to your game server from your website. There’s even more in the plugin. We recommend taking a look.
+## Neler sunar?
 
-## Features
+| Alan | Oyuncuların ve ekibin kullanabileceği özellikler |
+| --- | --- |
+| **Mağaza ve ekonomi** | Web mağazası, ürün seçenekleri, paketler, kredi bakiyesi, kredi kuponları, açık artırmalar ve zamanlı ödüller. |
+| **Hesap ve giriş** | Web hesabıyla giriş/kayıt, IP üzerinden otomatik giriş, e-posta doğrulama, TOTP 2FA ve şifre sıfırlama akışı. |
+| **Lobi ve profiller** | Menü açan NPC'ler, hologramlar, son kredi yüklemeleri, web profili, gruplar, unvanlar, sohbet renkleri ve disguise menüleri. |
+| **Topluluk ve yönetim** | Arkadaşlar, destek talepleri, oyuncu raporları, replay, ceza yönetimi ve sohbet filtreleri. |
+| **E-spor ve kulüpler** | Kulüp kaydı, turnuva eşleşmeleri, bekleme lobisi, maç aşamaları, izleyiciler ve arena etkinlikleri. |
+| **Web ve ağ bağlantısı** | Panel komutları, ChatBridge, envanter görüntüleri, launcher kimlik doğrulaması ve BungeeCord aktarımı. |
+| **Özelleştirme** | `languages.yml` üzerinden metinler, menü başlıkları ve lore; PlaceholderAPI ve Java API desteği. |
 
-- **Webstore |** Players can view and purchase the products on your website via an in-game GUI. If you want to change the contents of products and product categories, log in to your admin panel.
-- **Auctions |** Players can list their items in the Auctions section on your website and in-game without any fee by setting a credit amount. Players with sufficient credits can claim/purchase the auctioned item.
-- **Punishments |** Your staff can penalize a player—mute, ban, warn, and view their record history. You can manage penalized users from your website, and players can view them publicly.
-- **Last Credits |** The latest credit top-ups are shown in the GUI, filtered by category.
-- **Leaderboards |** Recent credit top-ups can be displayed as a hologram. The hologram is clickable and can be viewed by category.
-- **Credits |** You can manage your players’ credits.
-- **Vouchers |** This feature lets your players convert their site credits into a paper voucher item. They can share credits with each other using this paper. When right-clicked, the credits are added to the player’s account.
-- **Reports |** Players can report users they believe are violating rules to the staff. Staff can view the reported player via a GUI and take action. Integrated with the Punishments system. Thanks to the Replay system, staff can watch the player’s actions live/in real time.
-- **WebSockets |** Applies to product sales on the site. Uses encrypted data to securely execute website commands in-game. Ensures that only site-verified commands are executed by the console.
-- **NPCs |** You can create NPCs that open 6 different menus. Supports Hologram and PlaceholderAPI.
-- **Deliveries |** Players can claim time-based rewards via a GUI.
-- **Web Profiles |** A player’s website profile can be viewed in-game via a GUI.
-- **Leagues |** Leagues can be advanced based on achievements earned on the server. Viewable via GUI.
-- **Groups |** By assigning permissions through another plugin, you can grant users additional privileges. Usable in the profile menu.
-- **Boosters |** A GUI to accelerate league achievements. With boosters obtained from the Rewards section, players can rank up faster.
-- **Titles |** You can assign titles to a user. When selected via the GUI, the placeholder renders wherever you specify. Example: **Title Player:** message
-- **Chat Colors |** Users with permission can change their chat message colors via the GUI; messages appear in a different color.
-- **Languages |** Players can choose their display language from the menu.
-- **Socials |** Players can configure the social media accounts that will appear on the site, directly from in-game.
-- **Disguises |** Opens a book GUI that lets the player appear under a different identity in-game.
-- **Chat Filters |** Block player-submitted ads and profane messages, and automatically issue penalties.
-- **Replays |** Watch reported players as if you were watching a video, and issue penalties.
-- **PlaceholderAPI & MySQL Support |** The plugin can connect to the database, and you can view the placeholders below.
-- **Login & Register |** Players log in using the same account they create on the web panel.
-- **Auto Login |** After the first login or registration, trusted IPs are remembered and players are sent straight into the server without being asked to log in again.
-- **Bossbar Prompts |** Custom bossbars guide players through login, registration, and email verification steps in-game.
-- **Fallback Server |** After a successful login or registration, players are automatically transferred to a predefined BungeeCord server.
-- **E-mail Verification |** When enabled, players are asked to set an email; a verification code is sent to their inbox and, once entered in-game, they can continue playing.
-- **2FA (TOTP) |** TOTP-based two-factor authentication lets players confirm their login with a one-time code before entering the game.
-- **Email Change |** To change their email, players receive a one-time code in their inbox; entering this code in-game securely updates their email address.
-- **Password Reset |** Players request a token with the `/passwordreset` command in-game and safely set a new password via the website, under time and security constraints.
-- **ChatBridge |** Syncs website chat with the game server; players can pick a server on the site, send commands or messages, and see them live alongside the list of online players.
-- **Inventory Snapshots |** Whenever players join or leave, their inventory is captured and shown as a GUI on their web profile, optionally visible to other players.
-- **Launcher Auth |** Your server’s custom ZonelyLauncher is required for access; players joining without it are kicked with a download link and can only play through the launcher.
-- **Support Tickets |** Website support tickets can be managed live from in-game; staff can reply, close, or ban, and players can open new tickets from the server by choosing a support category.
+Özelliklerin bir bölümü panel yapılandırması, ek bağımlılıklar veya ilgili modülün etkin olmasını gerektirir. ZonelyCore, **Zonely Minecraft web paneliyle birlikte** çalışmak üzere geliştirilmiştir.
 
-## Commands
+## 5.0.1'de öne çıkanlar
 
-- `/zc`
-- `/webprofile`
-- `/store`
-- `/credit`
-- `/support`
-- `/2fa`
-- `/passwordreset`
-- `/email set`
-- `/email resend`
-- `/email status`
-- `/login`
-- `/register`
-- `/lastcredits`
-- `/auctions`
-- `/reports`
-- `/disguise`
-- `/credit [player]`
-- `/credit set [player] [amount]`
-- `/credit add [player] [amount]`
-- `/credit remove [player] [amount]`
-- `/creditvoucher [player] [amount]`
-- `/report [player]`
-- `/auction [amount]`
-- `/punish`
-- `/punish ban/ipban/mute/warning [player] [duration] [reason]`
-- `/punish unban/unmute/unwarning [player]`
-- `/zc npc spawn/remove web-profile/auctions/last-credits/reports/deliveries/web-store/supports [id]`
-- `/zc hologram lastcredits [id]`
+- `/zc` ve menülerde dil dosyası erişiminden kaynaklanan gereksiz disk işlemleri azaltıldı.
+- Mağaza açıklamaları satırlara bölündü; Türkçe karakter, HTML ve bozulmuş metin gösterimleri düzenlendi.
+- Satın alma; bakiye, stok, sipariş ve teslimat kayıtlarını birlikte işler. Aynı işlem kimliğinin tekrarında ikinci kez ücret alınmaz.
+- Satın alınan ürünler için paneldeki sunucu/komut eşlemeleri teslimat kuyruğuna aktarılır.
+- NPC/hologram metadata ve oyuncu kafası uyumluluğuna yönelik düzeltmeler eklendi.
+- Güncelleme kontrolü ve JAR indirmesi **GitHub Releases** üzerinden, sunucunun ana iş parçacığını bekletmeden yapılır.
 
-## Permissions
+[Tüm değişiklikleri ve geçiş notlarını oku →](CHANGELOG.md)
 
-- `zonely.auction`
-- `zonely.auction.manage`
-- `zonely.reports.view`
-- `zonely.punish`
-- `zonely.punish.ban`
-- `zonely.punish.mute`
-- `zonely.punish.warning`
-- `zonely.punish.history`
-- `zonely.punish.notify`
-- `zonely.punish.ipban`
-- `zonely.support.staff`
-- `zonely.support.ban`
+## Hızlı kurulum
 
-## Placeholders
+1. Zonely Minecraft web panelini ve veritabanını hazırla.
+2. Sunucu sürümüne uygun **ProtocolLib** ve **PlaceholderAPI** eklentilerini kur.
+3. Hazır ZonelyCore JAR dosyasını `plugins/` klasörüne koy ve sunucuyu başlat.
+4. `plugins/ZonelyCore/config.yml` dosyasına veritabanı bilgilerini ve panelde bu sunucu için oluşturduğun `web-token` değerini yaz.
+5. Panelde ürün, kategori ve teslimat komutlarını yapılandır; sunucuyu yeniden başlat.
 
-- `%ZonelyCore_cash%`
-- `%ZonelyCore_perm%`
-- `%ZonelyCore_playername%`
-- `%ZonelyCore_status_delivery%`
-- `%ZonelyCore_lastcredit_<number>_display%`
-- `%ZonelyCore_lastcredit_<number>%`
-- `%ZonelyCore_lastcredit_<number>_name%`
-- `%ZonelyCore_lastcredit_<number>_amount%`
-- `%ZonelyCore_lastcredit_<number>_date%`
-- `%ZonelyCore_lastcredit_<number>_time%`
+**Bu düzeltmelerin doğrulandığı ortam:** Paper **1.20.4 build 499**, Java **21**, ProtocolLib **5.4.0**, PlaceholderAPI **2.11.6**.
 
-## Screenshots & Stats
+[Ayrıntılı kurulum →](docs/KURULUM.md)
 
-![ZonelyCore Showcase](https://i.hizliresim.com/2qvzq52.png)
+## Tek sunucu veya tüm ağ
 
-![bStats: ZonelyCores](https://bstats.org/signatures/bukkit/ZonelyCores.svg)
+```yaml
+web-token: "BU_SUNUCU_ICIN_PANELDEKI_TOKEN"
+store:
+  # false: Bu sunucuya ait komutlar. true: Panelde seçili diğer sunuculara da teslimat.
+  send-to-other-servers: false
+  # Oyuncu hedef sunucuya girene kadar teslimatı bekletir.
+  require-player-online: true
+```
 
-## ZonelyCore API Quick Reference
+Mağaza için ayrıca `store.server-id` girilmez. Sunucu, kendi `web-token` değeriyle panel kaydı üzerinden eşleşir. Ağdaki her sunucuya **farklı token** tanımlanmalıdır. `send-to-other-servers: true` kullanıldığında hedef sunucuların da ZonelyCore çalıştırması ve kendi panel kayıtlarıyla eşleşmesi gerekir.
 
-All examples assume ZonelyCore is enabled and your plugin depends on it.
+> **Ürün görünmüyor mu?** Panelde kategorinin, üst kategorilerin ve ürün/seçeneğin **Oyunda Göster** ayarını kontrol et. Gizli ürünler otomatik olarak görünür yapılmaz. [Mağaza rehberi →](docs/MAGAZA.md)
+
+## Sık kullanılan komutlar
+
+| Komut | İşlev |
+| --- | --- |
+| `/zc` · `/zc reload` | Yönetim yardımı ve yapılandırmayı yeniden yükleme. |
+| `/zc update` | GitHub'dan sürümü kontrol etme; yeni sürüm varsa indirme. |
+| `/store` · `/magaza` · `/zonelystore` | Oyun içi mağazayı açma. |
+| `/webprofile` · `/lastcredits` | Profil ve son kredi yüklemeleri. |
+| `/credit` · `/creditvoucher` | Kredi bakiyesi ve kredi kuponları. |
+| `/auctions` · `/auction <tutar>` | Açık artırma menüsü ve eldeki eşyayı satışa koyma. |
+| `/report <oyuncu>` · `/reports` · `/punish` | Raporlar ve ceza yönetimi. |
+| `/support` · `/friends` | Destek ve arkadaş menüleri. |
+| `/esports` · `/club` | Turnuva ve kulüp yönetimi. |
+
+Yönetim işlemleri ilgili yetkileri gerektirir; `/zc` için `zcore.admin` kullanılır.
 
 <details>
-<summary><strong>ZonelyCore API</strong></summary>
+<summary><strong>NPC, hologram ve PlaceholderAPI örnekleri</strong></summary>
 
-### Accessing the API
+```text
+/zc npc spawn web-store magaza
+/zc npc spawn web-profile profil
+/zc npc spawn last-credits krediler
+/zc hologram lastcredits krediler
+```
+
+```text
+%ZonelyCore_cash%
+%ZonelyCore_playername%
+%ZonelyCore_lastcredit_1_name%
+%ZonelyCore_lastcredit_1_amount%
+```
+
+Yer tutucularda gösterilebilecek kayıt yoksa ilgili alanın boş olması normaldir.
+
+</details>
+
+## GitHub üzerinden güncelleme
+
+Eklenti, bu deponun **son yayımlanmış kararlı Release** kaydını kontrol eder. Kaynak koduna commit atmak tek başına oyunculara güncelleme göndermez. Yayına `v5.0.1` gibi bir etiket ve `ZonelyCore-5.0.1.jar` veya `ZonelyCore.jar` adlı derlenmiş dosya eklenir.
+
+`/zc update`, dosyayı doğrulayıp Bukkit'in güncelleme klasörüne mevcut eklenti dosyası adıyla hazırlar. Değişiklik **sunucu yeniden başlatılınca** uygulanır. Eski web adreslerini kullanan sürümlerden ilk geçişte JAR elle değiştirilmelidir.
+
+[Güncelleme ve yayın kuralları →](docs/GUNCELLEME.md)
+
+## Geliştiriciler için
+
+Kaynak kodu Maven ile derlenir. Bazı sunucu ve eklenti API'leri yerel JAR bağımlılığı olduğundan temiz bir klonda yalnızca `mvn package` çalıştırmak yeterli değildir. Gerekli dosyalar ve test adımları [geliştirme rehberindedir](docs/GELISTIRME.md).
 
 ```java
 import dev.zonely.whiteeffect.api.ZonelyCoreAPI;
 
-public final class MyAddon {
-
-    private ZonelyCoreAPI api;
-
-    public void onEnable() {
-        api = ZonelyCoreAPI.get(); // safe once ZonelyCore is enabled
-    }
-}
+ZonelyCoreAPI api = ZonelyCoreAPI.get();
+long bakiye = api.cash().getBalance("Oyuncu");
 ```
 
-### Checking Module Toggles
+## Lisans ve bağlantılar
 
-```java
-if (!api.areVouchersEnabled()) {
-    getLogger().warning("Vouchers module disabled, skipping custom voucher logic.");
-}
+Zonely tarafından geliştirilen kod **[MIT lisansı](LICENSE)** altında sunulur. [Üçüncü taraf kodları ve bağımlılıklar](THIRD_PARTY_NOTICES.md) kendi lisanslarına tabidir. Web paneli ve diğer Zonely ürünleri bu deponun lisansına dahil değildir.
 
-if (api.areLastCreditsEnabled()) {
-    getLogger().info("Last Credits module active — holograms and GUI calls are safe.");
-}
-```
+[Zonely](https://zonely.gen.tr) · [SpigotMC](https://www.spigotmc.org/resources/zonelycore-one-core-for-minecraft.129652/) · [GitHub Releases](https://github.com/zonely-gen-tr/ZonelyCore/releases) · [Destek / hata bildirimi](https://github.com/zonely-gen-tr/ZonelyCore/issues)
 
-### Cash API (credits)
-
-`getBalance(name|player)` returns the current credit total (offline-safe).  
-`addBalance`, `withdraw`, `setBalance` return the updated balance and throw `CreditOperationException` on failure (insufficient funds, DB issues, validation errors).  
-`isCached` / `invalidateCache` let you manage the in-memory cache after manual DB edits.  
-Async helpers (`addBalanceAsync`, `withdrawAsync`, `setBalanceAsync`) complete on a `CompletableFuture<Long>` so you can stay off the main thread.
-
-```java
-import dev.zonely.whiteeffect.api.cash.CashAPI;
-import dev.zonely.whiteeffect.api.cash.CreditOperationException;
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
-// 'plugin' below should be your JavaPlugin instance
-
-CashAPI cash = api.cash();
-
-try {
-    long updated = cash.addBalance("PlayerOne", 500);
-    long remaining = cash.withdraw("PlayerTwo", 250);
-    cash.setBalance("PlayerVIP", 10_000);
-    getLogger().info("Balances updated: " + updated + " / " + remaining);
-} catch (CreditOperationException ex) {
-    getLogger().warning("Credit operation failed: " + ex.getMessage());
-}
-
-cash.addBalanceAsync("AsyncGuy", 1000).thenAccept(newBalance ->
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            Player player = Bukkit.getPlayerExact("AsyncGuy");
-            if (player != null) {
-                player.sendMessage("Your new balance: " + newBalance);
-            }
-        })
-);
-```
-
-### Voucher API
-
-`issueVoucher(issuer, target, amount)` deducts credits and returns a `VoucherIssueResult` (item + metadata).  
-`parseVoucher(item)` inspects items safely, `redeemVoucher(details|item)` credits the target.  
-Throws `CreditOperationException` for validation problems (e.g., insufficient funds).
-
-```java
-import dev.zonely.whiteeffect.api.voucher.VoucherAPI;
-import dev.zonely.whiteeffect.api.voucher.VoucherIssueResult;
-import dev.zonely.whiteeffect.api.cash.CreditOperationException;
-// assumes 'player' is available
-
-VoucherAPI vouchers = api.vouchers();
-
-try {
-    VoucherIssueResult voucher = vouchers.issueVoucher("Staff", "PlayerTwo", 250);
-    player.getInventory().addItem(voucher.getVoucherItem());
-    vouchers.redeemVoucher(voucher.getDetails());
-} catch (CreditOperationException ex) {
-    getLogger().warning("Voucher error: " + ex.getMessage());
-}
-```
-
-### Deliveries API
-
-`listDeliveries()` exposes configured reward entries.  
-`getStatus(player, delivery)` describes permission/cooldown; `claim(player, delivery)` performs the reward (throws `CreditOperationException` on profile load failures).
-
-```java
-import dev.zonely.whiteeffect.api.cash.CreditOperationException;
-// assumes 'player' is available
-
-api.deliveries().listDeliveries().forEach(delivery -> {
-    api.deliveries().getStatus(player, delivery).ifPresent(status -> {
-        if (status.canClaimNow()) {
-            try {
-                api.deliveries().claim(player, delivery);
-            } catch (CreditOperationException ex) {
-                player.sendMessage("Delivery failed: " + ex.getMessage());
-            }
-        }
-    });
-});
-```
-
-### Last Credits API (leaderboard & menu)
-
-`getLeaderboard(category)` returns cached entries (RECENT, ALL_TIME, YEARLY, MONTHLY, DAILY).  
-`getLastLeaderboardRefresh(category)` exposes snapshot freshness.  
-`getRecentTopups()` mirrors the PlaceholderAPI cache.  
-`getViewerCategory(player)` / `setViewerCategory(player, category)` keep holograms & GUI aligned per player.  
-`openMenu(player, category)` honors the viewer’s active category (pass `getViewerCategory` to stay in sync).
-
-```java
-import dev.zonely.whiteeffect.menu.lastcredits.LastCreditsMenuManager;
-// assumes 'player' is available
-
-var recent = api.lastCredits().getLeaderboard(LastCreditsMenuManager.Category.RECENT);
-recent.forEach(entry ->
-        Bukkit.getLogger().info(entry.getPosition() + ". " + entry.getUsername() + " -> " + entry.getFormattedAmount())
-);
-
-LastCreditsMenuManager.Category active = api.lastCredits().getViewerCategory(player);
-api.lastCredits().openMenu(player, active);
-```
-
-### Secure Socket API
-
-Controlled via `config.yml` (`web-token`, `socket-port`); module toggle must be enabled.  
-`start()`, `stop()`, `restart()` manage the listener; `isActive()` and `getPort()` expose runtime state.
-
-```java
-if (api.isSocketEnabled()) {
-    if (!api.socket().isActive()) {
-        if (!api.socket().start()) {
-            getLogger().warning("Secure socket could not start. Check config.yml.");
-        }
-    } else {
-        api.socket().restart();
-    }
-}
-```
-
-### Auction API
-
-`openMainMenu`, `openSoldMenu`, `openPurchasedMenu`, `openPurchaseMenu` are safe from async threads (manager switches back to Bukkit).  
-`getMenuManager()` exposes the GUI controller; `getDao()` grants direct DB access for custom workflows.  
-Check `api.areAuctionsEnabled()` before exposing custom commands.
-
-```java
-import dev.zonely.whiteeffect.api.auction.AuctionDao;
-// assumes 'player' is available
-
-if (api.areAuctionsEnabled()) {
-    api.auctions().openMainMenu(player);
-
-    AuctionDao dao = api.auctions().getDao();
-    if (dao != null) {
-        dao.listByCreator(dao.fetchUserId(player.getName()))
-                .forEach(item -> getLogger().info(item.getCustomTitle()));
-    }
-} else {
-    player.sendMessage("Auctions are disabled on this server.");
-}
-```
-
-</details>
-
-## Contributing
-
-We welcome contributions from the community! If you would like to contribute, please follow these guidelines:
-
-1. Fork the repository and clone it to your local machine.
-2. Create a new branch for your feature or bug fix.
-3. Make your changes, and ensure that your code is well-tested.
-4. Create a pull request with a detailed description of your changes.
-
-By contributing to this project, you agree to abide by the [Code of Conduct](README.md).
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
+<div align="center"><sub>WhiteEffect · Orçun Dönmez · Zonely</sub></div>

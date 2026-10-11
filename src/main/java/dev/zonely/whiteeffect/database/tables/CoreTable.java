@@ -7,6 +7,7 @@ import dev.zonely.whiteeffect.database.MySQLDatabase;
 import dev.zonely.whiteeffect.database.data.DataContainer;
 import dev.zonely.whiteeffect.database.data.DataTable;
 import dev.zonely.whiteeffect.database.data.interfaces.DataTableInfo;
+import dev.zonely.whiteeffect.lang.LanguageManager;
 
 import javax.sql.rowset.CachedRowSet;
 import java.sql.SQLException;
@@ -49,7 +50,7 @@ public class CoreTable extends DataTable {
       defaultValues.put("selected", new DataContainer("{\"title\": \"0\", \"icon\": \"0\"}"));
       defaultValues.put("created", new DataContainer(System.currentTimeMillis()));
       defaultValues.put("clan", new DataContainer(""));
-      defaultValues.put("lang", new DataContainer("en_US"));
+      defaultValues.put("lang", new DataContainer(LanguageManager.getDefaultLocale()));
       defaultValues.put("lastlogin", new DataContainer(System.currentTimeMillis()));
       return defaultValues;
    }

@@ -89,16 +89,20 @@ public class LastCreditsMenuManager implements Listener {
 
         for (Category c : Category.values()) {
             cache.put(c, new ConcurrentHashMap<>());
-            try {
-                List<CreditEntry> firstPage = fetchEntries(c, 0, PAGE_SIZE);
-                cache.get(c).put(0, firstPage);
-            } catch (Exception ex) {
-                plugin.getLogger().log(Level.SEVERE, "Failed to preload LastCredits for " + c, ex);
-            }
         }
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            for (Category c : Category.values()) {
+                List<CreditEntry> firstPage = fetchEntries(c, 0, PAGE_SIZE);
+                if (firstPage != null) {
+                    cache.get(c).put(0, firstPage);
+                }
+            }
+        });
     }
 
     public void openMenu(Player p, Category cat, int page) {
+        final int requestedPage = Math.max(0, page);
+        page = requestedPage;
         Profile profile = Profile.getProfile(p.getName());
 
         String catName = LanguageManager.get(profile,
@@ -163,17 +167,23 @@ public class LastCreditsMenuManager implements Listener {
         }
 
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            List<CreditEntry> fresh = fetchEntries(cat, page, PAGE_SIZE);
-            cache.get(cat).put(page, fresh);
+            List<CreditEntry> fresh = fetchEntries(cat, requestedPage, PAGE_SIZE);
+            if (fresh == null) {
+                return; // A failed query must not erase a previously displayed page.
+            }
+            cache.get(cat).put(requestedPage, fresh);
 
             Bukkit.getScheduler().runTask(plugin, () -> {
+                if (!p.isOnline() || !p.getOpenInventory().getTopInventory().equals(inv)) {
+                    return;
+                }
                 for (int i = 0; i < fresh.size(); i++) {
                     inv.setItem(ENTRIES_START_SLOT + i, buildEntryItem(profile, fresh.get(i), i));
                 }
                 for (int i = fresh.size(); i < PAGE_SIZE; i++) {
                     inv.setItem(ENTRIES_START_SLOT + i, null);
                 }
-                inv.setItem(prevDef.slot(), page > 0 ? BukkitUtils.deserializeItemStack(prevDef.item()) : null);
+                inv.setItem(prevDef.slot(), requestedPage > 0 ? BukkitUtils.deserializeItemStack(prevDef.item()) : null);
                 inv.setItem(nextDef.slot(), fresh.size() == PAGE_SIZE ? BukkitUtils.deserializeItemStack(nextDef.item()) : null);
 
                 dev.zonely.whiteeffect.nms.util.SafeInventoryUpdater.update(p);
@@ -188,7 +198,7 @@ public class LastCreditsMenuManager implements Listener {
                 "position", index + 1,
                 "player", e.username,
                 "amount", e.total,
-                "date", DATE_FMT.format(e.createdAt));
+                "date", e.createdAt == null ? "-" : DATE_FMT.format(e.createdAt));
         return BukkitUtils.deserializeItemStack(template);
     }
 
@@ -252,57 +262,28 @@ public class LastCreditsMenuManager implements Listener {
     }
 
     private List<CreditEntry> fetchEntries(Category cat, int page, int limit) {
-        String clause;
-        switch (cat) {
-            case RECENT:
-                clause = "ORDER BY lc.created_at DESC";
-                break;
-            case ALL_TIME:
-                clause = "GROUP BY lc.userid ORDER BY SUM(lc.gain) DESC";
-                break;
-            case YEARLY:
-                clause = "WHERE YEAR(lc.created_at)=YEAR(CURDATE()) GROUP BY lc.userid ORDER BY SUM(lc.gain) DESC";
-                break;
-            case MONTHLY:
-                clause = "WHERE YEAR(lc.created_at)=YEAR(CURDATE()) AND MONTH(lc.created_at)=MONTH(CURDATE()) " +
-                        "GROUP BY lc.userid ORDER BY SUM(lc.gain) DESC";
-                break;
-            case DAILY:
-                clause = "WHERE DATE(lc.created_at)=CURDATE() GROUP BY lc.userid ORDER BY SUM(lc.gain) DESC";
-                break;
-            default:
-                clause = "";
-        }
-
-        String sql;
-        if (cat == Category.RECENT) {
-            sql = "SELECT lc.userid, ul.nick AS username, lc.gain AS total, lc.created_at AS createdAt " +
-                    "FROM lastcredits lc JOIN userslist ul ON lc.userid = ul.id " +
-                    clause + " LIMIT ? OFFSET ?";
-        } else {
-            sql = "SELECT lc.userid, ul.nick AS username, SUM(lc.gain) AS total, MAX(lc.created_at) AS createdAt " +
-                    "FROM lastcredits lc JOIN userslist ul ON lc.userid = ul.id " +
-                    clause + " LIMIT ? OFFSET ?";
-        }
+        String sql = LastCreditQueries.leaderboard(cat);
 
         try (Connection conn = Database.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, limit);
             ps.setInt(2, page * limit);
-            ResultSet rs = ps.executeQuery();
             List<CreditEntry> list = new ArrayList<>();
-            while (rs.next()) {
-                list.add(new CreditEntry(
-                        rs.getInt("userid"),
-                        rs.getString("username"),
-                        rs.getLong("total"),
-                        rs.getTimestamp("createdAt")
-                ));
+            ps.setQueryTimeout(5);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(new CreditEntry(
+                            rs.getInt("userid"),
+                            rs.getString("username"),
+                            rs.getLong("total"),
+                            rs.getTimestamp("createdAt")
+                    ));
+                }
             }
             return list;
         } catch (SQLException ex) {
             plugin.getLogger().log(Level.SEVERE, "LastCredits fetch error", ex);
-            return Collections.emptyList();
+            return null;
         }
     }
 }

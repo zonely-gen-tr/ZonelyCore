@@ -442,6 +442,7 @@ public class BukkitUtils {
       if (skull == null || profile == null) {
          return;
       }
+      if (SkullProfileApplier.apply(skull, profile)) return;
       boolean applied = false;
       if (SKULL_PROFILE_SETTER != null) {
          try {

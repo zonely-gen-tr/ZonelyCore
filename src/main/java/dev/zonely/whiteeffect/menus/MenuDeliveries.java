@@ -24,8 +24,8 @@ public class MenuDeliveries extends UpdatablePlayerMenu {
 
    public MenuDeliveries(Profile profile) {
       super(profile.getPlayer(), LanguageManager.get(profile,
-            "menus.deliveries.title",
-            "&8Reward Courier"), 4);
+            "menus.deliveries.menu-title",
+            localize(profile, "&8Reward Courier", "&8Odul Kuryesi")), 4);
       this.profile = profile;
       this.deliveries = new HashMap();
       this.update();
@@ -97,5 +97,13 @@ public class MenuDeliveries extends UpdatablePlayerMenu {
          this.cancel();
       }
 
+   }
+
+   private static String localize(Profile profile, String en, String tr) {
+      String locale = LanguageManager.resolveProfileLocale(profile);
+      if (locale != null && locale.toLowerCase(java.util.Locale.ROOT).startsWith("tr")) {
+         return tr;
+      }
+      return en;
    }
 }

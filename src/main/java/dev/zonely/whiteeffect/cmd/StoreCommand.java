@@ -3,7 +3,6 @@ package dev.zonely.whiteeffect.cmd;
 import dev.zonely.whiteeffect.Core;
 import dev.zonely.whiteeffect.lang.LanguageManager;
 import dev.zonely.whiteeffect.store.ProductMenuManager;
-import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -30,16 +29,11 @@ public class StoreCommand implements CommandExecutor {
 
         Player player = (Player) sender;
         ProductMenuManager manager = plugin.getProductMenuManager();
-        if (!manager.isDataLoaded()) {
+        if (manager == null) {
             LanguageManager.send(player,
                     "store.product-menu.data-not-ready",
                     "{prefix}&cStore data has not loaded yet; please wait a few seconds.",
                     "prefix", LanguageManager.get("prefix.lobby", DEFAULT_PREFIX));
-            Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                if (manager.isDataLoaded()) {
-                    manager.openCategoryMenu(player, 0);
-                }
-            }, 60L);
             return true;
         }
         manager.openCategoryMenu(player, 0);

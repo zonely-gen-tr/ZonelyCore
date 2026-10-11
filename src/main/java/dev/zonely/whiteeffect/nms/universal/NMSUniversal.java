@@ -650,32 +650,8 @@ public class NMSUniversal implements INMS {
               } catch (Throwable ignored) {
               }
           }
-          if (entity instanceof ArmorStand) {
-              ArmorStand stand = (ArmorStand) entity;
-              try {
-                  if (hasScoreboardTag(stand, HOLOGRAM_TAG)) {
-                      return true;
-                  }
-              } catch (Throwable ignored) {
-              }
-              try {
-                  NamespacedKey key = hologramKey();
-                  if (key != null && hasPersistentByteTag(stand, key)) {
-                      return true;
-                  }
-              } catch (Throwable ignored) {
-              }
-              try {
-                String name = stand.getCustomName();
-                boolean invisible = !stand.isVisible();
-                boolean small = stand.isSmall();
-                boolean marker = stand.isMarker();
-                if (invisible && small && marker && name != null && !name.isEmpty()) {
-                    return true;
-                }
-            } catch (Throwable ignored) {
-            }
-        }
+          // Only Zonely-tagged entities belong to this plugin. Matching armor
+          // stands by their appearance removes holograms owned by other plugins.
           return false;
       }
 

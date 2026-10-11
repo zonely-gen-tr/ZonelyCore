@@ -11,7 +11,9 @@ import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerVelocityEvent;
 
 public final class AdvancedReplayListener implements Listener {
 
@@ -39,6 +41,16 @@ public final class AdvancedReplayListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onAnimation(PlayerAnimationEvent event) {
         recorder.recordAnimation(event);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onMove(PlayerMoveEvent event) {
+        recorder.recordMove(event);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onVelocity(PlayerVelocityEvent event) {
+        recorder.recordVelocity(event);
     }
 
     @EventHandler(ignoreCancelled = true)

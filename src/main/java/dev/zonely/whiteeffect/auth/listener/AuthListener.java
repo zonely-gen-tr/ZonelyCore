@@ -16,6 +16,8 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
+import java.util.Locale;
+
 public final class AuthListener implements Listener {
 
     private final AuthManager manager;
@@ -24,7 +26,53 @@ public final class AuthListener implements Listener {
         this.manager = manager;
     }
 
-    @EventHandler(priority = EventPriority.MONITOR)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onSensitiveAuthCommand(PlayerCommandPreprocessEvent event) {
+        String raw = event.getMessage();
+        if (raw == null || raw.length() <= 1 || raw.charAt(0) != '/') {
+            return;
+        }
+        String line = raw.substring(1).trim();
+        if (line.isEmpty()) {
+            return;
+        }
+        String[] parts = line.split("\\s+");
+        if (parts.length == 0) {
+            return;
+        }
+        String label = parts[0].toLowerCase(Locale.ROOT);
+        Player player = event.getPlayer();
+
+        if ("login".equals(label) || "l".equals(label)) {
+            // Mask message early so command/password never appears in command logs.
+            event.setMessage("/" + parts[0] + " ********");
+            event.setCancelled(true);
+            if (parts.length < 2) {
+                LanguageManager.send(player, "auth.login.usage",
+                        "{prefix}&7Usage: &b/" + label + " <password>",
+                        "prefix", manager.getPrefix(player),
+                        "command", label);
+                return;
+            }
+            manager.attemptLogin(player, parts[1]);
+            return;
+        }
+
+        if ("register".equals(label) || "reg".equals(label)) {
+            event.setMessage("/" + parts[0] + " ******** ********");
+            event.setCancelled(true);
+            if (parts.length < 3) {
+                LanguageManager.send(player, "auth.register.usage",
+                        "{prefix}&7Usage: &b/" + label + " <password> <confirm>",
+                        "prefix", manager.getPrefix(player),
+                        "command", label);
+                return;
+            }
+            manager.attemptRegister(player, parts[1], parts[2]);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerJoin(PlayerJoinEvent event) {
         manager.handleJoin(event.getPlayer());
     }
@@ -53,6 +101,10 @@ public final class AuthListener implements Listener {
     public void onChat(AsyncPlayerChatEvent event) {
         Player player = event.getPlayer();
         if (!manager.requiresAuthentication(player)) {
+            return;
+        }
+        if (manager.handleMapVerificationChat(player, event.getMessage())) {
+            event.setCancelled(true);
             return;
         }
         event.setCancelled(true);
@@ -88,7 +140,8 @@ public final class AuthListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInteract(PlayerInteractEvent event) {
-        if (!manager.requiresAuthentication(event.getPlayer())) {
+        Player player = event.getPlayer();
+        if (!manager.requiresAuthentication(player)) {
             return;
         }
         event.setCancelled(true);

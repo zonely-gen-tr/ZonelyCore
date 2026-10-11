@@ -15,10 +15,9 @@ import org.bukkit.inventory.ItemStack;
 
 public class Title {
    private static final List<Title> TITLES = new ArrayList();
-   private static final String ICON_TEMPLATE = lang(
-         "titles.icon.template",
-         "%material%:%durability% : 1 : hide>genel : name>&l%highligtedname% : desc>&f\\n%description%\\n \\n&7 &8-> &fTitle: &e%title%\\n \\n%action%"
-   );
+   private static final String DEFAULT_ICON_TEMPLATE =
+         "%material%:%durability% : 1 : hide>genel : name>&l%highligtedname% : desc>&f\\n%description%\\n \\n&7 &8-> &fTitle: &e%title%\\n \\n%action%";
+   private static final String ICON_TEMPLATE = resolveIconTemplate();
    private static final String ACTION_SELECT = lang(
          "titles.icon.action.select",
          "&6&l>> &eClick to equip."
@@ -34,6 +33,26 @@ public class Title {
    private final String id;
    private final String icon;
    private final String title;
+
+   private static String resolveIconTemplate() {
+      String template = lang("titles.icon.template", DEFAULT_ICON_TEMPLATE);
+      if (!containsRequiredTokens(template)) {
+         return DEFAULT_ICON_TEMPLATE;
+      }
+      return template;
+   }
+
+   private static boolean containsRequiredTokens(String template) {
+      if (template == null || template.trim().isEmpty()) {
+         return false;
+      }
+      return template.contains("%material%")
+            && template.contains("%durability%")
+            && template.contains("%highligtedname%")
+            && template.contains("%description%")
+            && template.contains("%title%")
+            && template.contains("%action%");
+   }
 
    public Title(String id, String title, String desc) {
       this.id = id;
@@ -149,7 +168,7 @@ public class Title {
 
       String material;
       if (has) {
-         material = selected != null && selected.equals(this) ? "MAP" : "EMPTY_MAP";
+         material = "MAP";
       } else {
          material = "STAINED_GLASS_PANE";
       }

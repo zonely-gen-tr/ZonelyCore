@@ -9,18 +9,21 @@ import dev.zonely.whiteeffect.auth.recovery.AuthRecoveryService;
 import dev.zonely.whiteeffect.auth.twofactor.TwoFactorManager;
 import dev.zonely.whiteeffect.database.Database;
 import dev.zonely.whiteeffect.lang.LanguageManager;
-import dev.zonely.whiteeffect.player.Profile;
 import dev.zonely.whiteeffect.plugin.config.WConfig;
 import dev.zonely.whiteeffect.utils.StringUtils;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.net.InetSocketAddress;
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -36,8 +39,13 @@ public final class AuthManager {
     private final Set<String> allowedCommands;
     private final int maxAttempts;
     private final long timeoutMillis;
+    private final boolean autoLoginEnabled;
     private final long autoLoginMillis;
+    private final boolean autoLoginByIp;
     private final boolean autoLoginRequireSameIp;
+    private final boolean mapVerificationEnabled;
+    private final int mapVerificationCodeLength;
+    private final String mapVerificationCharset;
     private final int minPasswordLength;
     private final int maxPasswordLength;
     private final boolean disallowNameSubstring;
@@ -48,6 +56,9 @@ public final class AuthManager {
     private EmailVerificationManager emailManager;
     private final AuthMailService mailService;
     private final AuthFallbackConnector fallbackConnector;
+    private final Map<UUID, MapVerificationChallenge> mapVerificationChallenges = new ConcurrentHashMap<>();
+    private final Map<UUID, BukkitTask> verificationTitleTasks = new ConcurrentHashMap<>();
+    private final Map<UUID, HiddenInventorySnapshot> hiddenInventories = new ConcurrentHashMap<>();
 
     public AuthManager(Core plugin) {
         this.plugin = plugin;
@@ -65,8 +76,29 @@ public final class AuthManager {
         this.maxAttempts = Math.max(1, security.getInt("max-login-attempts", 5));
         this.timeoutMillis = Math.max(10, security.getInt("login-timeout-seconds", 120)) * 1000L;
         long autoLoginSeconds = Math.max(0L, security.getLong("auto-login-seconds", 0));
+        this.autoLoginEnabled = security.getBoolean("auto-login-enabled", autoLoginSeconds > 0L);
         this.autoLoginMillis = autoLoginSeconds * 1000L;
+        this.autoLoginByIp = security.getBoolean("auto-login-by-ip", false);
         this.autoLoginRequireSameIp = security.getBoolean("auto-login-require-same-ip", true);
+        ConfigurationSection titleVerify = security.getConfigurationSection("title-verification");
+        ConfigurationSection mapVerifyLegacy = security.getConfigurationSection("map-verification");
+        ConfigurationSection verificationSection = titleVerify != null ? titleVerify : mapVerifyLegacy;
+        this.mapVerificationEnabled = verificationSection != null
+                ? verificationSection.getBoolean("enabled", false)
+                : security.getBoolean("title-verification-enabled",
+                security.getBoolean("map-verification-enabled", false));
+        int rawMapCodeLength = verificationSection != null
+                ? verificationSection.getInt("code-length", 5)
+                : security.getInt("title-verification-code-length",
+                security.getInt("map-verification-code-length", 5));
+        this.mapVerificationCodeLength = Math.max(4, Math.min(8, rawMapCodeLength));
+        String rawCharset = verificationSection != null
+                ? verificationSection.getString("code-charset", "ABCDEFGHJKLMNPQRSTUVWXYZ23456789")
+                : security.getString("title-verification-code-charset",
+                security.getString("map-verification-code-charset", "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"));
+        this.mapVerificationCharset = (rawCharset == null || rawCharset.trim().isEmpty())
+                ? "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+                : rawCharset.trim().toUpperCase(Locale.ROOT);
         List<String> allowedFromConfig = security.getStringList("allowed-commands");
         List<String> baseAllowed = (allowedFromConfig == null || allowedFromConfig.isEmpty())
                 ? Arrays.asList("login", "l", "register", "reg", "2fa", "twofactor", "email", "mail", "passwordreset")
@@ -116,7 +148,14 @@ public final class AuthManager {
                 emailManager.clear(player);
             }
         }
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            restoreHiddenInventory(player);
+            stopVerificationTitleTask(player.getUniqueId());
+        }
         bossBarManager.clearAll();
+        mapVerificationChallenges.clear();
+        verificationTitleTasks.clear();
+        hiddenInventories.clear();
         sessions.clear();
     }
 
@@ -185,6 +224,7 @@ public final class AuthManager {
         String address = getPlayerAddress(player);
         AuthSession session = new AuthSession(player.getUniqueId(), player.getName(), address);
         sessions.put(player.getUniqueId(), session);
+        hideInventoryForAuth(player);
 
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             Optional<AuthAccount> optional = repository.findByUsername(player.getName());
@@ -196,6 +236,7 @@ public final class AuthManager {
                 runSync(() -> {
                     Player current = Bukkit.getPlayer(player.getUniqueId());
                     if (current != null && current.isOnline()) {
+                        presentMapVerification(current, session);
                         LanguageManager.send(current, "auth.join.unregistered",
                                 "{prefix}&7Please register with &b/register <password> <confirm>&7.",
                                 "prefix", getPrefix(current));
@@ -244,6 +285,7 @@ public final class AuthManager {
             runSync(() -> {
                 Player current = Bukkit.getPlayer(player.getUniqueId());
                 if (current != null && current.isOnline() && !session.isAuthenticated()) {
+                    presentMapVerification(current, session);
                     LanguageManager.send(current, "auth.join.registered",
                             "{prefix}&7Please login with &b/login <password>&7.",
                             "prefix", getPrefix(current));
@@ -257,12 +299,16 @@ public final class AuthManager {
         if (emailManager != null) {
             emailManager.clear(player);
         }
+        restoreHiddenInventory(player);
         bossBarManager.hide(player);
+        stopVerificationTitleTask(player.getUniqueId());
+        mapVerificationChallenges.remove(player.getUniqueId());
+        hiddenInventories.remove(player.getUniqueId());
         sessions.remove(player.getUniqueId());
         if (twoFactorManager != null) {
             twoFactorManager.clear(player);
         }
-        boolean clearSession = autoLoginMillis <= 0;
+        boolean clearSession = !isAutoLoginActive();
         Bukkit.getScheduler().runTaskAsynchronously(plugin,
                 () -> repository.markLogout(player.getName(), clearSession));
     }
@@ -287,6 +333,9 @@ public final class AuthManager {
                     "{prefix}&cThis account is already registered.",
                     "prefix", getPrefix(player));
             bossBarManager.showRegister(player);
+            return;
+        }
+        if (blockUntilMapVerified(player, session)) {
             return;
         }
         if (password == null || password.isEmpty()) {
@@ -383,6 +432,9 @@ public final class AuthManager {
             LanguageManager.send(player, "auth.register.already",
                     "{prefix}&cThis account is already registered.",
                     "prefix", getPrefix(player));
+            return;
+        }
+        if (blockUntilMapVerified(player, session)) {
             return;
         }
         if (password == null || confirmation == null || !password.equals(confirmation)) {
@@ -489,6 +541,9 @@ public final class AuthManager {
         if (account == null) {
             return;
         }
+        stopVerificationTitleTask(player.getUniqueId());
+        mapVerificationChallenges.remove(player.getUniqueId());
+        restoreHiddenInventory(player);
         completeLogin(player, session, account, sessionRestored);
         if (twoFactorManager != null) {
             twoFactorManager.clear(player);
@@ -534,7 +589,7 @@ public final class AuthManager {
     }
 
     private boolean shouldRestoreSession(AuthAccount account, String address) {
-        if (autoLoginMillis <= 0) {
+        if (!isAutoLoginActive()) {
             return false;
         }
         if (!account.hasSession()) {
@@ -548,12 +603,261 @@ public final class AuthManager {
                 return false;
             }
         }
+        if (autoLoginByIp) {
+            return true;
+        }
+        if (autoLoginMillis <= 0) {
+            return false;
+        }
         long lastLogin = account.getLastLogin();
         if (lastLogin <= 0) {
             return false;
         }
         long elapsed = System.currentTimeMillis() - lastLogin;
         return elapsed >= 0 && elapsed <= autoLoginMillis;
+    }
+
+    private boolean isAutoLoginActive() {
+        if (!autoLoginEnabled) {
+            return false;
+        }
+        return autoLoginByIp || autoLoginMillis > 0L;
+    }
+
+    public boolean handleMapVerificationChat(Player player, String input) {
+        if (!mapVerificationEnabled || player == null || input == null) {
+            return false;
+        }
+        AuthSession session = sessions.get(player.getUniqueId());
+        if (session == null || session.isAuthenticated() || session.isMapVerificationPassed()) {
+            return false;
+        }
+        if (!mapVerificationChallenges.containsKey(player.getUniqueId())) {
+            return false;
+        }
+        Runnable task = () -> processMapVerificationChat(player, session, input);
+        if (Bukkit.isPrimaryThread()) {
+            task.run();
+        } else {
+            runSync(task);
+        }
+        return true;
+    }
+
+    private boolean blockUntilMapVerified(Player player, AuthSession session) {
+        if (!mapVerificationEnabled || player == null || session == null
+                || session.isAuthenticated() || session.isMapVerificationPassed()) {
+            return false;
+        }
+        if (!mapVerificationChallenges.containsKey(player.getUniqueId())) {
+            mapVerificationChallenges.put(player.getUniqueId(),
+                    new MapVerificationChallenge(generateMapVerificationCode()));
+        }
+        presentMapVerification(player, session);
+        return true;
+    }
+
+    private void presentMapVerification(Player player, AuthSession session) {
+        if (!mapVerificationEnabled || player == null || session == null
+                || session.isAuthenticated() || session.isMapVerificationPassed()) {
+            return;
+        }
+        MapVerificationChallenge challenge = mapVerificationChallenges.computeIfAbsent(player.getUniqueId(),
+                ignored -> new MapVerificationChallenge(generateMapVerificationCode()));
+        startVerificationTitleTask(player, challenge.getCode());
+        LanguageManager.send(player, "auth.title-verification.required",
+                "{prefix}&eVerification code: &f{code}&e. Type it in chat before /login or /register.",
+                "prefix", getPrefix(player),
+                "code", challenge.getCode());
+    }
+
+    private void processMapVerificationChat(Player player, AuthSession session, String input) {
+        if (player == null || session == null || session.isAuthenticated() || session.isMapVerificationPassed()) {
+            return;
+        }
+        MapVerificationChallenge challenge = mapVerificationChallenges.get(player.getUniqueId());
+        if (challenge == null) {
+            return;
+        }
+        String normalizedInput = normalizeMapVerificationInput(input);
+        if (normalizedInput.equalsIgnoreCase(challenge.getCode())) {
+            stopVerificationTitleTask(player.getUniqueId());
+            mapVerificationChallenges.remove(player.getUniqueId());
+            session.setMapVerificationPassed(true);
+            LanguageManager.send(player, "auth.title-verification.success",
+                    "{prefix}&aVerification complete. Continue with login/register.",
+                    "prefix", getPrefix(player));
+            if (session.isRegistrationRequired()) {
+                bossBarManager.showRegister(player);
+            } else {
+                bossBarManager.showLogin(player);
+            }
+            return;
+        }
+        LanguageManager.send(player, "auth.title-verification.invalid",
+                "{prefix}&cIncorrect code. Correct code: &f{code}",
+                "prefix", getPrefix(player),
+                "code", challenge.getCode());
+        startVerificationTitleTask(player, challenge.getCode());
+    }
+
+    private void showVerificationTitle(Player player, String code) {
+        if (player == null || !player.isOnline() || code == null || code.isEmpty()) {
+            return;
+        }
+        String title = LanguageManager.get("auth.title-verification.title",
+                "&eVerification Required");
+        String subtitleTemplate = LanguageManager.getRaw("auth.title-verification.subtitle", "{code}");
+        String subtitle = LanguageManager.get("auth.title-verification.subtitle", "{code}", "code", code);
+        String subtitlePlain = ChatColor.stripColor(StringUtils.formatColors(subtitle == null ? "" : subtitle)).trim();
+        if (subtitleTemplate == null
+                || !subtitleTemplate.contains("{code}")
+                || subtitlePlain.isEmpty()
+                || subtitlePlain.equalsIgnoreCase("code")
+                || subtitlePlain.equalsIgnoreCase("{code}")) {
+            subtitle = code;
+        }
+        sendTitleCompat(player, StringUtils.formatColors(title), StringUtils.formatColors(subtitle), 0, 40, 0);
+    }
+
+    private void startVerificationTitleTask(Player player, String code) {
+        if (player == null) {
+            return;
+        }
+        UUID uuid = player.getUniqueId();
+        stopVerificationTitleTask(uuid);
+        showVerificationTitle(player, code);
+        BukkitTask task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            Player current = Bukkit.getPlayer(uuid);
+            AuthSession session = sessions.get(uuid);
+            MapVerificationChallenge challenge = mapVerificationChallenges.get(uuid);
+            if (current == null || !current.isOnline()
+                    || session == null
+                    || session.isAuthenticated()
+                    || session.isMapVerificationPassed()
+                    || challenge == null) {
+                stopVerificationTitleTask(uuid);
+                return;
+            }
+            showVerificationTitle(current, challenge.getCode());
+        }, 20L, 20L);
+        verificationTitleTasks.put(uuid, task);
+    }
+
+    private void stopVerificationTitleTask(UUID uuid) {
+        if (uuid == null) {
+            return;
+        }
+        BukkitTask task = verificationTitleTasks.remove(uuid);
+        if (task != null) {
+            task.cancel();
+        }
+    }
+
+    private void sendTitleCompat(Player player, String title, String subtitle, int fadeIn, int stay, int fadeOut) {
+        if (player == null) {
+            return;
+        }
+        try {
+            Method sendTitleTimed = player.getClass().getMethod(
+                    "sendTitle", String.class, String.class, int.class, int.class, int.class);
+            sendTitleTimed.invoke(player, title, subtitle, fadeIn, stay, fadeOut);
+            return;
+        } catch (Throwable ignored) {
+        }
+        try {
+            Method sendTitleSimple = player.getClass().getMethod("sendTitle", String.class, String.class);
+            sendTitleSimple.invoke(player, title, subtitle);
+        } catch (Throwable ignored) {
+            player.sendMessage(title + " " + subtitle);
+        }
+    }
+
+    private void hideInventoryForAuth(Player player) {
+        if (player == null || !player.isOnline()) {
+            return;
+        }
+        UUID uuid = player.getUniqueId();
+        if (hiddenInventories.containsKey(uuid)) {
+            return;
+        }
+        hiddenInventories.put(uuid, HiddenInventorySnapshot.capture(player));
+        player.getInventory().clear();
+        player.getInventory().setArmorContents(new ItemStack[4]);
+        player.updateInventory();
+    }
+
+    private void restoreHiddenInventory(Player player) {
+        if (player == null) {
+            return;
+        }
+        HiddenInventorySnapshot snapshot = hiddenInventories.remove(player.getUniqueId());
+        if (snapshot == null) {
+            return;
+        }
+        snapshot.apply(player);
+        player.updateInventory();
+    }
+
+    private String normalizeMapVerificationInput(String input) {
+        if (input == null) {
+            return "";
+        }
+        return input.trim().replace(" ", "").toUpperCase(Locale.ROOT);
+    }
+
+    private String generateMapVerificationCode() {
+        String chars = mapVerificationCharset;
+        if (chars == null || chars.isEmpty()) {
+            chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        }
+        StringBuilder out = new StringBuilder(mapVerificationCodeLength);
+        for (int i = 0; i < mapVerificationCodeLength; i++) {
+            out.append(chars.charAt(ThreadLocalRandom.current().nextInt(chars.length())));
+        }
+        return out.toString();
+    }
+
+    private static final class HiddenInventorySnapshot {
+        private final ItemStack[] contents;
+        private final ItemStack[] armor;
+        private final int heldSlot;
+
+        private HiddenInventorySnapshot(ItemStack[] contents, ItemStack[] armor, int heldSlot) {
+            this.contents = contents == null ? new ItemStack[0] : contents;
+            this.armor = armor == null ? new ItemStack[0] : armor;
+            this.heldSlot = heldSlot;
+        }
+
+        private static HiddenInventorySnapshot capture(Player player) {
+            ItemStack[] contents = player.getInventory().getContents().clone();
+            ItemStack[] armor = player.getInventory().getArmorContents().clone();
+            int heldSlot = player.getInventory().getHeldItemSlot();
+            return new HiddenInventorySnapshot(contents, armor, heldSlot);
+        }
+
+        private void apply(Player player) {
+            if (player == null) {
+                return;
+            }
+            player.getInventory().setContents(contents.clone());
+            player.getInventory().setArmorContents(armor.clone());
+            if (heldSlot >= 0 && heldSlot <= 8) {
+                player.getInventory().setHeldItemSlot(heldSlot);
+            }
+        }
+    }
+
+    private static final class MapVerificationChallenge {
+        private final String code;
+
+        private MapVerificationChallenge(String code) {
+            this.code = code == null ? "" : code.toUpperCase(Locale.ROOT);
+        }
+
+        private String getCode() {
+            return code;
+        }
     }
 
     private boolean isPasswordValid(String username, String password) {
@@ -620,10 +924,7 @@ public final class AuthManager {
     }
 
     public String getPrefix(Player player) {
-        Profile profile = Profile.getProfile(player.getName());
-        String prefix = profile != null
-                ? LanguageManager.get(profile, "prefix.lobby", DEFAULT_PREFIX)
-                : LanguageManager.get("prefix.lobby", DEFAULT_PREFIX);
+        String prefix = LanguageManager.get("prefix.lobby", DEFAULT_PREFIX);
         if (prefix == null || prefix.trim().isEmpty() || prefix.contains("MemorySection")) {
             prefix = DEFAULT_PREFIX;
         }

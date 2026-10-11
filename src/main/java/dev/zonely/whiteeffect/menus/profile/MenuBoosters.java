@@ -24,10 +24,12 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.bukkit.Material;
+import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 
@@ -41,24 +43,32 @@ public class MenuBoosters extends PlayerMenu {
     public MenuBoosters(Profile profile) {
         super(profile.getPlayer(),
                 LanguageManager.get(profile,
-                        "menus.boosters.title",
-                        "&8Profile &0&l> &8Boosters"),
+                        "menus.boosters.menu-title",
+                        localize(profile, "&8Profile &0&l> &8Boosters", "&8Profil &0&l> &8Artiricilar")),
                 6);
 
-        fillBackground();
+        fillBackground(profile);
         populate(profile);
 
         this.register(Core.getInstance());
         this.open();
     }
 
-    private void fillBackground() {
+    private void fillBackground(Profile profile) {
         ItemStack filler = BukkitUtils.deserializeItemStack(
-                LanguageManager.get("menus.common.filler",
+                LanguageManager.get(profile, "menus.common.filler",
                         "STAINED_GLASS_PANE:7 : 1 : name>&r"));
         for (int slot = 0; slot < this.getInventory().getSize(); slot++) {
             this.setItem(slot, filler.clone());
         }
+    }
+
+    private static String localize(Profile profile, String en, String tr) {
+        String locale = LanguageManager.resolveProfileLocale(profile);
+        if (locale != null && locale.toLowerCase(Locale.ROOT).startsWith("tr")) {
+            return tr;
+        }
+        return en;
     }
 
     private void populate(Profile profile) {
@@ -201,14 +211,27 @@ public class MenuBoosters extends PlayerMenu {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!event.getInventory().equals(this.getInventory())) {
+        if (!event.getWhoClicked().equals(this.player)) {
+            return;
+        }
+        if (!event.getView().getTopInventory().equals(this.getInventory())) {
+            return;
+        }
+        int rawSlot = event.getRawSlot();
+        if (rawSlot < 0) {
+            return;
+        }
+        int topSize = event.getView().getTopInventory().getSize();
+        if (rawSlot >= topSize) {
+            if (event.isShiftClick() || event.getHotbarButton() >= 0 || "DOUBLE_CLICK".equals(event.getClick().name())) {
+                event.setCancelled(true);
+                event.setResult(Event.Result.DENY);
+            }
             return;
         }
 
         event.setCancelled(true);
-        if (!event.getWhoClicked().equals(this.player)) {
-            return;
-        }
+        event.setResult(Event.Result.DENY);
 
         Profile profile = Profile.getProfile(this.player.getName());
         if (profile == null) {
@@ -248,6 +271,24 @@ public class MenuBoosters extends PlayerMenu {
                 break;
             default:
                 break;
+        }
+    }
+
+    @EventHandler
+    public void onInventoryDrag(InventoryDragEvent event) {
+        if (!event.getWhoClicked().equals(this.player)) {
+            return;
+        }
+        if (!event.getView().getTopInventory().equals(this.getInventory())) {
+            return;
+        }
+        int topSize = event.getView().getTopInventory().getSize();
+        for (int rawSlot : event.getRawSlots()) {
+            if (rawSlot >= 0 && rawSlot < topSize) {
+                event.setCancelled(true);
+                event.setResult(Event.Result.DENY);
+                return;
+            }
         }
     }
 

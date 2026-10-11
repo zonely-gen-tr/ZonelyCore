@@ -22,6 +22,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.logging.Level;
 
 public class MenuReportDetail extends PagedPlayerMenu {
@@ -37,7 +38,7 @@ public class MenuReportDetail extends PagedPlayerMenu {
         this.plugin = plugin;
         this.service = service;
         this.reportId = reportId;
-        this.onlySlots(Arrays.asList(10, 12, 14, 16));
+        this.onlySlots(Arrays.asList(10, 12, 13, 14, 16));
 
         reload();
         this.register(plugin);
@@ -132,9 +133,19 @@ public class MenuReportDetail extends PagedPlayerMenu {
                 "reporter", report.getReporter(),
                 "reason", report.getReason(),
                 "server", report.getServer() == null ? "Unknown" : report.getServer());
+        Material evidenceMat = MaterialResolver.resolveMaterial("BOOK_AND_QUILL");
+        if (evidenceMat == null) evidenceMat = MaterialResolver.resolveMaterial("WRITABLE_BOOK");
+        if (evidenceMat == null) evidenceMat = Material.matchMaterial("WRITABLE_BOOK");
+        if (evidenceMat == null) evidenceMat = Material.BOOK;
+        List<String> evidenceLines = service.getChatEvidenceLines(reportId, 5);
+        ItemStack evidence = parseItem("menus.reports.detail.chat-evidence",
+                "BOOK_AND_QUILL : 1 : name>&bChat Evidence : desc>&7Last captured messages:\n{chat_lines}",
+                evidenceMat,
+                "chat_lines", buildChatEvidenceLore(evidenceLines));
 
         menu.setItem(10, head);
         menu.setItem(12, approve);
+        menu.setItem(13, evidence);
         menu.setItem(14, reject);
         menu.setItem(16, replay);
         menu.setItem(22, history);
@@ -220,6 +231,32 @@ public class MenuReportDetail extends PagedPlayerMenu {
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
         if (e.getPlayer().equals(this.player)) cancel();
+    }
+
+    private String buildChatEvidenceLore(List<String> lines) {
+        if (lines == null || lines.isEmpty()) {
+            return "&8- &7No recent chat captured.";
+        }
+
+        StringBuilder builder = new StringBuilder();
+        for (String line : lines) {
+            if (line == null || line.trim().isEmpty()) {
+                continue;
+            }
+            String clean = line.replace('\r', ' ').replace('\n', ' ').trim();
+            if (clean.length() > 64) {
+                clean = clean.substring(0, 64);
+            }
+            if (builder.length() > 0) {
+                builder.append("\n");
+            }
+            builder.append("&8- &f").append(clean);
+        }
+
+        if (builder.length() == 0) {
+            return "&8- &7No recent chat captured.";
+        }
+        return builder.toString();
     }
 
     private ItemStack parseItem(String key, String def, Material fallback, Object... placeholders) {

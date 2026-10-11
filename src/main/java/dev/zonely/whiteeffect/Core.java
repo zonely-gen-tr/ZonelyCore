@@ -6,6 +6,8 @@ import com.google.common.io.ByteStreams;
 import dev.zonely.whiteeffect.booster.Booster;
 import org.bstats.bukkit.Metrics;
 import dev.zonely.whiteeffect.cmd.Commands;
+import dev.zonely.whiteeffect.cmd.FriendCommand;
+import dev.zonely.whiteeffect.clubs.ClubManager;
 import dev.zonely.whiteeffect.cmd.LastCreditsCommand;
 import dev.zonely.whiteeffect.cmd.MezatOyunVerCommand;
 import dev.zonely.whiteeffect.database.Database;
@@ -24,6 +26,13 @@ import dev.zonely.whiteeffect.hook.WCoreExpansion;
 import dev.zonely.whiteeffect.hook.protocollib.FakeAdapter;
 import dev.zonely.whiteeffect.hook.protocollib.HologramAdapter;
 import dev.zonely.whiteeffect.hook.protocollib.NPCAdapter;
+import dev.zonely.whiteeffect.esports.EsportsConfig;
+import dev.zonely.whiteeffect.esports.EsportsManager;
+import dev.zonely.whiteeffect.esports.game.EsportsGameService;
+import dev.zonely.whiteeffect.esports.game.EsportsScoreboardService;
+import dev.zonely.whiteeffect.esports.menu.EsportsCreationService;
+import dev.zonely.whiteeffect.esports.game.EsportsMatchEventListener;
+import dev.zonely.whiteeffect.esports.game.EsportsSpectatorChatListener;
 import dev.zonely.whiteeffect.libraries.MinecraftVersion;
 import dev.zonely.whiteeffect.libraries.holograms.HologramLibrary;
 import dev.zonely.whiteeffect.libraries.npclib.NPCLibrary;
@@ -35,6 +44,7 @@ import dev.zonely.whiteeffect.player.Profile;
 import dev.zonely.whiteeffect.npc.LobbyNPCManager;
 import dev.zonely.whiteeffect.hologram.LastCreditHologramManager;
 import dev.zonely.whiteeffect.chatbridge.ChatBridgeManager;
+import dev.zonely.whiteeffect.friends.FriendManager;
 import dev.zonely.whiteeffect.inventory.InventorySnapshotManager;
 import dev.zonely.whiteeffect.store.LastCreditLeaderboardService;
 import dev.zonely.whiteeffect.lang.LanguageManager;
@@ -78,7 +88,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 import me.clip.placeholderapi.PlaceholderAPI;
-import me.clip.placeholderapi.PlaceholderAPIPlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -90,6 +99,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.SimpleCommandMap;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
+import org.bukkit.event.HandlerList;
 
 import dev.zonely.whiteeffect.cmd.CezaCommand;
 import dev.zonely.whiteeffect.listeners.BanLoginListener;
@@ -100,20 +110,11 @@ import dev.zonely.whiteeffect.cmd.ReportCommand;
 import dev.zonely.whiteeffect.replay.ReplayRecorder;
 import dev.zonely.whiteeffect.replay.control.ReplayControlManager;
 import dev.zonely.whiteeffect.replay.advanced.AdvancedReplayRecorder;
-
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import org.bukkit.inventory.ItemStack;
-
-import dev.zonely.whiteeffect.store.ProductMenuManager;
 import dev.zonely.whiteeffect.cmd.MezatlarCommand;
 import dev.zonely.whiteeffect.cmd.MezatVerCommand;
 import dev.zonely.whiteeffect.store.menu.AuctionMenuManager;
-
-import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.configuration.ConfigurationSection;
 
 public class Core extends WPlugin {
 
@@ -146,11 +147,19 @@ public class Core extends WPlugin {
    private boolean lastCreditsModuleEnabled;
    private boolean reportsModuleEnabled;
    private boolean supportModuleEnabled;
+   private boolean friendsModuleEnabled;
    private boolean authModuleEnabled;
+   private boolean esportsModuleEnabled;
    private boolean supportAllowWithoutAuth;
    private LauncherSessionService launcherSessionService;
 
    private SupportManager supportManager;
+   private FriendManager friendManager;
+   private dev.zonely.whiteeffect.clubs.ClubManager clubManager;
+   private EsportsManager esportsManager;
+   private EsportsGameService esportsGameService;
+   private EsportsScoreboardService esportsScoreboardService;
+   private EsportsCreationService esportsCreationService;
 
    private SecureSocketListener secureSocketListener;
    private int secureSocketPort = -1;
@@ -171,6 +180,30 @@ public class Core extends WPlugin {
 
    public SupportManager getSupportManager() {
       return supportManager;
+   }
+
+   public FriendManager getFriendManager() {
+      return friendManager;
+   }
+
+   public ClubManager getClubManager() {
+      return clubManager;
+   }
+
+   public EsportsManager getEsportsManager() {
+      return esportsManager;
+   }
+
+   public EsportsGameService getEsportsGameService() {
+      return esportsGameService;
+   }
+
+   public EsportsScoreboardService getEsportsScoreboardService() {
+      return esportsScoreboardService;
+   }
+
+   public EsportsCreationService getEsportsCreationService() {
+      return esportsCreationService;
    }
 
    public LauncherSessionService getLauncherSessionService() {
@@ -275,13 +308,7 @@ public class Core extends WPlugin {
             this.getLogger().log(Level.INFO, "Unable to unregister reload/OP commands (Paper protection - skipped).");
          }
 
-         String placeholderVersion = PlaceholderAPIPlugin.getInstance().getDescription().getVersion();
-         if (!"2.10.5".equals(placeholderVersion)) {
-            Bukkit.getConsoleSender().sendMessage(
-                  "\u00A7eWarning: This plugin was built for \u00A7aPAPI 2.10.5\u00A7e; current version: \u00A7c"
-                        + placeholderVersion + "\u00A7e. Continuing anyway.");
-         }
-
+         // PlaceholderAPI is a required plugin; do not incorrectly flag compatible newer releases.
          PlaceholderAPI.registerExpansion(new WCoreExpansion());
 
          try {
@@ -305,8 +332,13 @@ public class Core extends WPlugin {
          this.reportsModuleEnabled = this.getConfig().getBoolean("modules.reports", true);
          this.lastCreditsModuleEnabled = this.getConfig().getBoolean("modules.last-credits", true);
          this.supportModuleEnabled = this.getConfig().getBoolean("modules.support", true);
-         this.supportAllowWithoutAuth = this.getConfig("config").getBoolean("support.allow-without-auth", false);
+         this.friendsModuleEnabled = this.getConfig().getBoolean("modules.friends", true);
+         boolean supportAllowWithoutAuthMain = this.getConfig().getBoolean("support.allow-without-auth", false);
+         boolean supportAllowWithoutAuthNamed = this.getConfig("config")
+               .getBoolean("support.allow-without-auth", supportAllowWithoutAuthMain);
+         this.supportAllowWithoutAuth = supportAllowWithoutAuthMain || supportAllowWithoutAuthNamed;
          this.authModuleEnabled = this.getConfig().getBoolean("modules.auth", false);
+         this.esportsModuleEnabled = this.getConfig().getBoolean("modules.esports", true);
          this.launcherSessionService = new LauncherSessionService(this);
          this.secureSocketPort = this.getConfig().getInt("socket-port", 454);
 
@@ -457,11 +489,46 @@ public class Core extends WPlugin {
             this.getLogger().info("[Auth] Module disabled via config.");
          }
 
-         if (this.supportModuleEnabled) {
+         if (this.esportsModuleEnabled) {
+            EsportsConfig esportsConfig = EsportsConfig.from(this.getConfig().getConfigurationSection("esports"));
+            if (esportsConfig.isEnabled()) {
+               this.esportsManager = new EsportsManager(this, esportsConfig);
+               this.esportsManager.start();
+               this.esportsGameService = new EsportsGameService(this, this.esportsManager);
+               this.esportsManager.attachGameService(this.esportsGameService);
+              this.esportsScoreboardService = new EsportsScoreboardService(this, this.esportsManager, this.esportsGameService);
+              this.esportsCreationService = new EsportsCreationService(this, this.esportsManager);
+              Bukkit.getPluginManager().registerEvents(new EsportsMatchEventListener(this.esportsGameService), this);
+              Bukkit.getPluginManager().registerEvents(new EsportsSpectatorChatListener(this.esportsGameService), this);
+               Bukkit.getPluginManager().registerEvents(this.esportsScoreboardService, this);
+               Bukkit.getPluginManager().registerEvents(this.esportsCreationService, this);
+            } else {
+               this.esportsManager = null;
+               this.esportsGameService = null;
+               this.esportsScoreboardService = null;
+               this.esportsCreationService = null;
+               this.getLogger().info("[Esports] Module disabled via esports.enabled=false.");
+            }
+         } else {
+            this.esportsManager = null;
+            this.esportsGameService = null;
+            this.esportsScoreboardService = null;
+            this.esportsCreationService = null;
+            this.getLogger().info("[Esports] Module disabled via modules.esports=false.");
+         }
+
+          this.clubManager = new ClubManager(this);
+          Bukkit.getPluginManager().registerEvents(this.clubManager, this);
+
+          if (this.supportModuleEnabled) {
             AuthManager activeAuthManager = this.authManager;
             AuthRepository fallbackRepository = null;
-            if (activeAuthManager == null && this.supportAllowWithoutAuth) {
+            if (activeAuthManager == null) {
                try {
+                  if (!this.supportAllowWithoutAuth) {
+                     this.getLogger().info(
+                           "[Support] Auth module is disabled. Forcing fallback identity lookup because modules.support=true.");
+                  }
                   AuthDataSource dataSource = AuthDataSource.fromConfig(this.getConfig("config"));
                   fallbackRepository = new AuthRepository(Database.getInstance(), dataSource.getColumns());
                   this.getLogger().info(
@@ -512,6 +579,23 @@ public class Core extends WPlugin {
          Title.setupTitles();
          Booster.setupBoosters();
          Delivery.setupDeliveries();
+         if (this.friendsModuleEnabled) {
+            this.friendManager = new FriendManager(this);
+            this.friendManager.start();
+            PluginCommand friendsCommand = this.getCommand("friends");
+            if (friendsCommand != null) {
+               FriendCommand friendExecutor = new FriendCommand(this);
+               friendsCommand.setExecutor((sender, command, label, args) -> {
+                  friendExecutor.perform(sender, label, args);
+                  return true;
+               });
+            }
+         } else {
+            this.friendManager = null;
+            registerDisabledCommand("friends", "friends.command.disabled",
+                  "{prefix}&cArkada\u015Fl\u0131k mod\u00FCl\u00FC \u015Fu anda kapal\u0131.");
+            this.getLogger().info("[Friends] Module disabled via config.");
+         }
          Commands.setupCommands();
          Listeners.setupListeners();
 
@@ -543,7 +627,7 @@ public class Core extends WPlugin {
          this.getServer().getMessenger().registerIncomingPluginChannel(this, "zonelycore:main",
                new PluginMessageListener());
 
-         Bukkit.getScheduler().scheduleSyncDelayedTask(this, () -> (new ZonelyUpdater(this, 9)).run());
+         Bukkit.getScheduler().scheduleSyncDelayedTask(this, () -> (new ZonelyUpdater(this)).run());
 
          validInit = true;
          Bukkit.getConsoleSender().sendMessage("\u00A7e");
@@ -568,6 +652,9 @@ public class Core extends WPlugin {
    }
 
    public void disable() {
+      if (productMenuManager != null) {
+         productMenuManager.shutdown();
+      }
       if (validInit) {
          Bukkit.getOnlinePlayers().forEach((player) -> {
             Profile profile = Profile.unloadProfile(player.getName());
@@ -590,16 +677,36 @@ public class Core extends WPlugin {
             supportManager = null;
          }
 
+         if (friendManager != null) {
+            friendManager.shutdown();
+            friendManager = null;
+         }
+
+          if (clubManager != null) {
+             HandlerList.unregisterAll(clubManager);
+             clubManager = null;
+          }
+
          if (authManager != null) {
             authManager.shutdown();
             authManager = null;
          }
 
-         Database.getInstance().close();
+         if (esportsGameService != null) {
+            esportsGameService.shutdown();
+            esportsGameService = null;
+         }
+
+         if (esportsManager != null) {
+            esportsManager.shutdown();
+            esportsManager = null;
+         }
+
       }
 
       LobbyNPCManager.shutdown();
       LastCreditHologramManager.shutdown();
+      HologramLibrary.unregisterAll();
 
       if (lastCreditLeaderboardService != null) {
          lastCreditLeaderboardService.shutdown();
@@ -607,6 +714,9 @@ public class Core extends WPlugin {
 
       if (lastCreditPlaceholderService != null) {
          lastCreditPlaceholderService.stop();
+      }
+      if (validInit && Database.getInstance() != null) {
+         Database.getInstance().close();
       }
 
       stopSecureSocketListener();
@@ -762,8 +872,14 @@ public class Core extends WPlugin {
       if (command == null) {
          return;
       }
-      String prefix = LanguageManager.get("prefix.lobby", "&3Lobby &8>> ");
       command.setExecutor((sender, cmd, label, args) -> {
+         String prefix;
+         if (sender instanceof Player) {
+            Profile profile = Profile.getProfile(((Player) sender).getName());
+            prefix = LanguageManager.get(profile, "prefix.lobby", "&3Lobby &8>> ");
+         } else {
+            prefix = LanguageManager.get("prefix.lobby", "&3Lobby &8>> ");
+         }
          LanguageManager.send(sender, messageKey, fallbackMessage, "prefix", prefix);
          return true;
       });

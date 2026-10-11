@@ -7,6 +7,7 @@ import dev.zonely.whiteeffect.player.Profile;
 import dev.zonely.whiteeffect.utils.TimeUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.BanList;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
 import java.sql.Connection;
@@ -286,16 +287,37 @@ public class PunishmentManager {
 
         if (player != null && player.isOnline()) {
             String prefix = LanguageManager.get(profile, "prefix.punish", "");
+            String locale = LanguageManager.resolveProfileLocale(profile);
+            String notifyTemplate = LanguageManager.getRaw(
+                    locale,
+                    "punishments.mute.notify",
+                    "{prefix}&cYour chat access has been restricted! &7({duration})");
+            boolean notifyContainsReason = notifyTemplate != null && notifyTemplate.contains("{reason}");
             String notify = LanguageManager.get(profile,
                     "punishments.mute.notify",
                     "{prefix}&cYour chat access has been restricted! &7({duration})",
                     "prefix", prefix,
-                    "duration", durationLabel);
-            String reasonLine = LanguageManager.get(profile,
-                    "punishments.mute.reason",
-                    "&7Reason: &f{reason}",
+                    "duration", durationLabel,
                     "reason", muteReason);
-            player.sendMessage(notify + "\n" + reasonLine);
+            if (notifyContainsReason) {
+                sendFilteredPlayerMessage(player, notify);
+            } else {
+                String reasonLine = LanguageManager.get(profile,
+                        "punishments.mute.reason",
+                        "&7Reason: &f{reason}",
+                        "reason", muteReason);
+                if (isBrokenMuteReasonLine(reasonLine)) {
+                    reasonLine = LanguageManager.get(profile,
+                            "punishments.mute.reason-fallback",
+                            "&7Reason: &f{reason}",
+                            "reason", muteReason);
+                    if (isBrokenMuteReasonLine(reasonLine)) {
+                        reasonLine = ChatColor.translateAlternateColorCodes('&',
+                                "&7Reason: &f" + muteReason);
+                    }
+                }
+                sendFilteredPlayerMessage(player, notify + "\n" + reasonLine);
+            }
         }
 
         String broadcast = LanguageManager.get(
@@ -336,8 +358,10 @@ public class PunishmentManager {
                     "punishments.warn.notify",
                     "{prefix}&eYou have received a warning.",
                     "prefix", prefix,
-                    "reason", warnReason);
-            player.sendMessage(notify);
+                    "reason", warnReason,
+                    "executor", executor,
+                    "target", target);
+            sendFilteredPlayerMessage(player, notify);
         }
 
         String broadcast = LanguageManager.get(
@@ -808,6 +832,58 @@ public class PunishmentManager {
         return Core.getInstance()
                 .getConfig("config")
                 .getString("punishments.default-reason", "Not specified");
+    }
+
+    private boolean isBrokenMuteReasonLine(String reasonLine) {
+        if (reasonLine == null) {
+            return true;
+        }
+        String stripped = ChatColor.stripColor(reasonLine);
+        if (stripped == null) {
+            return true;
+        }
+        String normalized = stripped.trim();
+        String lower = normalized.toLowerCase(Locale.ROOT);
+        return normalized.isEmpty()
+                || isBrokenNotificationToken(lower)
+                || lower.equals("reason")
+                || lower.equals("{reason}");
+    }
+
+    private void sendFilteredPlayerMessage(Player player, String message) {
+        if (player == null || message == null || message.trim().isEmpty()) {
+            return;
+        }
+        boolean sent = false;
+        String[] lines = message.split("\\r?\\n");
+        for (String rawLine : lines) {
+            if (rawLine == null) {
+                continue;
+            }
+            String line = rawLine.trim().isEmpty() ? "" : rawLine;
+            String stripped = ChatColor.stripColor(line);
+            String normalized = stripped == null ? "" : stripped.trim().toLowerCase(Locale.ROOT);
+            if (!normalized.isEmpty() && isBrokenNotificationToken(normalized)) {
+                continue;
+            }
+            player.sendMessage(line);
+            sent = true;
+        }
+        if (!sent) {
+            player.sendMessage(message);
+        }
+    }
+
+    private boolean isBrokenNotificationToken(String lowerLine) {
+        if (lowerLine == null || lowerLine.isEmpty()) {
+            return false;
+        }
+        return lowerLine.equals("executor")
+                || lowerLine.equals("{executor}")
+                || lowerLine.startsWith("executor:")
+                || lowerLine.equals("prefix")
+                || lowerLine.equals("{prefix}")
+                || lowerLine.startsWith("prefix:");
     }
 
     private static final class PendingBan {

@@ -316,7 +316,7 @@ public final class SupportCommand implements CommandExecutor, TabCompleter {
     private void sendConversation(Player player, SupportView view) {
         SupportTicket ticket = view.getTicket();
         String title = ticket.getTitle();
-        if (title == null || title.isBlank()) {
+        if (title == null || title.trim().isEmpty()) {
             title = translate(player,
                     "support.command.view.title-unknown",
                     "No title");

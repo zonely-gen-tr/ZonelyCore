@@ -26,6 +26,11 @@ public class WCoreExpansion extends PlaceholderExpansion {
       return true;
    }
 
+   @Override
+   public boolean persist() {
+      return true;
+   }
+
    public String getAuthor() {
       return "WhiteEffect";
    }
@@ -39,6 +44,10 @@ public class WCoreExpansion extends PlaceholderExpansion {
    }
 
    public String onPlaceholderRequest(Player player, String params) {
+      if (params == null) {
+         return "";
+      }
+      if (params.startsWith("lastcredit_")) return lastCreditPlaceholder(params);
       Profile profile = null;
       if (player != null && (profile = Profile.getProfile(player.getName())) != null) {
          String table;
@@ -72,7 +81,15 @@ public class WCoreExpansion extends PlaceholderExpansion {
                   "amount", StringUtils.formatNumber(deliveries));
          } else if (params.equals("status_online_inksack")) {
             return profile.getPreferencesContainer().getPlayerVisibility().getInkSack();
-         } else if (params.startsWith("lastcredit_")) {
+         } else {
+            return null;
+         }
+      } else {
+         return "";
+      }
+   }
+
+   private String lastCreditPlaceholder(String params) {
             LastCreditPlaceholderService service = Core.getInstance().getLastCreditPlaceholderService();
             if (service == null) {
                return "";
@@ -113,11 +130,6 @@ public class WCoreExpansion extends PlaceholderExpansion {
                default:
                   return "";
             }
-         } else {
-            return null;
-         }
-      } else {
-         return "";
-      }
+
    }
 }

@@ -32,22 +32,23 @@ public class CezaCommand implements CommandExecutor, TabCompleter {
             "unban", "unipban", "unhwidban",
             "unmute", "unipmute", "unhwidmute",
             "unwarning", "unipwarning", "unhwidwarning",
-            "gecmis", "yardim");
+            "history", "gecmis",
+            "help", "yardim");
 
     private static final List<String> DEFAULT_HELP_LINES = Arrays.asList(
             "&6&m----------------------------",
             "&2",
             "&e&lPunishment System",
             "&2",
-            "&e/ceza ban <player> [duration] [reason] &2- &fBan a player.",
-            "&e/ceza ipban <ip> [duration] [reason] &2- &fBan an IP address.",
-            "&e/ceza hwidban <hwid> [duration] [reason] &2- &fBan a hardware ID.",
-            "&e/ceza mute <player> [duration] [reason] &2- &fMute a player.",
-            "&e/ceza warning <player> [reason] &2- &fSend a warning.",
-            "&e/ceza unban <player> &2- &fRemove a ban.",
-            "&e/ceza unmute <player> &2- &fRemove a mute.",
-            "&e/ceza unwarning <player> &2- &fRemove a warning.",
-            "&e/ceza gecmis <player> &2- &fView the punishment history.",
+            "&e/punish ban <player> [duration] [reason] &2- &fBan a player.",
+            "&e/punish ipban <ip> [duration] [reason] &2- &fBan an IP address.",
+            "&e/punish hwidban <hwid> [duration] [reason] &2- &fBan a hardware ID.",
+            "&e/punish mute <player> [duration] [reason] &2- &fMute a player.",
+            "&e/punish warning <player> [reason] &2- &fSend a warning.",
+            "&e/punish unban <player> &2- &fRemove a ban.",
+            "&e/punish unmute <player> &2- &fRemove a mute.",
+            "&e/punish unwarning <player> &2- &fRemove a warning.",
+            "&e/punish history <player> &2- &fView the punishment history.",
             "&2",
             "&6&m----------------------------");
 
@@ -96,7 +97,7 @@ public class CezaCommand implements CommandExecutor, TabCompleter {
     private static final String DEFAULT_HISTORY_ENTRY =
             "&7{index}. &e{date} &7| &a{type} &7| &f{duration} &7| &f{reason} &7| &fExecutor: &e{executor}";
     private static final String DEFAULT_HISTORY_NEXT =
-            "{prefix}&7Use &e/ceza gecmis {target} page <2-{pages}>&7 to view additional pages.";
+            "{prefix}&7Use &e/punish history {target} page <2-{pages}>&7 to view additional pages.";
     private static final String DEFAULT_HISTORY_EMPTY =
             "{prefix}&eNo punishment history was found for {target}.";
 
@@ -112,7 +113,7 @@ public class CezaCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        if (args.length == 0 || args[0].equalsIgnoreCase("yardim")) {
+        if (args.length == 0 || args[0].equalsIgnoreCase("yardim") || args[0].equalsIgnoreCase("help")) {
             showHelp(sender);
             return true;
         }
@@ -121,25 +122,25 @@ public class CezaCommand implements CommandExecutor, TabCompleter {
 
         switch (sub) {
             case "ban":
-                if (!hasPermission(sender, "whiteeffect.ceza.ban") || !ensureActionAllowed(sender, PunishAction.BAN)) {
+                if (!hasPermission(sender, "whiteeffect.ceza.ban") || !ensureActionAllowed(sender, "ban")) {
                     return true;
                 }
                 handleBan(sender, args);
                 break;
             case "ipban":
-                if (!hasPermission(sender, "whiteeffect.ceza.ban") || !ensureActionAllowed(sender, PunishAction.BAN)) {
+                if (!hasPermission(sender, "whiteeffect.ceza.ban") || !ensureActionAllowed(sender, "ban")) {
                     return true;
                 }
                 handleIPBan(sender, args);
                 break;
             case "hwidban":
-                if (!hasPermission(sender, "whiteeffect.ceza.ban") || !ensureActionAllowed(sender, PunishAction.BAN)) {
+                if (!hasPermission(sender, "whiteeffect.ceza.ban") || !ensureActionAllowed(sender, "ban")) {
                     return true;
                 }
                 handleHWIDBan(sender, args);
                 break;
             case "unban":
-                if (!hasPermission(sender, "whiteeffect.ceza.ban") || !ensureActionAllowed(sender, PunishAction.BAN)) {
+                if (!hasPermission(sender, "whiteeffect.ceza.ban") || !ensureActionAllowed(sender, "ban")) {
                     return true;
                 }
                 handleUnban(sender, args, PunishmentManager.BanType.NORMAL, "commands.punish.success.unban.player",
@@ -148,7 +149,7 @@ public class CezaCommand implements CommandExecutor, TabCompleter {
                         "{prefix}&cCould not remove the player ban for {target}.");
                 break;
             case "unipban":
-                if (!hasPermission(sender, "whiteeffect.ceza.ban") || !ensureActionAllowed(sender, PunishAction.BAN)) {
+                if (!hasPermission(sender, "whiteeffect.ceza.ban") || !ensureActionAllowed(sender, "ban")) {
                     return true;
                 }
                 handleUnban(sender, args, PunishmentManager.BanType.IP, "commands.punish.success.unban.ip",
@@ -157,7 +158,7 @@ public class CezaCommand implements CommandExecutor, TabCompleter {
                         "{prefix}&cCould not remove the IP ban for {target}.");
                 break;
             case "unhwidban":
-                if (!hasPermission(sender, "whiteeffect.ceza.ban") || !ensureActionAllowed(sender, PunishAction.BAN)) {
+                if (!hasPermission(sender, "whiteeffect.ceza.ban") || !ensureActionAllowed(sender, "ban")) {
                     return true;
                 }
                 handleUnban(sender, args, PunishmentManager.BanType.HWID, "commands.punish.success.unban.hwid",
@@ -166,25 +167,25 @@ public class CezaCommand implements CommandExecutor, TabCompleter {
                         "{prefix}&cCould not remove the HWID ban for {target}.");
                 break;
             case "mute":
-                if (!hasPermission(sender, "whiteeffect.ceza.mute") || !ensureActionAllowed(sender, PunishAction.MUTE)) {
+                if (!hasPermission(sender, "whiteeffect.ceza.mute") || !ensureActionAllowed(sender, "mute")) {
                     return true;
                 }
                 handleMute(sender, args);
                 break;
             case "ipmute":
-                if (!hasPermission(sender, "whiteeffect.ceza.mute") || !ensureActionAllowed(sender, PunishAction.MUTE)) {
+                if (!hasPermission(sender, "whiteeffect.ceza.mute") || !ensureActionAllowed(sender, "mute")) {
                     return true;
                 }
                 handleIPMute(sender, args);
                 break;
             case "hwidmute":
-                if (!hasPermission(sender, "whiteeffect.ceza.mute") || !ensureActionAllowed(sender, PunishAction.MUTE)) {
+                if (!hasPermission(sender, "whiteeffect.ceza.mute") || !ensureActionAllowed(sender, "mute")) {
                     return true;
                 }
                 handleHWIDMute(sender, args);
                 break;
             case "unmute":
-                if (!hasPermission(sender, "whiteeffect.ceza.mute") || !ensureActionAllowed(sender, PunishAction.MUTE)) {
+                if (!hasPermission(sender, "whiteeffect.ceza.mute") || !ensureActionAllowed(sender, "mute")) {
                     return true;
                 }
                 handleUnmute(sender, args, PunishmentManager.MuteType.NORMAL, "commands.punish.success.unmute.player",
@@ -193,7 +194,7 @@ public class CezaCommand implements CommandExecutor, TabCompleter {
                         "{prefix}&cCould not remove the player mute for {target}.");
                 break;
             case "unipmute":
-                if (!hasPermission(sender, "whiteeffect.ceza.mute") || !ensureActionAllowed(sender, PunishAction.MUTE)) {
+                if (!hasPermission(sender, "whiteeffect.ceza.mute") || !ensureActionAllowed(sender, "mute")) {
                     return true;
                 }
                 handleUnmute(sender, args, PunishmentManager.MuteType.IP, "commands.punish.success.unmute.ip",
@@ -202,7 +203,7 @@ public class CezaCommand implements CommandExecutor, TabCompleter {
                         "{prefix}&cCould not remove the IP mute for {target}.");
                 break;
             case "unhwidmute":
-                if (!hasPermission(sender, "whiteeffect.ceza.mute") || !ensureActionAllowed(sender, PunishAction.MUTE)) {
+                if (!hasPermission(sender, "whiteeffect.ceza.mute") || !ensureActionAllowed(sender, "mute")) {
                     return true;
                 }
                 handleUnmute(sender, args, PunishmentManager.MuteType.HWID, "commands.punish.success.unmute.hwid",
@@ -211,25 +212,25 @@ public class CezaCommand implements CommandExecutor, TabCompleter {
                         "{prefix}&cCould not remove the HWID mute for {target}.");
                 break;
             case "warning":
-                if (!hasPermission(sender, "whiteeffect.ceza.warning") || !ensureActionAllowed(sender, PunishAction.WARNING)) {
+                if (!hasPermission(sender, "whiteeffect.ceza.warning") || !ensureActionAllowed(sender, "warning")) {
                     return true;
                 }
                 handleWarning(sender, args);
                 break;
             case "ipwarning":
-                if (!hasPermission(sender, "whiteeffect.ceza.warning") || !ensureActionAllowed(sender, PunishAction.WARNING)) {
+                if (!hasPermission(sender, "whiteeffect.ceza.warning") || !ensureActionAllowed(sender, "warning")) {
                     return true;
                 }
                 handleIPWarning(sender, args);
                 break;
             case "hwidwarning":
-                if (!hasPermission(sender, "whiteeffect.ceza.warning") || !ensureActionAllowed(sender, PunishAction.WARNING)) {
+                if (!hasPermission(sender, "whiteeffect.ceza.warning") || !ensureActionAllowed(sender, "warning")) {
                     return true;
                 }
                 handleHWIDWarning(sender, args);
                 break;
             case "unwarning":
-                if (!hasPermission(sender, "whiteeffect.ceza.warning") || !ensureActionAllowed(sender, PunishAction.WARNING)) {
+                if (!hasPermission(sender, "whiteeffect.ceza.warning") || !ensureActionAllowed(sender, "warning")) {
                     return true;
                 }
                 handleUnwarning(sender, args, PunishmentManager.WarningType.NORMAL, "commands.punish.success.unwarning.player",
@@ -238,7 +239,7 @@ public class CezaCommand implements CommandExecutor, TabCompleter {
                         "{prefix}&cCould not remove the warning for {target}.");
                 break;
             case "unipwarning":
-                if (!hasPermission(sender, "whiteeffect.ceza.warning") || !ensureActionAllowed(sender, PunishAction.WARNING)) {
+                if (!hasPermission(sender, "whiteeffect.ceza.warning") || !ensureActionAllowed(sender, "warning")) {
                     return true;
                 }
                 handleUnwarning(sender, args, PunishmentManager.WarningType.IP, "commands.punish.success.unwarning.ip",
@@ -247,7 +248,7 @@ public class CezaCommand implements CommandExecutor, TabCompleter {
                         "{prefix}&cCould not remove the IP warning for {target}.");
                 break;
             case "unhwidwarning":
-                if (!hasPermission(sender, "whiteeffect.ceza.warning") || !ensureActionAllowed(sender, PunishAction.WARNING)) {
+                if (!hasPermission(sender, "whiteeffect.ceza.warning") || !ensureActionAllowed(sender, "warning")) {
                     return true;
                 }
                 handleUnwarning(sender, args, PunishmentManager.WarningType.HWID, "commands.punish.success.unwarning.hwid",
@@ -256,11 +257,12 @@ public class CezaCommand implements CommandExecutor, TabCompleter {
                         "{prefix}&cCould not remove the HWID warning for {target}.");
                 break;
             case "gecmis":
+            case "history":
                 handleHistory(sender, args);
                 break;
             default:
                 sendMessage(sender, "commands.punish.error.invalid-subcommand",
-                        "{prefix}&cUnknown sub-command. Use /ceza yardim.");
+                        "{prefix}&cUnknown sub-command. Use /punish help.");
                 break;
         }
 
@@ -278,7 +280,7 @@ public class CezaCommand implements CommandExecutor, TabCompleter {
             }
         } else if (args.length == 2) {
             String sub = args[0].toLowerCase(Locale.ROOT);
-            if (Arrays.asList("ban", "mute", "warning", "gecmis", "unban", "unmute", "unwarning").contains(sub)) {
+            if (Arrays.asList("ban", "mute", "warning", "gecmis", "history", "unban", "unmute", "unwarning").contains(sub)) {
                 completions.addAll(
                         Bukkit.getOnlinePlayers().stream()
                                 .map(Player::getName)
@@ -291,7 +293,7 @@ public class CezaCommand implements CommandExecutor, TabCompleter {
     private void handleBan(CommandSender sender, String[] args) {
         if (args.length < 2) {
             sendMessage(sender, "commands.punish.usage.ban",
-                    "{prefix}&cUsage: /ceza ban <player> [duration] [reason]");
+                    "{prefix}&cUsage: /punish ban <player> [duration] [reason]");
             return;
         }
 
@@ -323,7 +325,7 @@ public class CezaCommand implements CommandExecutor, TabCompleter {
     private void handleIPBan(CommandSender sender, String[] args) {
         if (args.length < 2) {
             sendMessage(sender, "commands.punish.usage.ipban",
-                    "{prefix}&cUsage: /ceza ipban <ip> [duration] [reason]");
+                    "{prefix}&cUsage: /punish ipban <ip> [duration] [reason]");
             return;
         }
 
@@ -355,7 +357,7 @@ public class CezaCommand implements CommandExecutor, TabCompleter {
     private void handleHWIDBan(CommandSender sender, String[] args) {
         if (args.length < 2) {
             sendMessage(sender, "commands.punish.usage.hwidban",
-                    "{prefix}&cUsage: /ceza hwidban <hwid> [duration] [reason]");
+                    "{prefix}&cUsage: /punish hwidban <hwid> [duration] [reason]");
             return;
         }
 
@@ -386,7 +388,7 @@ public class CezaCommand implements CommandExecutor, TabCompleter {
     private void handleMute(CommandSender sender, String[] args) {
         if (args.length < 2) {
             sendMessage(sender, "commands.punish.usage.mute",
-                    "{prefix}&cUsage: /ceza mute <player> [duration] [reason]");
+                    "{prefix}&cUsage: /punish mute <player> [duration] [reason]");
             return;
         }
 
@@ -418,7 +420,7 @@ public class CezaCommand implements CommandExecutor, TabCompleter {
     private void handleIPMute(CommandSender sender, String[] args) {
         if (args.length < 2) {
             sendMessage(sender, "commands.punish.usage.ipmute",
-                    "{prefix}&cUsage: /ceza ipmute <ip> [duration] [reason]");
+                    "{prefix}&cUsage: /punish ipmute <ip> [duration] [reason]");
             return;
         }
 
@@ -450,7 +452,7 @@ public class CezaCommand implements CommandExecutor, TabCompleter {
     private void handleHWIDMute(CommandSender sender, String[] args) {
         if (args.length < 2) {
             sendMessage(sender, "commands.punish.usage.hwidmute",
-                    "{prefix}&cUsage: /ceza hwidmute <hwid> [duration] [reason]");
+                    "{prefix}&cUsage: /punish hwidmute <hwid> [duration] [reason]");
             return;
         }
 
@@ -486,10 +488,10 @@ public class CezaCommand implements CommandExecutor, TabCompleter {
                     : type == PunishmentManager.BanType.IP ? "commands.punish.usage.unipban"
                     : "commands.punish.usage.unhwidban";
             String usageDef = type == PunishmentManager.BanType.NORMAL
-                    ? "{prefix}&cUsage: /ceza unban <player>"
+                    ? "{prefix}&cUsage: /punish unban <player>"
                     : type == PunishmentManager.BanType.IP
-                    ? "{prefix}&cUsage: /ceza unipban <ip>"
-                    : "{prefix}&cUsage: /ceza unhwidban <hwid>";
+                    ? "{prefix}&cUsage: /punish unipban <ip>"
+                    : "{prefix}&cUsage: /punish unhwidban <hwid>";
             sendMessage(sender, usageKey, usageDef);
             return;
         }
@@ -512,10 +514,10 @@ public class CezaCommand implements CommandExecutor, TabCompleter {
                     : type == PunishmentManager.MuteType.IP ? "commands.punish.usage.unipmute"
                     : "commands.punish.usage.unhwidmute";
             String usageDef = type == PunishmentManager.MuteType.NORMAL
-                    ? "{prefix}&cUsage: /ceza unmute <player>"
+                    ? "{prefix}&cUsage: /punish unmute <player>"
                     : type == PunishmentManager.MuteType.IP
-                    ? "{prefix}&cUsage: /ceza unipmute <ip>"
-                    : "{prefix}&cUsage: /ceza unhwidmute <hwid>";
+                    ? "{prefix}&cUsage: /punish unipmute <ip>"
+                    : "{prefix}&cUsage: /punish unhwidmute <hwid>";
             sendMessage(sender, usageKey, usageDef);
             return;
         }
@@ -533,7 +535,7 @@ public class CezaCommand implements CommandExecutor, TabCompleter {
     private void handleWarning(CommandSender sender, String[] args) {
         if (args.length < 2) {
             sendMessage(sender, "commands.punish.usage.warning",
-                    "{prefix}&cUsage: /ceza warning <player> [reason]");
+                    "{prefix}&cUsage: /punish warning <player> [reason]");
             return;
         }
 
@@ -557,7 +559,7 @@ public class CezaCommand implements CommandExecutor, TabCompleter {
     private void handleIPWarning(CommandSender sender, String[] args) {
         if (args.length < 2) {
             sendMessage(sender, "commands.punish.usage.ipwarning",
-                    "{prefix}&cUsage: /ceza ipwarning <ip> [reason]");
+                    "{prefix}&cUsage: /punish ipwarning <ip> [reason]");
             return;
         }
 
@@ -581,7 +583,7 @@ public class CezaCommand implements CommandExecutor, TabCompleter {
     private void handleHWIDWarning(CommandSender sender, String[] args) {
         if (args.length < 2) {
             sendMessage(sender, "commands.punish.usage.hwidwarning",
-                    "{prefix}&cUsage: /ceza hwidwarning <hwid> [reason]");
+                    "{prefix}&cUsage: /punish hwidwarning <hwid> [reason]");
             return;
         }
 
@@ -610,10 +612,10 @@ public class CezaCommand implements CommandExecutor, TabCompleter {
                     : type == PunishmentManager.WarningType.IP ? "commands.punish.usage.unipwarning"
                     : "commands.punish.usage.unhwidwarning";
             String usageDef = type == PunishmentManager.WarningType.NORMAL
-                    ? "{prefix}&cUsage: /ceza unwarning <player>"
+                    ? "{prefix}&cUsage: /punish unwarning <player>"
                     : type == PunishmentManager.WarningType.IP
-                    ? "{prefix}&cUsage: /ceza unipwarning <ip>"
-                    : "{prefix}&cUsage: /ceza unhwidwarning <hwid>";
+                    ? "{prefix}&cUsage: /punish unipwarning <ip>"
+                    : "{prefix}&cUsage: /punish unhwidwarning <hwid>";
             sendMessage(sender, usageKey, usageDef);
             return;
         }
@@ -631,7 +633,7 @@ public class CezaCommand implements CommandExecutor, TabCompleter {
     private void handleHistory(CommandSender sender, String[] args) {
         if (args.length < 2) {
             sendMessage(sender, "commands.punish.usage.history",
-                    "{prefix}&cUsage: /ceza gecmis <player>");
+                    "{prefix}&cUsage: /punish history <player>");
             return;
         }
 
@@ -639,11 +641,14 @@ public class CezaCommand implements CommandExecutor, TabCompleter {
         boolean ownHistory = sender instanceof Player && ((Player) sender).getName().equalsIgnoreCase(targetName);
 
         int page = 1;
-        if (args.length >= 4 && args[2].equalsIgnoreCase("sayfa")) {
-            try {
-                page = Integer.parseInt(args[3]);
-            } catch (NumberFormatException ignored) {
-                page = 1;
+        if (args.length >= 3) {
+            String pageToken = args[2];
+            if ("sayfa".equalsIgnoreCase(pageToken) || "page".equalsIgnoreCase(pageToken)) {
+                if (args.length >= 4) {
+                    page = parsePositiveIntOrDefault(args[3], 1);
+                }
+            } else {
+                page = parsePositiveIntOrDefault(pageToken, 1);
             }
         }
 
@@ -730,7 +735,7 @@ public class CezaCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
-    private boolean ensureActionAllowed(CommandSender sender, PunishAction action) {
+    private boolean ensureActionAllowed(CommandSender sender, String action) {
         if (!isActionAllowed(action)) {
             sendMessage(sender, "commands.punish.error.not-allowed",
                     "{prefix}&cThis punishment action is disabled in the configuration.");
@@ -743,13 +748,16 @@ public class CezaCommand implements CommandExecutor, TabCompleter {
         return CONFIG.getBoolean("punishments.enabled", true);
     }
 
-    private boolean isActionAllowed(PunishAction action) {
-        switch (action) {
-            case BAN:
+    private boolean isActionAllowed(String action) {
+        if (action == null) {
+            return true;
+        }
+        switch (action.toLowerCase(Locale.ROOT)) {
+            case "ban":
                 return CONFIG.getBoolean("punishments.allow.ban", true);
-            case MUTE:
+            case "mute":
                 return CONFIG.getBoolean("punishments.allow.mute", true);
-            case WARNING:
+            case "warning":
                 return CONFIG.getBoolean("punishments.allow.warning", true);
             default:
                 return true;
@@ -871,9 +879,16 @@ public class CezaCommand implements CommandExecutor, TabCompleter {
         return input.matches("\\d+[smhd]");
     }
 
-    private enum PunishAction {
-        BAN,
-        MUTE,
-        WARNING
+    private int parsePositiveIntOrDefault(String raw, int fallback) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return fallback;
+        }
+        try {
+            int value = Integer.parseInt(raw.trim());
+            return value > 0 ? value : fallback;
+        } catch (NumberFormatException ignored) {
+            return fallback;
+        }
     }
 }
+

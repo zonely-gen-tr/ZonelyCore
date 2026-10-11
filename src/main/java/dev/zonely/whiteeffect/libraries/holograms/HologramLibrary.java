@@ -71,7 +71,13 @@ public class HologramLibrary {
    }
 
    public static void unregisterAll() {
-      holograms.forEach(Hologram::despawn);
+      for (Hologram hologram : new ArrayList<>(holograms)) {
+         try {
+            hologram.despawn();
+         } catch (Throwable ex) {
+            LOGGER.log(Level.WARNING, "Failed to despawn a hologram during shutdown", ex);
+         }
+      }
       holograms.clear();
       plugin = null;
    }

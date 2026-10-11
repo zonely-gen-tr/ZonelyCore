@@ -7,10 +7,9 @@ import dev.zonely.whiteeffect.database.cache.RoleCache;
 import dev.zonely.whiteeffect.database.data.DataContainer;
 import dev.zonely.whiteeffect.database.exception.ProfileLoadException;
 import dev.zonely.whiteeffect.plugin.config.WConfig;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Timer;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.bukkit.Bukkit;
@@ -25,14 +24,65 @@ public abstract class Database {
 
    public static void setupDatabase(String type, String mysqlHost, String mysqlPort, String mysqlDbname, String mysqlUsername, String mysqlPassword, boolean hikari, boolean mariadb, String mongoURL) {
       LOGGER = Core.getInstance().getLogger();
+      boolean requireMySql = Core.getInstance().getConfig().getBoolean("database.require-mysql", true);
       boolean failOpen = Core.getInstance().getConfig().getBoolean("database.fail-open", false);
-      try {
-         if (type.equalsIgnoreCase("mongodb")) {
-            instance = new MongoDBDatabase(mongoURL);
-         } else if (hikari) {
-            instance = new HikariDatabase(mysqlHost, mysqlPort, mysqlDbname, mysqlUsername, mysqlPassword, mariadb);
+      String normalizedType = type == null ? "" : type.trim();
+
+      if (requireMySql) {
+         if (!normalizedType.equalsIgnoreCase("mysql")) {
+            IllegalStateException cause = new IllegalStateException(
+                    "database.type must be 'MySQL' when database.require-mysql=true.");
+            LOGGER.log(Level.SEVERE,
+                    "Startup aborted: database.require-mysql is enabled but database.type is '" + normalizedType + "'.", cause);
+            Bukkit.getPluginManager().disablePlugin(Core.getInstance());
+            throw cause;
+         }
+
+         List<String> missing = new ArrayList<>();
+         if (isBlank(mysqlHost)) {
+            missing.add("database.mysql.host");
+         }
+         if (isBlank(mysqlPort)) {
+            missing.add("database.mysql.port");
          } else {
-            instance = new MySQLDatabase(mysqlHost, mysqlPort, mysqlDbname, mysqlUsername, mysqlPassword, mariadb);
+            try {
+               int parsedPort = Integer.parseInt(mysqlPort.trim());
+               if (parsedPort <= 0 || parsedPort > 65535) {
+                  missing.add("database.mysql.port(valid-range)");
+               }
+            } catch (NumberFormatException ex) {
+               missing.add("database.mysql.port(number)");
+            }
+         }
+         if (isBlank(mysqlDbname)) {
+            missing.add("database.mysql.name");
+         }
+         if (isBlank(mysqlUsername)) {
+            missing.add("database.mysql.username");
+         }
+         if (!missing.isEmpty()) {
+            IllegalStateException cause = new IllegalStateException(
+                    "Missing MySQL config keys: " + String.join(", ", missing));
+            LOGGER.log(Level.SEVERE,
+                    "Startup aborted: MySQL configuration is incomplete.", cause);
+            Bukkit.getPluginManager().disablePlugin(Core.getInstance());
+            throw cause;
+         }
+
+         if (failOpen) {
+            LOGGER.warning("database.fail-open=true is ignored because database.require-mysql=true.");
+            failOpen = false;
+         }
+      }
+
+      try {
+         if (normalizedType.equalsIgnoreCase("mongodb")) {
+            instance = new MongoDBDatabase(mongoURL);
+         } else {
+            if (!hikari) {
+               LOGGER.info("Using HikariCP for MySQL connections (legacy shared connections are disabled).");
+            }
+            instance = new HikariDatabase(mysqlHost, mysqlPort, mysqlDbname, mysqlUsername, mysqlPassword, mariadb);
          }
       } catch (Throwable t) {
          if (failOpen) {
@@ -45,7 +95,12 @@ public abstract class Database {
          }
       }
 
-      (new Timer()).scheduleAtFixedRate(RoleCache.clearCache(), TimeUnit.SECONDS.toMillis(60L), TimeUnit.SECONDS.toMillis(60L));
+      // Bukkit owns the task lifecycle and cancels it when the plugin is disabled.
+      Bukkit.getScheduler().runTaskTimer(Core.getInstance(), RoleCache.clearCache(), 1200L, 1200L);
+   }
+
+   private static boolean isBlank(String value) {
+      return value == null || value.trim().isEmpty();
    }
 
    public static Database getInstance() {

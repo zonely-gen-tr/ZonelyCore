@@ -69,11 +69,16 @@ public class Listeners implements Listener {
 
     public static void setupListeners() {
         Bukkit.getPluginManager().registerEvents(new Listeners(), Core.getInstance());
-        Bukkit.getPluginManager().registerEvents(new AdvancedReplayListener(), Core.getInstance());
+        if (dev.zonely.whiteeffect.replay.advanced.AdvancedReplayRecorder.get() != null) {
+            Bukkit.getPluginManager().registerEvents(new AdvancedReplayListener(), Core.getInstance());
+        }
         new ChatFilterListener(Core.getInstance().getPunishmentManager(), Core.getInstance().getConfig("config"));
-    dev.zonely.whiteeffect.debug.InventoryDebug.install();
-dev.zonely.whiteeffect.debug.CreativeGuard.install();
-dev.zonely.whiteeffect.debug.InventoryUnlocker.install();
+        dev.zonely.whiteeffect.debug.InventoryDebug.install();
+        dev.zonely.whiteeffect.debug.CreativeGuard.install();
+        // InventoryUnlocker is a debug helper that force-unlocks vanilla containers and
+        // breaks protected GUI menus (items become movable).
+        // Keep it disabled in production.
+        // dev.zonely.whiteeffect.debug.InventoryUnlocker.install();
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -100,7 +105,12 @@ dev.zonely.whiteeffect.debug.InventoryUnlocker.install();
         }
 
         String ip = evt.getAddress() != null ? evt.getAddress().getHostAddress() : "";
-        if (service.isPlayerAuthorized(evt.getPlayer().getName(), ip)) {
+        LauncherSessionService.AuthorizationResult result = service.authorizePlayer(evt.getPlayer().getName(), ip);
+        if (result.isAuthorized()) {
+            LauncherSessionService.SkinPayload skin = result.skin();
+            if (skin != null) {
+                service.applySkin(evt.getPlayer(), skin);
+            }
             return;
         }
 
@@ -140,7 +150,7 @@ dev.zonely.whiteeffect.debug.InventoryUnlocker.install();
                     "listeners.general.update.message",
                     "{prefix}&eA new update is available for &6ZonelyCore &b{version}&e. ",
                     "prefix", prefix,
-                    "version", ZonelyUpdater.getVersion(9));
+                    "version", ZonelyUpdater.UPDATER.getLatestVersion());
             addComponents(component, TextComponent.fromLegacyText(message));
 
             ClickEvent clickEvent = new ClickEvent(Action.RUN_COMMAND, "/zc guncelle");

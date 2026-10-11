@@ -1,6 +1,6 @@
 author: WhiteEffect - Orcun Donmez
 name: ZonelyCore
-version: 1.3
+version: ${project.version}
 description: ZONELY.GEN.TR
 depend: [ProtocolLib, PlaceholderAPI]
 api-version: 1.13
@@ -9,6 +9,7 @@ commands:
   store:
     description: "Opens the store menu."
     usage: "/store"
+    aliases: [zonelystore, magaza]
   punish:
     description: "Provides the punishment menu and moderation sub-commands."
     usage: "/punish <subcommand>"
@@ -72,6 +73,10 @@ commands:
     description: "Interact with the live support system."
     usage: "/support <subcommand>"
     aliases: [destek]
+  friends:
+    description: "Open and manage the friend system."
+    usage: "/friends <subcommand>"
+    aliases: [friend, arkadas, "arkada\u015F"]
 permissions:
   zonely.punish:
     default: op
@@ -111,3 +116,4 @@ permissions:
     default: op
   zonely.support.ban:
     default: op
+

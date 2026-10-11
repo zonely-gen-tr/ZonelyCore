@@ -3,6 +3,7 @@ package dev.zonely.whiteeffect.store;
 import dev.zonely.whiteeffect.Core;
 import dev.zonely.whiteeffect.database.Database;
 import dev.zonely.whiteeffect.lang.LanguageManager;
+import dev.zonely.whiteeffect.player.Profile;
 import dev.zonely.whiteeffect.plugin.config.WConfig;
 import dev.zonely.whiteeffect.utils.StringUtils;
 import dev.zonely.whiteeffect.utils.MaterialResolver;
@@ -34,15 +35,20 @@ import java.util.logging.Level;
 public class ProductMenuManager implements Listener {
 
     private final Core plugin;
+    private final StorePurchaseService checkout;
+    private final StoreDeliveryService delivery;
+    private final Set<UUID> buying = ConcurrentHashMap.newKeySet();
+    private final java.util.concurrent.atomic.AtomicBoolean loading = new java.util.concurrent.atomic.AtomicBoolean();
+    private org.bukkit.scheduler.BukkitTask catalogTimer;
 
     public static final WConfig CONFIG = Core.getInstance().getConfig("config");
     public static String prefixCore;
 
-    private final Map<Integer, Category> categoryCache = new ConcurrentHashMap<>();
-    private final Map<Integer, List<Category>> childrenByParentCache = new ConcurrentHashMap<>();
+    private volatile Map<Integer, Category> categoryCache = Collections.emptyMap();
+    private volatile Map<Integer, List<Category>> childrenByParentCache = Collections.emptyMap();
 
-    private final Map<Integer, List<ProductEntry>> productsByCategoryCache = new ConcurrentHashMap<>();
-    private final Map<Integer, List<PacketEntry>> packetsByCategoryCache = new ConcurrentHashMap<>();
+    private volatile Map<Integer, List<ProductEntry>> productsByCategoryCache = Collections.emptyMap();
+    private volatile Map<Integer, List<PacketEntry>> packetsByCategoryCache = Collections.emptyMap();
     private final Map<UUID, Double> creditCache = new ConcurrentHashMap<>();
     private final Map<UUID, List<PurchasedItem>> purchaseCache = new ConcurrentHashMap<>();
     private final Map<UUID, FilterSettings> filterByPlayer = new ConcurrentHashMap<>();
@@ -61,6 +67,15 @@ public class ProductMenuManager implements Listener {
 
     public ProductMenuManager(Core plugin) {
         this.plugin = plugin;
+        StorePurchaseService.Connections connections = () -> {
+            if (Database.getInstance() == null) throw new SQLException("Store database unavailable");
+            Connection connection = Database.getInstance().getConnection();
+            if (connection == null) throw new SQLException("Store SQL connection unavailable");
+            return connection;
+        };
+        this.checkout = new StorePurchaseService(connections);
+        this.delivery = new StoreDeliveryService(plugin, checkout, connections);
+        if (Database.getInstance() instanceof dev.zonely.whiteeffect.database.HikariDatabase) delivery.start();
         Bukkit.getPluginManager().registerEvents(this, plugin);
 
         String fallbackPrefix = CONFIG.getString("language.prefix.lobby", "&7[Store]&r ");
@@ -73,6 +88,13 @@ public class ProductMenuManager implements Listener {
                 loadAllStoreDataOnce();
             }
         }.runTaskAsynchronously(plugin);
+        catalogTimer = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin,
+                this::loadAllStoreDataOnce, 1200L, 1200L);
+    }
+
+    public void shutdown() {
+        delivery.shutdown();
+        if (catalogTimer != null) catalogTimer.cancel();
     }
 
     public boolean isDataLoaded() {
@@ -84,6 +106,7 @@ public class ProductMenuManager implements Listener {
         String fallbackPrefix = CONFIG.getString("language.prefix.lobby", "&7[Store]&r ");
         prefixCore = ChatColor.translateAlternateColorCodes('&',
                 LanguageManager.get("prefix.lobby", fallbackPrefix));
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, this::loadAllStoreDataOnce);
     }
 
     private static String tr(String key, String fallback, String... kv) {
@@ -98,7 +121,31 @@ public class ProductMenuManager implements Listener {
         }
         return ChatColor.translateAlternateColorCodes('&', out);
     }
+
+    private static String tr(Profile profile, String key, String fallback, String... kv) {
+        String out = profile == null ? LanguageManager.get(key, fallback) : LanguageManager.get(profile, key, fallback);
+        if (kv != null) {
+            for (int i = 0; i + 1 < kv.length; i += 2) {
+                String k = kv[i] == null ? "" : kv[i];
+                String v = kv[i + 1] == null ? "" : kv[i + 1];
+                out = out.replace("{" + k + "}", v);
+                out = out.replace("%" + k + "%", v);
+            }
+        }
+        return ChatColor.translateAlternateColorCodes('&', out);
+    }
+
+    private static String tr(Player player, String key, String fallback, String... kv) {
+        Profile profile = player == null ? null : Profile.getProfile(player.getName());
+        return tr(profile, key, fallback, kv);
+    }
   
+    private static List<String> wrapLore(List<String> input) {
+        List<String> result = new ArrayList<>();
+        for (String line : input) result.addAll(StoreText.lore(line, "§7", 42));
+        return result;
+    }
+
     private ItemStack applyCustomModelData(ItemStack item, String modelId) {
         if (item == null) return null;
         if (modelId == null || modelId.trim().isEmpty()) return item;
@@ -159,6 +206,7 @@ public class ProductMenuManager implements Listener {
 
 
     private void loadAllStoreDataOnce() {
+        if (!loading.compareAndSet(false, true)) return;
         Connection conn = null;
         try {
             if (Database.getInstance() == null) return;
@@ -192,7 +240,7 @@ public class ProductMenuManager implements Listener {
                     if (rawGui != null && !rawGui.trim().isEmpty()) {
                         try {
                             JSONObject guiObj = new JSONObject(rawGui);
-                            showInGame = guiObj.optInt("showInGame", 0) == 1;
+                            showInGame = StoreVisibility.isVisible(guiObj);
                             guiTitle = guiObj.optString("title", "");
                             guiDescription = guiObj.optString("description", "");
                             guiIcon = guiObj.optString("icon", "");
@@ -216,7 +264,7 @@ public class ProductMenuManager implements Listener {
                     );
 
                     tempCatMap.put(id, cat);
-                    tempChildrenMap.computeIfAbsent(parentId, k -> new ArrayList<>()).add(cat);
+                    if (showInGame) tempChildrenMap.computeIfAbsent(parentId, k -> new ArrayList<>()).add(cat);
                 }
             }
 
@@ -228,11 +276,6 @@ public class ProductMenuManager implements Listener {
                 });
             }
 
-            categoryCache.clear();
-            categoryCache.putAll(tempCatMap);
-
-            childrenByParentCache.clear();
-            childrenByParentCache.putAll(tempChildrenMap);
 
             String sqlProd = ""
                     + "SELECT p.id AS pid, p.plugin_data, p.name AS pname, p.price, p.discountedPrice, p.discountexpiry_at, "
@@ -309,7 +352,7 @@ public class ProductMenuManager implements Listener {
                                 if (obj.has("zonely")) {
                                     JSONObject zonelyObj = obj.optJSONObject("zonely");
                                     if (zonelyObj != null) {
-                                        showInGame = zonelyObj.optInt("showInGame", 0) == 1;
+                                        showInGame = StoreVisibility.isVisible(zonelyObj);
                                         zonelyTitle = zonelyObj.optString("title", "");
                                         zonelyDescription = zonelyObj.optString("description", "");
                                         zonelyIcon = zonelyObj.optString("icon", "");
@@ -329,13 +372,13 @@ public class ProductMenuManager implements Listener {
                                         spStock,
                                         imageUrl,
                                         saleDuration,
-                                        i,
+                                        obj.optInt("order", i),
                                         showInGame,
                                         zonelyTitle,
                                         zonelyDescription,
                                         zonelyIcon,
                                         zonelyModelId);
-                                subList.add(sp);
+                                if (showInGame) subList.add(sp);
                             }
                         } catch (JSONException je) {
                             plugin.getLogger().warning("JSON parse error for PRODUCT ID " + productId + ": " + je.getMessage());
@@ -352,11 +395,9 @@ public class ProductMenuManager implements Listener {
                             baseDiscount,
                             expiryStr,
                             subList);
-                    tempProdMap.computeIfAbsent(catId, k -> new ArrayList<>()).add(entry);
+                    if (!subList.isEmpty()) tempProdMap.computeIfAbsent(catId, k -> new ArrayList<>()).add(entry);
                 }
             }
-            productsByCategoryCache.clear();
-            productsByCategoryCache.putAll(tempProdMap);
 
             String sqlPkt = "SELECT id, name, products, price, expiry_at, productsStatus, category_id FROM productpackets WHERE productsStatus = 1";
             Map<Integer, List<PacketEntry>> tempPktMap = new HashMap<>();
@@ -376,11 +417,9 @@ public class ProductMenuManager implements Listener {
 
                     if (rawProducts != null && !rawProducts.trim().isEmpty()) {
                         try {
-                            JSONArray arr = new JSONArray(rawProducts);
                             List<Integer> idsForQuery = new ArrayList<>();
-                            for (int i = 0; i < arr.length(); i++) {
-                                int pid = arr.optInt(i, -1);
-                                if (pid >= 0) idsForQuery.add(pid);
+                            for (StorePurchaseService.Selection selection : StorePurchaseService.bundleSelections(rawProducts)) {
+                                idsForQuery.add(selection.productId);
                             }
                             if (!idsForQuery.isEmpty()) {
                                 StringBuilder inClause = new StringBuilder();
@@ -405,8 +444,8 @@ public class ProductMenuManager implements Listener {
                                     }
                                 }
                             }
-                        } catch (JSONException je) {
-                            plugin.getLogger().warning("JSON parse error for PACKET ID " + pktId + ": " + je.getMessage());
+                        } catch (StorePurchaseService.Rejected je) {
+                            plugin.getLogger().fine("Unsupported or invalid PACKET ID " + pktId + ": " + je.getMessage());
                         }
                     }
 
@@ -416,23 +455,22 @@ public class ProductMenuManager implements Listener {
                     }
                 }
             }
-            packetsByCategoryCache.clear();
-            packetsByCategoryCache.putAll(tempPktMap);
-
+            categoryCache = tempCatMap;
+            childrenByParentCache = tempChildrenMap;
+            productsByCategoryCache = tempProdMap;
+            packetsByCategoryCache = tempPktMap;
             dataLoaded = true;
 
-        } catch (Exception ignored) {
+        } catch (Exception failure) {
+            plugin.getLogger().warning("[Store] Catalog refresh failed: " + failure.getClass().getSimpleName());
         } finally {
             try { if (conn != null) conn.close(); } catch (SQLException ignored) {}
+            loading.set(false);
         }
     }
 
     private static String stripHtmlStatic(String html) {
-        if (html == null) return "";
-        html = html.replaceAll("(?i)<br\\s*/?>", "\n");
-        String noTags = html.replaceAll("<[^>]*>", "");
-        noTags = noTags.replaceAll("\\s+", " ").trim();
-        return noTags;
+        return StoreText.plain(html);
     }
 
     private String stripHtml(String html) {
@@ -465,10 +503,11 @@ public class ProductMenuManager implements Listener {
     }
 
     private ItemStack createLastCreditsIcon(Player player) {
+        Profile profile = Profile.getProfile(player.getName());
         List<String> lore = new ArrayList<>();
         ItemStack paper = new ItemStack(Material.BOOKSHELF);
         ItemMeta meta = paper.getItemMeta();
-        meta.setDisplayName(LanguageManager.get(
+        meta.setDisplayName(tr(profile,
                 "store.product-menu.last-credits.title",
                 ChatColor.GOLD + "§5§lRecent Credit Top-Ups"
         ));
@@ -486,15 +525,19 @@ public class ProductMenuManager implements Listener {
                 "store.product-menu.click-to-view",
                 ChatColor.GRAY + "§5§l➤ §dClick to view."
         ));
-        meta.setLore(lore);
+        meta.setLore(wrapLore(lore));
         paper.setItemMeta(meta);
         return paper;
     }
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent e) {
-        Player player = e.getPlayer();
+        refreshPlayerData(e.getPlayer());
+    }
+
+    private void refreshPlayerData(Player player) {
         UUID uuid = player.getUniqueId();
+        final String username = player.getName();
 
         creditCache.remove(uuid);
         new BukkitRunnable() {
@@ -513,7 +556,7 @@ public class ProductMenuManager implements Listener {
 
                     String creditSQL = "SELECT id, credit FROM userslist WHERE nick = ?";
                     ps = conn.prepareStatement(creditSQL);
-                    ps.setString(1, player.getName());
+                    ps.setString(1, username);
                     rs = ps.executeQuery();
                     if (rs.next()) {
                         webUserID = rs.getInt("id");
@@ -540,12 +583,8 @@ public class ProductMenuManager implements Listener {
                         conn2 = Database.getInstance().getConnection();
                         if (conn2 == null) return;
 
-                        String buysSQL = "SELECT lb.productid, pl.minecraft AS orderIndex, lb.created_at " +
-                                "FROM lastedbuys lb " +
-                                "JOIN productlicenses pl " +
-                                "  ON pl.productid = lb.productid AND pl.userid = lb.userid " +
-                                "WHERE lb.userid = ? " +
-                                "ORDER BY lb.created_at DESC";
+                        String buysSQL = "SELECT pl.productid, pl.minecraft AS orderIndex, pl.created_at " +
+                                "FROM productlicenses pl WHERE pl.userid = ? ORDER BY pl.created_at DESC";
 
                         ps2 = conn2.prepareStatement(buysSQL);
                         ps2.setInt(1, webUserID);
@@ -652,14 +691,7 @@ public class ProductMenuManager implements Listener {
     }
 
     public void openCategoryMenu(Player player, int page) {
-        if (!dataLoaded) {
-            player.sendMessage(tr(
-                    "store.product-menu.data-not-ready",
-                    "{prefix}&eStore data is still loading; please try again shortly.",
-                    "prefix", prefixCore
-            ));
-            return;
-        }
+        Profile profile = Profile.getProfile(player.getName());
 
         List<Category> categories = getChildren(0);
         if (categories == null) categories = Collections.emptyList();
@@ -674,40 +706,66 @@ public class ProductMenuManager implements Listener {
         int endIndex = Math.min(startIndex + PAGE_SIZE, totalItems);
         List<Category> subList = categories.subList(startIndex, endIndex);
 
-        int itemCount = subList.size();
-        if (itemCount == 0) {
-            player.sendMessage(tr(
-                    "store.product-menu.no-categories",
-                    "{prefix}§cThere are no categories to display.",
-                    "prefix", prefixCore
-            ));
-            return;
-        }
-
         Map<Integer, Category> slotMap = new HashMap<>();
         Inventory inv = Bukkit.createInventory(
                 new CategoryHolder(slotMap, safePage, calcTotalPages, null, false),
                 INVENTORY_SIZE,
-                LanguageManager.get(
+                tr(profile,
                         "store.product-menu.inv.categories-title",
-                        "§8Product Categories"
+                        "&8Store Categories"
                 )
         );
 
-        fillCategoryGrid(inv, subList, slotMap);
+        fillCategoryGrid(profile, inv, subList, slotMap);
+        if (subList.isEmpty()) {
+            ItemStack status = new ItemStack(Material.PAPER);
+            ItemMeta meta = status.getItemMeta();
+            meta.setDisplayName(tr(profile, dataLoaded ? "store.product-menu.empty.title" : "store.product-menu.loading",
+                    dataLoaded ? "&eNo categories available" : "&eLoading..."));
+            List<String> lore = new ArrayList<>();
+            if (dataLoaded) {
+                lore.add(tr(profile, "store.product-menu.empty.hint", "&7The in-game store has no visible categories yet."));
+                if (player.isOp() || player.hasPermission("zonely.admin")) {
+                    lore.add(tr(profile, "store.product-menu.empty.admin-category", "&7Panel: enable Show in Game for categories."));
+                    lore.add(tr(profile, "store.product-menu.empty.admin-product", "&7Enable it for each product option too."));
+                }
+                lore.add(tr(profile, "store.product-menu.empty.refresh", "&eClick to refresh."));
+            } else {
+                lore.add(tr(profile, "store.product-menu.empty.loading", "&7The menu will update when store data is ready."));
+            }
+            meta.setLore(wrapLore(lore));
+            status.setItemMeta(meta);
+            inv.setItem(22, status);
+        }
 
-        if (safePage > 0) inv.setItem(45, createNavArrow(false));
-        if (safePage < calcTotalPages - 1) inv.setItem(53, createNavArrow(true));
+        if (safePage > 0) inv.setItem(45, createNavArrow(player, false));
+        if (safePage < calcTotalPages - 1) inv.setItem(53, createNavArrow(player, true));
 
         inv.setItem(49, createCreditIcon(player));
         inv.setItem(48, createLastCreditsIcon(player));
         inv.setItem(50, createPurchasedIcon(player));
         player.openInventory(inv);
+        if (!dataLoaded) {
+            Bukkit.getScheduler().runTaskAsynchronously(plugin, this::loadAllStoreDataOnce);
+            new BukkitRunnable() {
+                private int attempts;
+                @Override public void run() {
+                    if (!player.isOnline() || player.getOpenInventory().getTopInventory() != inv) { cancel(); return; }
+                    if (dataLoaded) { cancel(); openCategoryMenu(player, page); }
+                    else if (++attempts >= 60) {
+                        cancel();
+                        player.sendMessage(tr(player, "store.product-menu.data-not-ready",
+                                "{prefix}&cStore data could not be loaded. Ask an administrator to check the database connection.", "prefix", prefixCore));
+                    }
+                }
+            }.runTaskTimer(plugin, 10L, 10L);
+        }
     }
 
     public void openSubCategoryMenu(Player player, Category parent, int page) {
+        Profile profile = Profile.getProfile(player.getName());
         if (!dataLoaded) {
-            player.sendMessage(tr(
+            player.sendMessage(tr(profile,
                     "store.product-menu.data-not-ready",
                     "{prefix}&eStore data is still loading; please try again shortly.",
                     "prefix", prefixCore
@@ -737,16 +795,16 @@ public class ProductMenuManager implements Listener {
         Inventory inv = Bukkit.createInventory(
                 new CategoryHolder(slotMap, safePage, calcTotalPages, parent, true),
                 INVENTORY_SIZE,
-                tr("store.product-menu.inv.subcategories-title",
-                        "§8{category} Subcategories",
+                tr(profile, "store.product-menu.inv.subcategories-title",
+                        "&8{category} Subcategories",
                         "category", resolveCategoryDisplay(parent))
         );
 
-        fillCategoryGrid(inv, subList, slotMap);
+        fillCategoryGrid(profile, inv, subList, slotMap);
 
-        inv.setItem(47, createBackToCategoriesButtonForCategory(parent)); 
-        if (safePage > 0) inv.setItem(45, createNavArrow(false));
-        if (safePage < calcTotalPages - 1) inv.setItem(53, createNavArrow(true));
+        inv.setItem(47, createBackToCategoriesButtonForCategory(player, parent)); 
+        if (safePage > 0) inv.setItem(45, createNavArrow(player, false));
+        if (safePage < calcTotalPages - 1) inv.setItem(53, createNavArrow(player, true));
 
         inv.setItem(49, createCreditIcon(player));
         inv.setItem(48, createLastCreditsIcon(player));
@@ -754,7 +812,7 @@ public class ProductMenuManager implements Listener {
         player.openInventory(inv);
     }
 
-    private void fillCategoryGrid(Inventory inv, List<Category> categories, Map<Integer, Category> slotMap) {
+    private void fillCategoryGrid(Profile profile, Inventory inv, List<Category> categories, Map<Integer, Category> slotMap) {
         int itemCount = categories.size();
         int rowsNeeded = (int) Math.ceil(itemCount / 9.0);
         int startRow = (6 - rowsNeeded) / 2;
@@ -773,25 +831,25 @@ public class ProductMenuManager implements Listener {
                 ItemMeta meta = item.getItemMeta();
 
                 String title = (cat.guiTitle != null && !cat.guiTitle.trim().isEmpty()) ? cat.guiTitle : cat.name;
-                meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', title));
+                meta.setDisplayName(StoreText.title(title));
 
                 List<String> loreLines = new ArrayList<>();
                 String descToUse = (cat.guiDescription != null && !cat.guiDescription.trim().isEmpty())
                         ? cat.guiDescription
                         : cat.contentPlain;
                 if (descToUse != null && !descToUse.trim().isEmpty()) {
-                    loreLines.add(ChatColor.GRAY + descToUse);
+                    loreLines.addAll(StoreText.lore(descToUse, ChatColor.GRAY.toString(), 42));
                 }
 
                 if (hasChildren(cat.id)) {
                     loreLines.add("");
-                    loreLines.add(LanguageManager.get(
+                    loreLines.add(tr(profile,
                             "store.product-menu.category.has-children",
                             ChatColor.AQUA + "Contains subcategories..."
                     ));
                 }
 
-                meta.setLore(loreLines);
+                meta.setLore(wrapLore(loreLines));
                 item.setItemMeta(meta);
                 inv.setItem(slot, item);
                 slotMap.put(slot, cat);
@@ -802,8 +860,9 @@ public class ProductMenuManager implements Listener {
     }
 
     public void openProductMenu(Player player, Category category, int page) {
+        Profile profile = Profile.getProfile(player.getName());
         if (!dataLoaded) {
-            player.sendMessage(tr(
+            player.sendMessage(tr(profile,
                     "store.product-menu.data-not-ready",
                     "{prefix}&eStore data is still loading; please try again shortly.",
                     "prefix", prefixCore
@@ -815,19 +874,20 @@ public class ProductMenuManager implements Listener {
         List<ProductEntry> products = productsByCategoryCache.get(categoryId);
         List<PacketEntry> packets = packetsByCategoryCache.get(categoryId);
 
-        if (products == null) {
+        if (products == null && (packets == null || packets.isEmpty())) {
             if (hasChildren(categoryId)) {
                 openSubCategoryMenu(player, category, 0);
                 return;
             }
 
-            player.sendMessage(tr(
+            player.sendMessage(tr(profile,
                     "store.product-menu.no-products-for-category",
                     "{prefix}&cNo product data for this category.",
                     "prefix", prefixCore
             ));
             return;
         }
+        if (products == null) products = Collections.emptyList();
         if (packets == null) {
             packets = Collections.emptyList();
         }
@@ -868,7 +928,7 @@ public class ProductMenuManager implements Listener {
 
         int itemCount = pageList.size();
         if (itemCount == 0) {
-            player.sendMessage(tr(
+            player.sendMessage(tr(profile,
                     "store.product-menu.no-items-after-filter",
                     "{prefix}§cNo products or bundles to show (with current filters).",
                     "prefix", prefixCore
@@ -882,7 +942,7 @@ public class ProductMenuManager implements Listener {
         Inventory inv = Bukkit.createInventory(
                 new ProductHolder(slotToProduct, slotToPacket, category, safePage, safeTotalPages),
                 INVENTORY_SIZE,
-                tr(
+                tr(profile,
                         "store.product-menu.inv.products-title",
                         "§8{category} Products",
                         "category", categoryDisplay
@@ -891,23 +951,23 @@ public class ProductMenuManager implements Listener {
 
         ItemStack filterIcon = new ItemStack(Material.HOPPER);
         ItemMeta fMeta = filterIcon.getItemMeta();
-        fMeta.setDisplayName(LanguageManager.get(
+        fMeta.setDisplayName(tr(profile,
                 "store.product-menu.filters.title",
                 ChatColor.AQUA + "§lFilters"
         ));
         List<String> fLore = new ArrayList<>();
-        fLore.add(LanguageManager.get(
+        fLore.add(tr(profile,
                 "store.product-menu.filters.hint",
                 ChatColor.GRAY + "Click → Edit filter options"
         ));
         if (settings.popularOnly) {
-            fLore.add(LanguageManager.get(
+            fLore.add(tr(profile,
                     "store.product-menu.filters.flag-popular",
                     ChatColor.YELLOW + "- Most Popular"
             ));
         }
         if (settings.minPrice > 0 || settings.maxPrice < Integer.MAX_VALUE) {
-            fLore.add(tr(
+            fLore.add(tr(profile,
                     "store.product-menu.filters.flag-price",
                     ChatColor.YELLOW + "- Price: {min} - {max}",
                     "min", String.valueOf(settings.minPrice),
@@ -916,7 +976,7 @@ public class ProductMenuManager implements Listener {
         }
         if (fLore.size() == 1) {
             fLore.clear();
-            fLore.add(LanguageManager.get(
+            fLore.add(tr(profile,
                     "store.product-menu.filters.none",
                     ChatColor.GRAY + "No filters selected."
             ));
@@ -943,56 +1003,57 @@ public class ProductMenuManager implements Listener {
                     if (pe.subProducts.size() > 1) {
                         item = buildProductIcon(pe);
                         meta = item.getItemMeta();
-                        StringBuilder allNames = new StringBuilder();
-                        for (int k = 0; k < pe.subProducts.size(); k++) {
-                            allNames.append(resolveSubProductTitle(pe.subProducts.get(k), pe));
-                            if (k < pe.subProducts.size() - 1) allNames.append(", ");
-                        }
-                        meta.setDisplayName(ChatColor.YELLOW + "§l" + resolveSubProductTitle(pe.subProducts.get(0), pe) + " §7§l(" + allNames + ")");
+                        meta.setDisplayName(StoreText.title(ChatColor.YELLOW + "§l" + pe.baseName
+                                + " §7(" + pe.subProducts.size() + ")"));
                         List<String> lore = new ArrayList<>();
+                        for (int k = 0; k < Math.min(8, pe.subProducts.size()); k++) {
+                            lore.addAll(StoreText.lore("• " + resolveSubProductTitle(pe.subProducts.get(k), pe),
+                                    ChatColor.GRAY.toString(), 42));
+                        }
+                        if (pe.subProducts.size() > 8) lore.add("§7+" + (pe.subProducts.size() - 8));
                         lore.add("");
-                        lore.add(LanguageManager.get(
+                        lore.add(tr(profile,
                                 "store.product-menu.product.multiple-options",
                                 ChatColor.WHITE + "Multiple options available, click to open the list."
                         ));
                         lore.add("");
                         int totalStock = pe.getTotalStock();
                         if (totalStock >= 0) {
-                            lore.add(tr(
+                            lore.add(tr(profile,
                                     "store.product-menu.stock.limited",
                                     ChatColor.RED + "§8 ▪ §fStock: §c{count} pcs",
                                     "count", String.valueOf(totalStock)
                             ));
                         } else {
-                            lore.add(LanguageManager.get(
+                            lore.add(tr(profile,
                                     "store.product-menu.stock.unlimited",
                                     ChatColor.GREEN + "§8 ▪ §fStock: §aUnlimited"
                             ));
                         }
                         if (pe.hasAnyDiscount()) {
-                            lore.add(tr(
+                            lore.add(tr(profile,
                                     "store.product-menu.price.old",
                                     ChatColor.RED + "§8 ▪ §fOld: §c{price} Credits",
                                     "price", pe.getDisplayOldPrice()
                             ));
-                            lore.add(tr(
+                            lore.add(tr(profile,
                                     "store.product-menu.price.new",
                                     ChatColor.GREEN + "§8 ▪ §fNew: §a{price} Credits",
                                     "price", pe.getDisplayNewPrice()
                             ));
                         } else {
-                            lore.add(tr(
+                            lore.add(tr(profile,
                                     "store.product-menu.price.single",
                                     ChatColor.GOLD + "§8 ▪ §fPrice: §e{price} Credits",
                                     "price", pe.getDisplayOldPrice()
                             ));
                         }
                         lore.add("");
-                        lore.add(LanguageManager.get(
+                        lore.add(tr(profile,
                                 "store.product-menu.click-to-view",
                                 ChatColor.GRAY + "§6§l➤ §eClick to view."
                         ));
-                        meta.setLore(lore);
+                        meta.setLore(wrapLore(lore));
                         item.setItemMeta(meta);
                     } else {
                         SubProductDetails sp = pe.subProducts.get(0);
@@ -1003,42 +1064,42 @@ public class ProductMenuManager implements Listener {
                         String descToUse = (sp.zonelyDescription != null && !sp.zonelyDescription.trim().isEmpty())
                                 ? sp.zonelyDescription
                                 : stripHtml(sp.details);
-                        if (!descToUse.trim().isEmpty()) lore.add(ChatColor.GRAY + descToUse);
+                        if (!descToUse.trim().isEmpty()) lore.addAll(StoreText.lore(descToUse, ChatColor.GRAY.toString(), 42));
                         if (sp.stock >= 0) {
-                            lore.add(tr(
+                            lore.add(tr(profile,
                                     "store.product-menu.stock.limited",
                                     ChatColor.RED + "§8 ▪ §fStock: §c{count} pcs",
                                     "count", String.valueOf(sp.stock)
                             ));
                         } else {
-                            lore.add(LanguageManager.get(
+                            lore.add(tr(profile,
                                     "store.product-menu.stock.unlimited",
                                     ChatColor.GREEN + "§8 ▪ §fStock: §aUnlimited"
                             ));
                         }
                         if (sp.hasDiscount()) {
-                            lore.add(tr(
+                            lore.add(tr(profile,
                                     "store.product-menu.price.old",
                                     ChatColor.RED + "§8 ▪ §fOld: §c{price} Credits",
                                     "price", pe.formatPrice(sp.price)
                             ));
-                            lore.add(tr(
+                            lore.add(tr(profile,
                                     "store.product-menu.price.new",
                                     ChatColor.GREEN + "§8 ▪ §fNew: §a{price} Credits",
                                     "price", pe.formatPrice(sp.discountedPrice)
                             ));
                         } else {
-                            lore.add(tr(
+                            lore.add(tr(profile,
                                     "store.product-menu.price.single",
                                     ChatColor.GOLD + "§8 ▪ §fPrice: §e{price} Credits",
                                     "price", pe.formatPrice(sp.price)
                             ));
                         }
-                        lore.add(LanguageManager.get(
+                        lore.add(tr(profile,
                                 "store.product-menu.click-to-view",
                                 ChatColor.GRAY + "§6§l➤ §eClick to view."
                         ));
-                        meta.setLore(lore);
+                        meta.setLore(wrapLore(lore));
                         item.setItemMeta(meta);
                     }
 
@@ -1052,27 +1113,27 @@ public class ProductMenuManager implements Listener {
                     meta.setDisplayName(ChatColor.LIGHT_PURPLE + "§l" + pkt.name + " §7§l(Bundle)");
                     List<String> lore = new ArrayList<>();
                     lore.add("");
-                    lore.add(tr(
+                    lore.add(tr(profile,
                             "store.product-menu.price.single",
                             ChatColor.GRAY + "§8 ▪ §fPrice: §e{price} Credits",
                             "price", String.format("%.0f", pkt.price)
                     ));
-                    lore.add(tr(
+                    lore.add(tr(profile,
                             "store.product-menu.bundle.contents",
                             ChatColor.GRAY + "§8 ▪ §fContents: {names}",
                             "names", String.join(", ", pkt.productNames)
                     ));
-                    lore.add(tr(
+                    lore.add(tr(profile,
                             "store.product-menu.bundle.expiry",
                             ChatColor.GRAY + "§8 ▪ §fExpiry: {date}",
                             "date", pkt.expiry
                     ));
                     lore.add("");
-                    lore.add(LanguageManager.get(
+                    lore.add(tr(profile,
                             "store.product-menu.click-to-buy-bundle",
                             ChatColor.GRAY + "§6§l➤ §eClick to purchase the bundle."
                     ));
-                    meta.setLore(lore);
+                    meta.setLore(wrapLore(lore));
                     item.setItemMeta(meta);
 
                     inv.setItem(slot, item);
@@ -1082,9 +1143,9 @@ public class ProductMenuManager implements Listener {
             }
         }
 
-        inv.setItem(47, createBackToCategoriesButtonForCategory(category));
-        if (safePage > 0) inv.setItem(45, createNavArrow(false));
-        if (safePage < safeTotalPages - 1) inv.setItem(53, createNavArrow(true));
+        inv.setItem(47, createBackToCategoriesButtonForCategory(player, category));
+        if (safePage > 0) inv.setItem(45, createNavArrow(player, false));
+        if (safePage < safeTotalPages - 1) inv.setItem(53, createNavArrow(player, true));
         inv.setItem(49, createCreditIcon(player));
         inv.setItem(48, createLastCreditsIcon(player));
         inv.setItem(50, createPurchasedIcon(player));
@@ -1094,14 +1155,15 @@ public class ProductMenuManager implements Listener {
 
     private void openFilterMenu(Player player, Category category) {
         UUID uuid = player.getUniqueId();
+        Profile profile = Profile.getProfile(player.getName());
         FilterSettings settings = filterByPlayer.computeIfAbsent(uuid, k -> new FilterSettings());
 
         Inventory inv = Bukkit.createInventory(
                 new FilterHolder(category),
                 CONFIRM_SIZE,
-                tr(
+                tr(profile,
                         "store.product-menu.inv.filters-title",
-                        "§8{category} Filters",
+                        "&8{category} Filters",
                         "category", category.name
                 )
         );
@@ -1110,11 +1172,11 @@ public class ProductMenuManager implements Listener {
         ItemMeta pMeta = popIcon.getItemMeta();
         pMeta.setDisplayName(
                 settings.popularOnly
-                        ? LanguageManager.get("store.product-menu.filters.popular-on", ChatColor.GREEN + "✓ Most Popular Only")
-                        : LanguageManager.get("store.product-menu.filters.popular-off", ChatColor.RED + "✗ Most Popular Only")
+                        ? tr(profile, "store.product-menu.filters.popular-on", ChatColor.GREEN + "[ON] Most Popular Only")
+                        : tr(profile, "store.product-menu.filters.popular-off", ChatColor.RED + "[OFF] Most Popular Only")
         );
         pMeta.setLore(Collections.singletonList(
-                LanguageManager.get("store.product-menu.filters.popular-desc",
+                tr(profile, "store.product-menu.filters.popular-desc",
                         ChatColor.GRAY + "Show only products with multiple options.")
         ));
         popIcon.setItemMeta(pMeta);
@@ -1124,8 +1186,8 @@ public class ProductMenuManager implements Listener {
         ItemMeta prMeta1 = price0_100.getItemMeta();
         prMeta1.setDisplayName(
                 (settings.minPrice == 0 && settings.maxPrice == 100)
-                        ? LanguageManager.get("store.product-menu.filters.price.0-100.on", ChatColor.GREEN + "✓ Price: 0 - 100")
-                        : LanguageManager.get("store.product-menu.filters.price.0-100.off", ChatColor.YELLOW + "Price: 0 - 100")
+                        ? tr(profile, "store.product-menu.filters.price.0-100.true", ChatColor.GREEN + "[ON] Price: 0 - 100")
+                        : tr(profile, "store.product-menu.filters.price.0-100.false", ChatColor.YELLOW + "Price: 0 - 100")
         );
         price0_100.setItemMeta(prMeta1);
         inv.setItem(12, price0_100);
@@ -1134,8 +1196,8 @@ public class ProductMenuManager implements Listener {
         ItemMeta prMeta2 = price100_500.getItemMeta();
         prMeta2.setDisplayName(
                 (settings.minPrice == 100 && settings.maxPrice == 500)
-                        ? LanguageManager.get("store.product-menu.filters.price.100-500.on", ChatColor.GREEN + "✓ Price: 100 - 500")
-                        : LanguageManager.get("store.product-menu.filters.price.100-500.off", ChatColor.YELLOW + "Price: 100 - 500")
+                        ? tr(profile, "store.product-menu.filters.price.100-500.true", ChatColor.GREEN + "[ON] Price: 100 - 500")
+                        : tr(profile, "store.product-menu.filters.price.100-500.false", ChatColor.YELLOW + "Price: 100 - 500")
         );
         price100_500.setItemMeta(prMeta2);
         inv.setItem(13, price100_500);
@@ -1144,37 +1206,37 @@ public class ProductMenuManager implements Listener {
         ItemMeta prMeta3 = price500up.getItemMeta();
         prMeta3.setDisplayName(
                 (settings.minPrice == 500 && settings.maxPrice == Integer.MAX_VALUE)
-                        ? LanguageManager.get("store.product-menu.filters.price.500+.on", ChatColor.GREEN + "✓ Price: 500+")
-                        : LanguageManager.get("store.product-menu.filters.price.500+.off", ChatColor.YELLOW + "Price: 500+")
+                        ? tr(profile, "store.product-menu.filters.price.500+.true", ChatColor.GREEN + "[ON] Price: 500+")
+                        : tr(profile, "store.product-menu.filters.price.500+.false", ChatColor.YELLOW + "Price: 500+")
         );
         price500up.setItemMeta(prMeta3);
         inv.setItem(14, price500up);
 
         ItemStack resetIcon = new ItemStack(Material.BARRIER);
         ItemMeta rMeta = resetIcon.getItemMeta();
-        rMeta.setDisplayName(LanguageManager.get("store.product-menu.filters.reset", ChatColor.RED + "Reset Filters"));
+        rMeta.setDisplayName(tr(profile, "store.product-menu.filters.reset", ChatColor.RED + "Reset Filters"));
         resetIcon.setItemMeta(rMeta);
         inv.setItem(16, resetIcon);
 
         ItemStack back = new ItemStack(Material.ARROW);
         ItemMeta bMeta = back.getItemMeta();
-        bMeta.setDisplayName(LanguageManager.get("store.common.back-arrow", ChatColor.YELLOW + "<--"));
+        bMeta.setDisplayName(tr(profile, "store.common.back-arrow", ChatColor.YELLOW + "<--"));
         back.setItemMeta(bMeta);
         inv.setItem(22, back);
 
         player.openInventory(inv);
     }
-
-    private static class FilterHolder implements InventoryHolder {
+private static class FilterHolder implements InventoryHolder {
         final Category category;
         public FilterHolder(Category category) { this.category = category; }
         @Override public Inventory getInventory() { return null; }
     }
 
     private void openSubProductMenu(Player player, Category category, ProductEntry entry, int page) {
+        Profile profile = Profile.getProfile(player.getName());
         List<SubProductDetails> subs = entry.subProducts;
         if (subs == null || subs.isEmpty()) {
-            player.sendMessage(tr(
+            player.sendMessage(tr(profile,
                     "store.product-menu.no-subproducts",
                     "{prefix}§cNo variants found for this product.",
                     "prefix", prefixCore
@@ -1197,7 +1259,7 @@ public class ProductMenuManager implements Listener {
 
         int itemCount = pageList.size();
         if (itemCount == 0) {
-            player.sendMessage(tr(
+            player.sendMessage(tr(profile,
                     "store.product-menu.no-subproducts-page",
                     "{prefix}§cNo options found!",
                     "prefix", prefixCore
@@ -1210,9 +1272,9 @@ public class ProductMenuManager implements Listener {
         Inventory inv = Bukkit.createInventory(
                 new SubProductHolder(category, entry, slotToSub, safePage, safeTotalPages),
                 INVENTORY_SIZE,
-                tr(
+                tr(profile,
                         "store.product-menu.inv.subproducts-title",
-                        "§8{product} Variants",
+                        "&8{product} Variants",
                         "product", productDisplay
                 )
         );
@@ -1244,13 +1306,13 @@ public class ProductMenuManager implements Listener {
                 }
                 lore.add("");
                 if (sp.stock >= 0) {
-                    lore.add(tr(
+                    lore.add(tr(profile,
                             "store.product-menu.stock.limited",
                             ChatColor.RED + "§8 ▪ §fStock: §c{count} pcs",
                             "count", String.valueOf(sp.stock)
                     ));
                 } else {
-                    lore.add(LanguageManager.get(
+                    lore.add(tr(profile,
                             "store.product-menu.stock.unlimited",
                             ChatColor.GREEN + "§8 ▪ §fStock: §aUnlimited"
                     ));
@@ -1275,11 +1337,12 @@ public class ProductMenuManager implements Listener {
                 }
 
                 lore.add("");
-                lore.add(LanguageManager.get(
+                lore.add(tr(profile,
                         "store.product-menu.click-to-buy",
-                        ChatColor.GRAY + "§6§l➤ §eClick to purchase."
+                        ChatColor.GRAY + "§6§l➤ §eClick to purchase.",
+                        "price", entry.formatPrice(sp.hasDiscount() ? sp.discountedPrice : sp.price)
                 ));
-                meta.setLore(lore);
+                meta.setLore(wrapLore(lore));
                 item.setItemMeta(meta);
 
                 inv.setItem(slot, item);
@@ -1289,9 +1352,9 @@ public class ProductMenuManager implements Listener {
             }
         }
 
-        inv.setItem(47, createBackToProductsButton(entry));
-        if (safePage > 0) inv.setItem(45, createNavArrow(false));
-        if (safePage < safeTotalPages - 1) inv.setItem(53, createNavArrow(true));
+        inv.setItem(47, createBackToProductsButton(player, entry));
+        if (safePage > 0) inv.setItem(45, createNavArrow(player, false));
+        if (safePage < safeTotalPages - 1) inv.setItem(53, createNavArrow(player, true));
         inv.setItem(49, createCreditIcon(player));
         inv.setItem(48, createLastCreditsIcon(player));
         inv.setItem(50, createPurchasedIcon(player));
@@ -1377,577 +1440,74 @@ public class ProductMenuManager implements Listener {
 
     private String colorize(String raw) {
         if (raw == null) return "";
-        return raw.indexOf('§') >= 0 ? raw : ChatColor.translateAlternateColorCodes('&', raw);
+        return StoreText.title(raw);
     }
 
     private void purchaseProductForPlayer(Player player, ProductEntry entry, SubProductDetails sp) {
-        player.closeInventory();
-        player.sendMessage(tr(
-                "store.product-menu.purchase.start",
-                "{prefix}§aYour purchase has started, please wait a few seconds...",
-                "prefix", prefixCore
-        ));
-
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                Connection conn = null;
-                PreparedStatement ps = null;
-                ResultSet rs = null;
-                try {
-                    if (Database.getInstance() == null) {
-                        Bukkit.getScheduler().runTask(plugin, () -> player.sendMessage(tr(
-                                "store.product-menu.errors.db-lost",
-                                "{prefix}§cDatabase connection lost; purchase could not be completed.",
-                                "prefix", prefixCore
-                        )));
-                        return;
-                    }
-                    conn = Database.getInstance().getConnection();
-                    if (conn == null) {
-                        Bukkit.getScheduler().runTask(plugin, () -> player.sendMessage(tr(
-                                "store.product-menu.errors.db-open",
-                                "{prefix}§cCould not establish database connection; purchase failed.",
-                                "prefix", prefixCore
-                        )));
-                        return;
-                    }
-                    conn.setAutoCommit(false);
-
-                    String findUserSQL = "SELECT id FROM userslist WHERE nick = ?";
-                    ps = conn.prepareStatement(findUserSQL);
-                    ps.setString(1, player.getName());
-                    rs = ps.executeQuery();
-                    if (!rs.next()) {
-                        Bukkit.getScheduler().runTask(plugin, () -> player.sendMessage(tr(
-                                "store.product-menu.errors.web-user-missing",
-                                "{prefix}§cYour web account was not found; purchase could not be completed.",
-                                "prefix", prefixCore
-                        )));
-                        conn.rollback();
-                        return;
-                    }
-                    int webUserID = rs.getInt("id");
-                    rs.close();
-                    ps.close();
-
-                    String creditSQL = "SELECT credit FROM userslist WHERE id = ?";
-                    ps = conn.prepareStatement(creditSQL);
-                    ps.setInt(1, webUserID);
-                    rs = ps.executeQuery();
-                    if (!rs.next()) {
-                        Bukkit.getScheduler().runTask(plugin, () -> player.sendMessage(tr(
-                                "store.product-menu.errors.user-missing",
-                                "{prefix}§cUser record not found; purchase could not be completed.",
-                                "prefix", prefixCore
-                        )));
-                        conn.rollback();
-                        return;
-                    }
-                    double credit = rs.getDouble("credit");
-                    rs.close();
-                    ps.close();
-
-                    double price = sp.hasDiscount() ? sp.discountedPrice : sp.price;
-                    if (credit < price) {
-                        Bukkit.getScheduler().runTask(plugin, () -> player.sendMessage(tr(
-                                "store.product-menu.errors.insufficient-credits",
-                                "{prefix}§cInsufficient credits; purchase cancelled.",
-                                "prefix", prefixCore
-                        )));
-                        conn.rollback();
-                        return;
-                    }
-
-                    String insertLastedBuys = "INSERT INTO lastedbuys (userid, productid, price, created_at) VALUES (?, ?, ?, ?)";
-                    ps = conn.prepareStatement(insertLastedBuys);
-                    ps.setInt(1, webUserID);
-                    ps.setInt(2, entry.productId);
-                    ps.setDouble(3, price);
-                    ps.setTimestamp(4, Timestamp.valueOf(LocalDateTime.now()));
-                    ps.executeUpdate();
-                    ps.close();
-
-                    String updateCredit = "UPDATE userslist SET credit = credit - ? WHERE id = ?";
-                    ps = conn.prepareStatement(updateCredit);
-                    ps.setDouble(1, price);
-                    ps.setInt(2, webUserID);
-                    ps.executeUpdate();
-                    ps.close();
-
-                    String insertProdLic = "INSERT INTO productlicenses (userid, productid, status, minecraft, created_at) VALUES (?, ?, ?, ?, ?)";
-                    ps = conn.prepareStatement(insertProdLic, Statement.RETURN_GENERATED_KEYS);
-                    ps.setInt(1, webUserID);
-                    ps.setInt(2, entry.productId);
-                    ps.setString(3, "0");
-                    ps.setInt(4, sp.orderIndex);
-                    ps.setTimestamp(5, Timestamp.valueOf(LocalDateTime.now()));
-                    ps.executeUpdate();
-
-                    rs = ps.getGeneratedKeys();
-                    if (!rs.next()) {
-                        Bukkit.getScheduler().runTask(plugin, () -> player.sendMessage(tr(
-                                "store.product-menu.errors.license-create",
-                                "{prefix}§cProduct could not be created; purchase half-completed.",
-                                "prefix", prefixCore
-                        )));
-                        conn.rollback();
-                        return;
-                    }
-                    int productLicenseId = rs.getInt(1);
-                    rs.close();
-                    ps.close();
-
-                    String insertLicense = "INSERT INTO licenses (productlicenses_id, userid, productid, domainAdress, licenseIP, suspendStatus, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)";
-                    ps = conn.prepareStatement(insertLicense, Statement.RETURN_GENERATED_KEYS);
-                    ps.setInt(1, productLicenseId);
-                    ps.setInt(2, webUserID);
-                    ps.setInt(3, entry.productId);
-                    ps.setString(4, "");
-                    ps.setString(5, "");
-                    ps.setInt(6, 0);
-                    ps.setTimestamp(7, Timestamp.valueOf(LocalDateTime.now()));
-                    ps.executeUpdate();
-
-                    rs = ps.getGeneratedKeys();
-                    if (!rs.next()) {
-                        Bukkit.getScheduler().runTask(plugin, () -> player.sendMessage(tr(
-                                "store.product-menu.errors.license-record-create",
-                                "{prefix}§cLicense record could not be created; purchase half-completed.",
-                                "prefix", prefixCore
-                        )));
-                        conn.rollback();
-                        return;
-                    }
-                    int licenseId = rs.getInt(1);
-                    rs.close();
-                    ps.close();
-
-                    if (sp.stock >= 0) {
-                        String getDataSQL = "SELECT plugin_data FROM products WHERE id = ? FOR UPDATE";
-                        ps = conn.prepareStatement(getDataSQL);
-                        ps.setInt(1, entry.productId);
-                        rs = ps.executeQuery();
-                        if (rs.next()) {
-                            String pluginData = rs.getString("plugin_data");
-                            rs.close();
-                            ps.close();
-
-                            JSONArray arr = new JSONArray(pluginData);
-                            for (int i = 0; i < arr.length(); i++) {
-                                JSONObject obj = arr.getJSONObject(i);
-                                int order = obj.optInt("order", -1);
-                                if (order == sp.orderIndex) {
-                                    int oldStock = obj.optInt("stock", -1);
-                                    if (oldStock > 0) obj.put("stock", oldStock - 1);
-                                    break;
-                                }
-                            }
-
-                            String updateDataSQL = "UPDATE products SET plugin_data = ? WHERE id = ?";
-                            ps = conn.prepareStatement(updateDataSQL);
-                            ps.setString(1, arr.toString());
-                            ps.setInt(2, entry.productId);
-                            ps.executeUpdate();
-                            ps.close();
-                        } else {
-                            rs.close();
-                            ps.close();
-                        }
-                    }
-
-                    String updateTotalStart = "UPDATE licenses SET totalStart = totalStart + 1 WHERE id = ?";
-                    ps = conn.prepareStatement(updateTotalStart);
-                    ps.setInt(1, licenseId);
-                    ps.executeUpdate();
-                    ps.close();
-
-                    LocalDateTime now = LocalDateTime.now();
-                    LocalDateTime expiryDate = (sp.saleDuration > 0) ? now.plusDays(sp.saleDuration) : now;
-                    String insertExpiry = "INSERT INTO expiries (licenseID, expiry_at, startDate) VALUES (?, ?, ?)";
-                    ps = conn.prepareStatement(insertExpiry);
-                    ps.setInt(1, licenseId);
-                    ps.setTimestamp(2, Timestamp.valueOf(expiryDate));
-                    ps.setTimestamp(3, Timestamp.valueOf(now));
-                    ps.executeUpdate();
-                    ps.close();
-
-                    conn.commit();
-
-                    sendCommandsToMinecraft(entry.productId, sp.orderIndex, player);
-
-                    Bukkit.getScheduler().runTask(plugin, () -> player.sendMessage(
-                            LanguageManager.get("store.product-menu.purchase.success",
-                                    ChatColor.GREEN + "Purchase completed successfully!")
-                    ));
-
-                    UUID uuid = player.getUniqueId();
-                    creditCache.put(uuid, credit - price);
-                    purchaseCache.computeIfAbsent(uuid, k -> new ArrayList<>())
-                            .add(new PurchasedItem(
-                                    entry.productId,
-                                    sp.name,
-                                    stripHtml(sp.details),
-                                    sp.imageUrl,
-                                    sp.zonelyTitle,
-                                    sp.zonelyIcon,
-                                    LocalDateTime.now()));
-
-                } catch (Exception ex) {
-                    plugin.getLogger().log(Level.SEVERE, "Purchase error:", ex);
-                    try { if (conn != null) conn.rollback(); } catch (SQLException ignored) {}
-                    Bukkit.getScheduler().runTask(plugin, () -> player.sendMessage(tr(
-                            "store.product-menu.purchase.unexpected-error",
-                            "{prefix}§cAn unexpected error occurred during purchase.",
-                            "prefix", prefixCore
-                    )));
-                } finally {
-                    try {
-                        if (rs != null) rs.close();
-                        if (ps != null) ps.close();
-                        if (conn != null) conn.setAutoCommit(true);
-                    } catch (SQLException ignored) {}
-                }
-            }
-        }.runTaskAsynchronously(plugin);
+        startPurchase(player, entry.productId, sp.orderIndex, 0, sp.hasDiscount() ? sp.discountedPrice : sp.price);
     }
 
     private void purchasePacketForPlayer(Player player, PacketEntry pkt) {
+        startPurchase(player, 0, 0, pkt.packetId, pkt.price);
+    }
+
+    private void startPurchase(Player player, int productId, int order, int bundleId, double price) {
         player.closeInventory();
-        player.sendMessage(tr(
-                "store.product-menu.bundle.start",
-                "{prefix}§aYour bundle purchase has started, please wait a few seconds...",
-                "prefix", prefixCore
-        ));
-
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                Connection conn = null;
-                PreparedStatement ps = null;
-                ResultSet rs = null;
-                try {
-                    if (Database.getInstance() == null) {
-                        Bukkit.getScheduler().runTask(plugin, () -> player.sendMessage(tr(
-                                "store.product-menu.errors.db-lost",
-                                "{prefix}§cDatabase connection lost; bundle purchase failed.",
-                                "prefix", prefixCore
-                        )));
-                        return;
-                    }
-                    conn = Database.getInstance().getConnection();
-                    if (conn == null) {
-                        Bukkit.getScheduler().runTask(plugin, () -> player.sendMessage(tr(
-                                "store.product-menu.errors.db-open",
-                                "{prefix}§cCould not establish database connection; bundle purchase failed.",
-                                "prefix", prefixCore
-                        )));
-                        return;
-                    }
-                    conn.setAutoCommit(false);
-
-                    String findUserSQL = "SELECT id FROM userslist WHERE nick = ?";
-                    ps = conn.prepareStatement(findUserSQL);
-                    ps.setString(1, player.getName());
-                    rs = ps.executeQuery();
-                    if (!rs.next()) {
-                        Bukkit.getScheduler().runTask(plugin, () -> player.sendMessage(tr(
-                                "store.product-menu.errors.web-user-missing",
-                                "{prefix}§cYour web account was not found; bundle purchase could not be completed.",
-                                "prefix", prefixCore
-                        )));
-                        conn.rollback();
-                        return;
-                    }
-                    int webUserID = rs.getInt("id");
-                    rs.close();
-                    ps.close();
-
-                    String creditSQL = "SELECT credit FROM userslist WHERE id = ?";
-                    ps = conn.prepareStatement(creditSQL);
-                    ps.setInt(1, webUserID);
-                    rs = ps.executeQuery();
-                    if (!rs.next()) {
-                        Bukkit.getScheduler().runTask(plugin, () -> player.sendMessage(tr(
-                                "store.product-menu.errors.user-missing",
-                                "{prefix}§cUser record not found; bundle purchase could not be completed.",
-                                "prefix", prefixCore
-                        )));
-                        conn.rollback();
-                        return;
-                    }
-                    double credit = rs.getDouble("credit");
-                    rs.close();
-                    ps.close();
-
-                    double totalPrice = pkt.price;
-                    if (credit < totalPrice) {
-                        Bukkit.getScheduler().runTask(plugin, () -> player.sendMessage(tr(
-                                "store.product-menu.errors.insufficient-credits",
-                                "{prefix}§cInsufficient credits; bundle purchase cancelled.",
-                                "prefix", prefixCore
-                        )));
-                        conn.rollback();
-                        return;
-                    }
-
-                    String updateCredit = "UPDATE userslist SET credit = credit - ? WHERE id = ?";
-                    ps = conn.prepareStatement(updateCredit);
-                    ps.setDouble(1, totalPrice);
-                    ps.setInt(2, webUserID);
-                    ps.executeUpdate();
-                    ps.close();
-
-                    for (Integer pid : pkt.productIds) {
-                        String insertProdLic = "INSERT INTO productlicenses (userid, productid, status, minecraft, created_at) VALUES (?, ?, ?, ?, ?)";
-                        ps = conn.prepareStatement(insertProdLic, Statement.RETURN_GENERATED_KEYS);
-                        ps.setInt(1, webUserID);
-                        ps.setInt(2, pid);
-                        ps.setString(3, "0");
-                        ps.setInt(4, 0);
-                        ps.setTimestamp(5, Timestamp.valueOf(LocalDateTime.now()));
-                        ps.executeUpdate();
-
-                        rs = ps.getGeneratedKeys();
-                        if (!rs.next()) {
-                            Bukkit.getScheduler().runTask(plugin, () -> player.sendMessage(tr(
-                                    "store.product-menu.errors.bundle-license-fail",
-                                    "{prefix}§cA bundle license could not be inserted; operation half-completed.",
-                                    "prefix", prefixCore
-                            )));
-                            conn.rollback();
-                            return;
-                        }
-                        int productLicenseId = rs.getInt(1);
-                        rs.close();
-                        ps.close();
-
-                        String insertLicense = "INSERT INTO licenses (productlicenses_id, userid, productid, domainAdress, licenseIP, suspendStatus, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)";
-                        ps = conn.prepareStatement(insertLicense, Statement.RETURN_GENERATED_KEYS);
-                        ps.setInt(1, productLicenseId);
-                        ps.setInt(2, webUserID);
-                        ps.setInt(3, pid);
-                        ps.setString(4, "");
-                        ps.setString(5, "");
-                        ps.setInt(6, 0);
-                        ps.setTimestamp(7, Timestamp.valueOf(LocalDateTime.now()));
-                        ps.executeUpdate();
-
-                        rs = ps.getGeneratedKeys();
-                        if (!rs.next()) {
-                            Bukkit.getScheduler().runTask(plugin, () -> player.sendMessage(tr(
-                                    "store.product-menu.errors.bundle-license-record-fail",
-                                    "{prefix}§cA bundle license record could not be created; operation half-completed.",
-                                    "prefix", prefixCore
-                            )));
-                            conn.rollback();
-                            return;
-                        }
-                        int licenseId = rs.getInt(1);
-                        rs.close();
-                        ps.close();
-
-                        String updateTotalStart = "UPDATE licenses SET totalStart = totalStart + 1 WHERE id = ?";
-                        ps = conn.prepareStatement(updateTotalStart);
-                        ps.setInt(1, licenseId);
-                        ps.executeUpdate();
-                        ps.close();
-
-                        LocalDateTime now = LocalDateTime.now();
-                        String insertExpiry = "INSERT INTO expiries (licenseID, expiry_at, startDate) VALUES (?, ?, ?)";
-                        ps = conn.prepareStatement(insertExpiry);
-                        ps.setInt(1, licenseId);
-                        ps.setTimestamp(2, Timestamp.valueOf(now));
-                        ps.setTimestamp(3, Timestamp.valueOf(now));
-                        ps.executeUpdate();
-                        ps.close();
-                    }
-
-                    conn.commit();
-
-                    for (Integer pid : pkt.productIds) {
-                        sendCommandsToMinecraft(pid, 0, player);
-                    }
-
-                    Bukkit.getScheduler().runTask(plugin, () -> player.sendMessage(LanguageManager.get(
-                            "store.product-menu.bundle.success",
-                            "{prefix}§eBundle purchase completed successfully!"
-                    ).replace("{prefix}", prefixCore))); 
-
-                    UUID uuid = player.getUniqueId();
-                    creditCache.put(uuid, credit - totalPrice);
-                    List<PurchasedItem> list = purchaseCache.computeIfAbsent(uuid, k -> new ArrayList<>());
-                    for (Integer pid : pkt.productIds) {
-                        list.add(new PurchasedItem(
-                                pid,
-                                LanguageManager.get("store.product-menu.bundle.item-name", "Bundle Item"),
-                                "",
-                                "",
-                                "",
-                                "",
-                                LocalDateTime.now()));
-                    }
-
-                } catch (Exception ex) {
-                    plugin.getLogger().log(Level.SEVERE, "Bundle purchase error:", ex);
-                    try { if (conn != null) conn.rollback(); } catch (SQLException ignored) {}
-                    Bukkit.getScheduler().runTask(plugin, () -> player.sendMessage(tr(
-                            "store.product-menu.purchase.unexpected-error",
-                            "{prefix}§cAn unexpected error occurred during purchase.",
-                            "prefix", prefixCore
-                    )));
-                } finally {
-                    try {
-                        if (rs != null) rs.close();
-                        if (ps != null) ps.close();
-                        if (conn != null) conn.setAutoCommit(true);
-                    } catch (SQLException ignored) {}
-                }
-            }
-        }.runTaskAsynchronously(plugin);
-    }
-
-    private void sendCommandsToMinecraft(int productId, int order, Player player) {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                String pluginData;
-
-                Connection conn = null;
-                try {
-                    if (Database.getInstance() == null) return;
-                    conn = Database.getInstance().getConnection();
-                    if (conn == null) {
-                        plugin.getLogger().severe("Command dispatch: could not obtain DB connection (conn is null).");
-                        return;
-                    }
-                    try (PreparedStatement psData = conn.prepareStatement(
-                            "SELECT plugin_data FROM products WHERE id = ?")) {
-                        psData.setInt(1, productId);
-                        try (ResultSet rsData = psData.executeQuery()) {
-                            if (!rsData.next()) return;
-                            pluginData = rsData.getString("plugin_data");
-                        }
-                    }
-                } catch (SQLException ex) {
-                    plugin.getLogger().log(Level.SEVERE, "Command dispatch error (plugin_data query):", ex);
-                    return;
-                } finally {
-                    try { if (conn != null) conn.close(); } catch (SQLException ignored) {}
-                }
-
-                JSONObject selectedProduct = null;
-                try {
-                    if (pluginData != null && !pluginData.trim().isEmpty()) {
-                        JSONArray arr = new JSONArray(pluginData);
-                        for (int i = 0; i < arr.length(); i++) {
-                            JSONObject obj = arr.getJSONObject(i);
-                            if (obj.optInt("order", -1) == order) {
-                                selectedProduct = obj;
-                                break;
-                            }
-                        }
-                    }
-                } catch (JSONException je) {
-                    plugin.getLogger().warning("Command dispatch error: plugin_data JSON could not be parsed: " + je.getMessage());
-                    return;
-                }
-
-                if (selectedProduct == null) return;
-
-                JSONArray serversArray = selectedProduct.optJSONArray("servers");
-                if (serversArray == null || serversArray.length() == 0) return;
-
-                int webUserId = getWebUserIdFromPlayer(player);
-                String gameName = player.getName();
-                Connection conn2 = null;
-                PreparedStatement psName = null;
-                ResultSet rsName = null;
-                try {
-                    if (Database.getInstance() == null) return;
-                    conn2 = Database.getInstance().getConnection();
-                    if (conn2 != null) {
-                        psName = conn2.prepareStatement("SELECT nick FROM userslist WHERE id = ?");
-                        psName.setInt(1, webUserId);
-                        rsName = psName.executeQuery();
-                        if (rsName.next()) {
-                            String val = rsName.getString("nick");
-                            if (val != null && !val.trim().isEmpty()) {
-                                gameName = val;
-                            }
-                        }
-                    }
-                } catch (SQLException ex) {
-                    plugin.getLogger().log(Level.SEVERE, "Command dispatch error (fetching username):", ex);
-                } finally {
-                    try { if (rsName != null) rsName.close(); } catch (SQLException ignored) {}
-                    try { if (psName != null) psName.close(); } catch (SQLException ignored) {}
-                    try { if (conn2 != null) conn2.close(); } catch (SQLException ignored) {}
-                }
-
-                for (int s = 0; s < serversArray.length(); s++) {
-                    JSONObject serverObj = serversArray.optJSONObject(s);
-                    if (serverObj == null) continue;
-
-                    JSONArray commands = serverObj.optJSONArray("commands");
-                    if (commands == null) continue;
-
-                    for (int c = 0; c < commands.length(); c++) {
-                        JSONObject cmdInfo = commands.optJSONObject(c);
-                        if (cmdInfo == null) continue;
-
-                        String rawCmd = cmdInfo.optString("cmd", "").trim();
-                        if (rawCmd.isEmpty()) continue;
-
-                        if (rawCmd.startsWith("/")) rawCmd = rawCmd.substring(1);
-                        String finalCmd = rawCmd.replace("%player_name%", gameName);
-
-                        Bukkit.getScheduler().runTask(plugin,
-                                () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), finalCmd));
-                    }
-                }
-            }
-        }.runTaskAsynchronously(plugin);
-    }
-
-    private int getWebUserIdFromPlayer(Player player) {
-        int webUserID = -1;
-        Connection conn = null;
-        PreparedStatement ps = null;
-        ResultSet rs = null;
-        try {
-            if (Database.getInstance() == null) return -1;
-            conn = Database.getInstance().getConnection();
-            if (conn == null) return -1;
-
-            ps = conn.prepareStatement("SELECT id FROM userslist WHERE nick = ?");
-            ps.setString(1, player.getName());
-            rs = ps.executeQuery();
-            if (rs.next()) {
-                webUserID = rs.getInt("id");
-            }
-        } catch (SQLException ex) {
-            plugin.getLogger().log(Level.SEVERE, "Error while fetching web userID:", ex);
-        } finally {
-            try { if (rs != null) rs.close(); } catch (SQLException ignored) {}
-            try { if (ps != null) ps.close(); } catch (SQLException ignored) {}
-            try { if (conn != null) conn.close(); } catch (SQLException ignored) {}
+        if (!delivery.isReady()) {
+            player.sendMessage(tr(player, "store.product-menu.errors.receiver-not-ready",
+                    "{prefix}§cDelivery is not ready. Ask an administrator to check this server's panel connection token.", "prefix", prefixCore));
+            return;
         }
-        return webUserID;
+        UUID uuid = player.getUniqueId();
+        String username = player.getName();
+        if (!buying.add(uuid)) return;
+        UUID request = UUID.randomUUID();
+        final int currentServerId = delivery.getServerId();
+        final boolean sendToOtherServers = plugin.getConfig().getBoolean("store.send-to-other-servers", false);
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            StorePurchaseService.Receipt receipt = null;
+            String error = null, errorKey = "store.product-menu.errors.checkout";
+            try {
+                receipt = bundleId > 0 ? checkout.buyBundle(request, username, bundleId, price, currentServerId, sendToOtherServers)
+                        : checkout.buyProduct(request, username, productId, order, price, currentServerId, sendToOtherServers);
+            } catch (StorePurchaseService.Rejected rejected) {
+                error = rejected.getMessage(); errorKey = "store.product-menu.errors." + rejected.code;
+            } catch (Exception failure) {
+                plugin.getLogger().log(Level.WARNING, "[Store] Checkout failed (request " + request + "): " + failure.getClass().getSimpleName());
+                error = "Purchase could not be completed. Reopen the store and check your balance.";
+            } finally {
+                buying.remove(uuid);
+            }
+            final StorePurchaseService.Receipt completed = receipt;
+            final String message = error, key = errorKey;
+            if (!plugin.isEnabled()) return;
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (completed != null) {
+                    creditCache.put(uuid, completed.remaining.doubleValue());
+                    purchaseCache.remove(uuid);
+                    refreshPlayerData(player);
+                    if (player.isOnline()) player.sendMessage(tr(player, "store.product-menu.purchase.queued",
+                            "{prefix}§aPurchased! Delivery is queued for the selected servers and runs when you join them. §7Remaining credits: {credit}",
+                            "prefix", prefixCore, "credit", completed.remaining.toPlainString()));
+                    Bukkit.getScheduler().runTaskAsynchronously(plugin, this::loadAllStoreDataOnce);
+                } else if (player.isOnline()) player.sendMessage(tr(player, key, "{prefix}§c" + message, "prefix", prefixCore));
+            });
+        });
     }
 
     private ItemStack createPurchasedIcon(Player player) {
         UUID uuid = player.getUniqueId();
+        Profile profile = Profile.getProfile(player.getName());
 
         ItemStack item = new ItemStack(Material.CHEST);
         ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(LanguageManager.get(
+        meta.setDisplayName(tr(profile,
                 "store.product-menu.purchased.title",
-                "§2§lMy Purchases"
+                "&2&lMy Purchases"
         ));
 
         if (!purchaseCache.containsKey(uuid)) {
-            meta.setLore(Collections.singletonList(LanguageManager.get(
+            meta.setLore(Collections.singletonList(tr(profile,
                     "store.product-menu.loading",
                     ChatColor.GRAY + "Loading preview..."
             )));
@@ -1957,9 +1517,10 @@ public class ProductMenuManager implements Listener {
 
         List<PurchasedItem> purchased = purchaseCache.get(uuid);
         if (purchased.isEmpty()) {
-            meta.setLore(Collections.singletonList(LanguageManager.get(
+            meta.setLore(Collections.singletonList(tr(profile,
                     "store.product-menu.purchased.empty",
-                    ChatColor.GRAY + "You have not purchased anything yet."
+                    ChatColor.GRAY + "You have not purchased anything yet.",
+                    "prefix", prefixCore
             )));
             item.setItemMeta(meta);
             return item;
@@ -1976,11 +1537,11 @@ public class ProductMenuManager implements Listener {
             lore.add(ChatColor.GRAY + "...");
         }
         lore.add("");
-        lore.add(LanguageManager.get(
+        lore.add(tr(profile,
                 "store.product-menu.click-to-view",
-                ChatColor.GRAY + "§2§l➤ §aClick to view."
+                ChatColor.GRAY + "-> Click to view."
         ));
-        meta.setLore(lore);
+        meta.setLore(wrapLore(lore));
         item.setItemMeta(meta);
         return item;
     }
@@ -1988,7 +1549,7 @@ public class ProductMenuManager implements Listener {
     public void openPurchasedMenu(Player player, int page) {
         UUID uuid = player.getUniqueId();
         if (!purchaseCache.containsKey(uuid)) {
-            player.sendMessage(tr(
+            player.sendMessage(tr(player,
                     "store.product-menu.purchased.loading",
                     "{prefix}§eYour purchases are still loading; please try again shortly.",
                     "prefix", prefixCore
@@ -2001,7 +1562,7 @@ public class ProductMenuManager implements Listener {
 
     private void openActualPurchasedMenu(Player player, List<PurchasedItem> purchased, int page) {
         if (purchased.isEmpty()) {
-            player.sendMessage(tr(
+            player.sendMessage(tr(player,
                     "store.product-menu.purchased.none",
                     "{prefix}§cYou have not purchased any product yet.",
                     "prefix", prefixCore
@@ -2026,7 +1587,7 @@ public class ProductMenuManager implements Listener {
         Inventory inv = Bukkit.createInventory(
                 new PurchasedHolder(slotToPurchased, safePage, safeTotalPages),
                 INVENTORY_SIZE,
-                LanguageManager.get("store.product-menu.inv.purchased-title", "§8My Purchases")
+                tr(player, "store.product-menu.inv.purchased-title", "&8My Purchases")
         );
 
         int itemCount = pageList.size();
@@ -2052,22 +1613,23 @@ public class ProductMenuManager implements Listener {
 
                 List<String> lore = new ArrayList<>();
                 if (!pi.subDetails.trim().isEmpty()) {
-                    lore.add(ChatColor.GRAY + pi.subDetails);
+                    lore.addAll(StoreText.lore(pi.subDetails, ChatColor.GRAY.toString(), 42));
                 }
                 String dateString = pi.purchaseDate.format(
                         java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
-                lore.add(tr(
+                lore.add(tr(player,
                         "store.product-menu.purchased.date",
                         ChatColor.GRAY + "Purchased: " + ChatColor.YELLOW + "{date}",
                         "date", dateString
                 ));
-                lore.add(tr(
+                lore.add(tr(player,
                         "store.product-menu.purchased.product-id",
                         ChatColor.GRAY + "Product ID: " + ChatColor.YELLOW + "{id}",
-                        "id", String.valueOf(pi.productId)
+                        "id", String.valueOf(pi.productId),
+                        "product", String.valueOf(pi.productId)
                 ));
 
-                meta.setLore(lore);
+                meta.setLore(wrapLore(lore));
                 item.setItemMeta(meta);
 
                 inv.setItem(slot, item);
@@ -2076,9 +1638,9 @@ public class ProductMenuManager implements Listener {
             }
         }
 
-        inv.setItem(47, createBackToCategoriesButton());
-        if (safePage > 0) inv.setItem(45, createNavArrow(false));
-        if (safePage < safeTotalPages - 1) inv.setItem(53, createNavArrow(true));
+        inv.setItem(47, createBackToCategoriesButton(player));
+        if (safePage > 0) inv.setItem(45, createNavArrow(player, false));
+        if (safePage < safeTotalPages - 1) inv.setItem(53, createNavArrow(player, true));
         inv.setItem(49, createCreditIcon(player));
         inv.setItem(48, createLastCreditsIcon(player));
         inv.setItem(50, createPurchasedIcon(player));
@@ -2091,12 +1653,30 @@ public class ProductMenuManager implements Listener {
 
         Inventory inv = e.getInventory();
         InventoryHolder holder = inv.getHolder();
+        if (!(holder instanceof CategoryHolder)
+                && !(holder instanceof ProductHolder)
+                && !(holder instanceof FilterHolder)
+                && !(holder instanceof SubProductHolder)
+                && !(holder instanceof ConfirmationHolder)
+                && !(holder instanceof PurchasedHolder)) {
+            return;
+        }
         Player player = (Player) e.getWhoClicked();
         e.setCancelled(true);
 
         if (holder instanceof CategoryHolder) {
             CategoryHolder ch = (CategoryHolder) holder;
             int rawSlot = e.getRawSlot();
+            if (rawSlot == 22 && !ch.isSub && ch.slotToCategory.isEmpty()) {
+                Inventory previous = e.getInventory();
+                Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                    loadAllStoreDataOnce();
+                    if (plugin.isEnabled()) Bukkit.getScheduler().runTask(plugin, () -> {
+                        if (player.isOnline() && player.getOpenInventory().getTopInventory() == previous) openCategoryMenu(player, 0);
+                    });
+                });
+                return;
+            }
 
             if (rawSlot == 47 && ch.isSub && ch.parentCategory != null) {
                 if (ch.parentCategory.parentId == 0) {
@@ -2587,7 +2167,10 @@ public class ProductMenuManager implements Listener {
         }
 
         public boolean hasDiscount() {
-            return discountType != null && !discountType.equalsIgnoreCase("none") && discountedPrice > 0;
+            if (discountType == null || discountType.equalsIgnoreCase("none") || discountedPrice <= 0) return false;
+            if (expiry == null || expiry.isEmpty()) return true;
+            try { return !LocalDateTime.parse(expiry.replace(' ', 'T')).isBefore(LocalDateTime.now()); }
+            catch (java.time.format.DateTimeParseException ignored) { return false; }
         }
     }
 
@@ -2663,10 +2246,30 @@ public class ProductMenuManager implements Listener {
         return arrow;
     }
 
+    private ItemStack createNavArrow(Player player, boolean forward) {
+        Profile profile = player == null ? null : Profile.getProfile(player.getName());
+        ItemStack arrow = new ItemStack(Material.ARROW);
+        ItemMeta meta = arrow.getItemMeta();
+        meta.setDisplayName(forward
+                ? tr(profile, "store.common.forward-arrow", ChatColor.YELLOW + "-->")
+                : tr(profile, "store.common.back-arrow", ChatColor.YELLOW + "<--"));
+        arrow.setItemMeta(meta);
+        return arrow;
+    }
+
     private ItemStack createBackToCategoriesButton() {
         ItemStack item = new ItemStack(Material.ARROW);
         ItemMeta meta = item.getItemMeta();
         meta.setDisplayName(LanguageManager.get("store.common.back-to-categories", ChatColor.RED + "Back to Categories"));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private ItemStack createBackToCategoriesButton(Player player) {
+        Profile profile = player == null ? null : Profile.getProfile(player.getName());
+        ItemStack item = new ItemStack(Material.ARROW);
+        ItemMeta meta = item.getItemMeta();
+        meta.setDisplayName(tr(profile, "store.common.back-to-categories", ChatColor.RED + "Back to Categories"));
         item.setItemMeta(meta);
         return item;
     }
@@ -2687,10 +2290,36 @@ public class ProductMenuManager implements Listener {
         return item;
     }
 
+    private ItemStack createBackToCategoriesButtonForCategory(Player player, Category current) {
+        Profile profile = player == null ? null : Profile.getProfile(player.getName());
+        ItemStack item = new ItemStack(Material.ARROW);
+        ItemMeta meta = item.getItemMeta();
+        if (current != null && current.parentId != 0) {
+            Category parent = getCategoryById(current.parentId);
+            String disp = parent != null ? resolveCategoryDisplay(parent) : "Categories";
+            meta.setDisplayName(tr(profile, "store.common.back-to-parent",
+                    ChatColor.RED + "Back to {name}",
+                    "name", ChatColor.stripColor(disp)));
+        } else {
+            meta.setDisplayName(tr(profile, "store.common.back-to-categories", ChatColor.RED + "Back to Categories"));
+        }
+        item.setItemMeta(meta);
+        return item;
+    }
+
     private ItemStack createBackToProductsButton(ProductEntry parent) {
         ItemStack item = new ItemStack(Material.ARROW);
         ItemMeta meta = item.getItemMeta();
         meta.setDisplayName(LanguageManager.get("store.common.back-to-products", ChatColor.RED + "Back to Products"));
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private ItemStack createBackToProductsButton(Player player, ProductEntry parent) {
+        Profile profile = player == null ? null : Profile.getProfile(player.getName());
+        ItemStack item = new ItemStack(Material.ARROW);
+        ItemMeta meta = item.getItemMeta();
+        meta.setDisplayName(tr(profile, "store.common.back-to-products", ChatColor.RED + "Back to Products"));
         item.setItemMeta(meta);
         return item;
     }
@@ -2716,3 +2345,6 @@ public class ProductMenuManager implements Listener {
         }
     }
 }
+
+
+

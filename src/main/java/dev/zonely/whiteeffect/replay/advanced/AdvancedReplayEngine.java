@@ -345,6 +345,24 @@ public final class AdvancedReplayEngine {
       clearPotions(living);
       applyFireSafety(living);
       this.applyCachedEquipment(state);
+      this.applyActorNameTag(state, entity);
+   }
+
+   private void applyActorNameTag(AdvancedReplayEngine.ActorPlaybackState state, Entity entity) {
+      if (state == null || state.actorRecord == null || entity == null) {
+         return;
+      }
+      String actorName = state.actorRecord.getName();
+      if (actorName == null) {
+         actorName = "";
+      }
+      actorName = actorName.trim();
+      if (actorName.isEmpty()) {
+         actorName = "Player";
+      }
+      String label = ChatColor.AQUA + actorName;
+      try { entity.setCustomName(label); } catch (Throwable ignored) {}
+      try { entity.setCustomNameVisible(true); } catch (Throwable ignored) {}
    }
 
   private void teleportDisplayEntity(Entity entity, Location target) {
@@ -741,6 +759,7 @@ public final class AdvancedReplayEngine {
          if (entity != null) {
             entity.teleport(location);
             this.ensureVisible(entity);
+            this.applyActorNameTag(state, entity);
             NPCReplayManager.trackReplayEntity(entity);
          }
       }

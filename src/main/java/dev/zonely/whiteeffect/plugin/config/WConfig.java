@@ -63,6 +63,10 @@ public class WConfig {
       return this.save();
    }
 
+   public void setInMemory(String path, Object obj) {
+      this.config.set(path, obj);
+   }
+
    public boolean contains(String path) {
       return this.config.contains(path);
    }

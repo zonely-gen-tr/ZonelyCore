@@ -5,11 +5,13 @@ import dev.zonely.whiteeffect.lang.LanguageManager;
 import dev.zonely.whiteeffect.libraries.menu.MenuInventoryFactory;
 import dev.zonely.whiteeffect.player.Profile;
 import dev.zonely.whiteeffect.utils.MaterialResolver;
+import dev.zonely.whiteeffect.utils.StringUtils;
 import dev.zonely.whiteeffect.cash.CashManager;
 import dev.zonely.whiteeffect.cash.CreditRepository;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.ChatColor;
@@ -21,7 +23,9 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -133,8 +137,13 @@ public class CreditPaperManager implements Listener, CommandExecutor {
 
         ItemStack voucher = new ItemStack(Material.PAPER);
         ItemMeta meta = voucher.getItemMeta();
-        meta.setDisplayName(LanguageManager.get(profile, VOUCHER_NAME_KEY, DEFAULT_VOUCHER_NAME,
-                "amount", amount));
+        String voucherName = LanguageManager.get(profile, VOUCHER_NAME_KEY, DEFAULT_VOUCHER_NAME,
+                "amount", amount);
+        String strippedVoucherName = ChatColor.stripColor(voucherName == null ? "" : voucherName).trim();
+        if (strippedVoucherName.isEmpty() || strippedVoucherName.equalsIgnoreCase("amount")) {
+            voucherName = StringUtils.formatColors(DEFAULT_VOUCHER_NAME.replace("{amount}", String.valueOf(amount)));
+        }
+        meta.setDisplayName(voucherName);
         List<String> lore = new ArrayList<>();
         lore.add(DATA_TARGET_ID + targetId);
         lore.add(DATA_TARGET_NAME + normalizedTarget);
@@ -178,8 +187,17 @@ public class CreditPaperManager implements Listener, CommandExecutor {
         }
 
         event.setCancelled(true);
+        Player player = event.getPlayer();
+        if (plugin.getOpenPapers().containsKey(player.getUniqueId())) {
+            return;
+        }
 
-        Profile profile = Profile.getProfile(event.getPlayer().getName());
+        ItemStack pendingVoucher = takeSingleVoucherFromHand(player, item);
+        if (pendingVoucher == null) {
+            return;
+        }
+
+        Profile profile = Profile.getProfile(player.getName());
         String title = LanguageManager.get(profile, CONFIRM_TITLE_KEY, DEFAULT_CONFIRM_TITLE);
         Inventory confirm = MenuInventoryFactory.create(null, 27, title);
         ItemStack accept = MaterialResolver.createItemStack("STAINED_CLAY:13");
@@ -194,9 +212,8 @@ public class CreditPaperManager implements Listener, CommandExecutor {
         decline.setItemMeta(declineMeta);
         confirm.setItem(11, decline);
 
-        event.getPlayer().openInventory(confirm);
-        plugin.getServer().getScheduler().runTask(plugin, () ->
-                plugin.getOpenPapers().put(event.getPlayer().getUniqueId(), item.clone()));
+        plugin.getOpenPapers().put(player.getUniqueId(), pendingVoucher);
+        player.openInventory(confirm);
     }
 
     @EventHandler
@@ -213,6 +230,16 @@ public class CreditPaperManager implements Listener, CommandExecutor {
         }
 
         event.setCancelled(true);
+        if (event.getClickedInventory() == null
+                || !event.getClickedInventory().equals(event.getView().getTopInventory())) {
+            return;
+        }
+
+        int slot = event.getRawSlot();
+        if (slot != 11 && slot != 15) {
+            return;
+        }
+
         ItemStack paper = plugin.getOpenPapers().remove(player.getUniqueId());
         if (paper == null) {
             player.closeInventory();
@@ -232,7 +259,6 @@ public class CreditPaperManager implements Listener, CommandExecutor {
             return;
         }
 
-        int slot = event.getRawSlot();
         if (slot == 11) {
             Integer giverId = fetchUserId(normalizeNick(player.getName()));
             if (giverId != null) {
@@ -242,7 +268,7 @@ public class CreditPaperManager implements Listener, CommandExecutor {
                     CashManager.cacheCredit(player.getName(), credit + amount);
                 }
             }
-            player.getInventory().addItem(paper);
+            returnVoucher(player, paper);
             player.closeInventory();
             return;
         }
@@ -253,7 +279,7 @@ public class CreditPaperManager implements Listener, CommandExecutor {
                 LanguageManager.send(player, "commands.credit-voucher.target-credit-read-failed",
                         "{prefix}&cCould not read the target credit balance.", "prefix", prefix,
                         "target", targetNick);
-                player.getInventory().addItem(paper);
+                returnVoucher(player, paper);
             } else if (updateCredit(targetId, credit + amount)) {
                 CashManager.cacheCredit(targetNick, credit + amount);
 
@@ -262,18 +288,37 @@ public class CreditPaperManager implements Listener, CommandExecutor {
                         "prefix", prefix,
                         "target", targetNick,
                         "total", credit + amount);
-                player.getInventory().removeItem(paper);
             } else {
                 LanguageManager.send(player, "commands.credit-voucher.target-credit-update-failed",
                         "{prefix}&cUnable to update target credit.", "prefix", prefix,
                         "target", targetNick);
-                player.getInventory().addItem(paper);
+                returnVoucher(player, paper);
             }
-        } else {
-            player.getInventory().addItem(paper);
         }
 
         player.closeInventory();
+    }
+
+    @EventHandler
+    public void onConfirmClose(InventoryCloseEvent event) {
+        if (!(event.getPlayer() instanceof Player)) {
+            return;
+        }
+        if (!isVoucherConfirmTitle((Player) event.getPlayer(), event.getView().getTitle())) {
+            return;
+        }
+        ItemStack paper = plugin.getOpenPapers().remove(event.getPlayer().getUniqueId());
+        if (paper != null) {
+            returnVoucher((Player) event.getPlayer(), paper);
+        }
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        ItemStack paper = plugin.getOpenPapers().remove(event.getPlayer().getUniqueId());
+        if (paper != null) {
+            returnVoucher(event.getPlayer(), paper);
+        }
     }
 
     private Integer fetchUserIdByArea(String value) {
@@ -321,6 +366,46 @@ public class CreditPaperManager implements Listener, CommandExecutor {
             }
         }
         return -1;
+    }
+
+    private boolean isVoucherConfirmTitle(Player player, String title) {
+        Profile profile = Profile.getProfile(player.getName());
+        String expectedTitle = LanguageManager.get(profile, CONFIRM_TITLE_KEY, DEFAULT_CONFIRM_TITLE);
+        return expectedTitle.equals(title);
+    }
+
+    private ItemStack takeSingleVoucherFromHand(Player player, ItemStack fallback) {
+        ItemStack inHand = player.getItemInHand();
+        if (inHand == null || inHand.getType() == Material.AIR) {
+            inHand = fallback;
+        }
+        if (inHand == null || inHand.getType() == Material.AIR || inHand.getAmount() <= 0) {
+            return null;
+        }
+
+        ItemStack one = inHand.clone();
+        one.setAmount(1);
+
+        int remaining = inHand.getAmount() - 1;
+        if (remaining <= 0) {
+            player.setItemInHand(new ItemStack(Material.AIR));
+        } else {
+            inHand.setAmount(remaining);
+            player.setItemInHand(inHand);
+        }
+        return one;
+    }
+
+    private void returnVoucher(Player player, ItemStack paper) {
+        Map<Integer, ItemStack> overflow = player.getInventory().addItem(paper);
+        if (overflow == null || overflow.isEmpty()) {
+            return;
+        }
+        for (ItemStack leftover : overflow.values()) {
+            if (leftover != null && leftover.getType() != Material.AIR && leftover.getAmount() > 0) {
+                player.getWorld().dropItemNaturally(player.getLocation(), leftover);
+            }
+        }
     }
 
 }

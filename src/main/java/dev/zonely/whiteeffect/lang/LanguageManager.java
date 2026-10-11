@@ -1,6 +1,7 @@
 package dev.zonely.whiteeffect.lang;
 
 import dev.zonely.whiteeffect.Core;
+import dev.zonely.whiteeffect.auth.AuthManager;
 import dev.zonely.whiteeffect.player.Profile;
 import dev.zonely.whiteeffect.plugin.config.WConfig;
 import dev.zonely.whiteeffect.utils.StringUtils;
@@ -19,6 +20,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -76,8 +78,9 @@ public final class LanguageManager {
             YamlConfiguration defaults =
                 YamlConfiguration.loadConfiguration(new InputStreamReader(stream, StandardCharsets.UTF_8));
             YamlConfiguration target = config.getRawConfig();
-
-            if (mergeSection(defaults, target)) {
+            boolean updated = mergeSection(defaults, target);
+            updated |= forceSyncLanguageSections(defaults, target);
+            if (updated) {
                 config.save();
                 plugin.getLogger().info("languages.yml has been updated with new default entries.");
             }
@@ -114,6 +117,124 @@ public final class LanguageManager {
         return updated;
     }
 
+    private static boolean forceSyncLanguageSections(ConfigurationSection defaults, ConfigurationSection target) {
+        ConfigurationSection languageDefaults = defaults.getConfigurationSection("languages");
+        if (languageDefaults == null) {
+            return false;
+        }
+        boolean updated = false;
+        for (String locale : languageDefaults.getKeys(false)) {
+            updated |= forceSyncLeaves(defaults, target,
+                    "languages." + locale + ".menus.auction",
+                    "languages.en_US.menus.auction");
+            updated |= forceSyncLeaves(defaults, target,
+                    "languages." + locale + ".commands.punish",
+                    "languages.en_US.commands.punish");
+            updated |= forceSyncLeaves(defaults, target,
+                    "languages." + locale + ".commands.fake",
+                    "languages.en_US.commands.fake");
+            updated |= forceSyncLeaves(defaults, target,
+                    "languages." + locale + ".clubs.command",
+                    "languages.en_US.clubs.command");
+            updated |= forceSyncLeaves(defaults, target,
+                    "languages." + locale + ".commands.core.help.entry",
+                    "languages.en_US.commands.core.help.entry");
+            updated |= forceSyncLeaves(defaults, target,
+                    "languages." + locale + ".punishments",
+                    "languages.en_US.punishments");
+            updated |= forceSyncLeaves(defaults, target,
+                    "languages." + locale + ".listeners.chat-filter",
+                    "languages.en_US.listeners.chat-filter");
+            updated |= forceSyncLeaves(defaults, target,
+                    "languages." + locale + ".esports.manager",
+                    "languages.en_US.esports.manager");
+            updated |= forceSyncLeaves(defaults, target,
+                    "languages." + locale + ".esports.game.match",
+                    "languages.en_US.esports.game.match");
+            updated |= forceSyncLeaves(defaults, target,
+                    "languages." + locale + ".esports.game.tournament",
+                    "languages.en_US.esports.game.tournament");
+            updated |= forceSyncLeaves(defaults, target,
+                    "languages." + locale + ".esports.game.drops",
+                    "languages.en_US.esports.game.drops");
+            updated |= forceSyncLeaves(defaults, target,
+                    "languages." + locale + ".esports.game.special",
+                    "languages.en_US.esports.game.special");
+            updated |= forceSyncLeaves(defaults, target,
+                    "languages." + locale + ".esports.game.special.items",
+                    "languages.en_US.esports.game.special.items");
+            updated |= forceSyncLeaves(defaults, target,
+                    "languages." + locale + ".esports.game.special.hologram",
+                    "languages.en_US.esports.game.special.hologram");
+            updated |= forceSyncLeaves(defaults, target,
+                    "languages." + locale + ".esports.game.drops.hologram",
+                    "languages.en_US.esports.game.drops.hologram");
+            updated |= forceSyncLeaves(defaults, target,
+                    "languages." + locale + ".esports.game.hotbar",
+                    "languages.en_US.esports.game.hotbar");
+            updated |= forceSyncLeaves(defaults, target,
+                    "languages." + locale + ".npc.tournaments",
+                    "languages.en_US.npc.tournaments");
+            updated |= forceSyncLeaves(defaults, target,
+                    "languages." + locale + ".friends",
+                    "languages.en_US.friends");
+        }
+        return updated;
+    }
+
+    private static boolean forceSyncLeaves(ConfigurationSection defaults, ConfigurationSection target, String path) {
+        return forceSyncLeaves(defaults, target, path, null);
+    }
+
+    private static boolean forceSyncLeaves(ConfigurationSection defaults, ConfigurationSection target,
+                                           String path, String fallbackPath) {
+        ConfigurationSection localeSection = defaults.getConfigurationSection(path);
+        ConfigurationSection fallbackSection = null;
+        if (fallbackPath != null && !fallbackPath.isEmpty()) {
+            fallbackSection = defaults.getConfigurationSection(fallbackPath);
+        }
+        if (localeSection == null && fallbackSection == null) {
+            return false;
+        }
+
+        boolean updated = false;
+        Set<String> localeLeaves = new LinkedHashSet<>();
+        if (localeSection != null) {
+            for (String leaf : localeSection.getKeys(true)) {
+                if (localeSection.isConfigurationSection(leaf)) {
+                    continue;
+                }
+                localeLeaves.add(leaf);
+                String fullPath = path + "." + leaf;
+                Object defaultValue = localeSection.get(leaf);
+                if (!Objects.equals(target.get(fullPath), defaultValue)) {
+                    target.set(fullPath, defaultValue);
+                    updated = true;
+                }
+            }
+        }
+
+        if (fallbackSection == null) {
+            return updated;
+        }
+
+        for (String leaf : fallbackSection.getKeys(true)) {
+            if (fallbackSection.isConfigurationSection(leaf) || localeLeaves.contains(leaf)) {
+                continue;
+            }
+            String fullPath = path + "." + leaf;
+            if (target.contains(fullPath)) {
+                continue;
+            }
+            Object fallbackValue = fallbackSection.get(leaf);
+            if (!Objects.equals(target.get(fullPath), fallbackValue)) {
+                target.set(fullPath, fallbackValue);
+                updated = true;
+            }
+        }
+        return updated;
+    }
+
     public static String getDefaultLocale() {
         return defaultLocale;
     }
@@ -131,23 +252,11 @@ public final class LanguageManager {
     }
 
     public static String resolveProfileLocale(Profile profile) {
-        if (profile == null) {
-            return defaultLocale;
-        }
-        String cached = LOCALE_CACHE.get(profile.getName().toLowerCase(Locale.ROOT));
-        if (cached != null) {
-            return cached;
-        }
-        String raw = profile.getLanguage();
-        String locale = resolveLocale(raw);
-        LOCALE_CACHE.put(profile.getName().toLowerCase(Locale.ROOT), locale);
-        return locale;
+        return defaultLocale;
     }
 
     public static void invalidateProfileLocale(Profile profile) {
-        if (profile != null) {
-            LOCALE_CACHE.remove(profile.getName().toLowerCase(Locale.ROOT));
-        }
+        // Per-profile locale resolution is disabled. Global default locale is used for everyone.
     }
 
     public static LanguageMeta getMeta(String locale) {
@@ -165,10 +274,59 @@ public final class LanguageManager {
         }
         if (sender instanceof Player) {
             Player player = (Player) sender;
+            if (shouldUseDefaultLocale(player)) {
+                deliverMessage(sender, get(defaultLocale, key, def, placeholders));
+                return;
+            }
             Profile profile = Profile.getProfile(player.getName());
-            sender.sendMessage(get(profile, key, def, placeholders));
+            deliverMessage(sender, get(profile, key, def, placeholders));
         } else {
-            sender.sendMessage(get(defaultLocale, key, def, placeholders));
+            deliverMessage(sender, get(defaultLocale, key, def, placeholders));
+        }
+    }
+
+    private static void deliverMessage(CommandSender sender, String message) {
+        if (sender == null || message == null) {
+            return;
+        }
+        String[] lines = message.split("\\r?\\n");
+        boolean sent = false;
+        for (String rawLine : lines) {
+            if (rawLine == null) {
+                continue;
+            }
+            String line = rawLine.trim().isEmpty() ? "" : rawLine;
+            String stripped = ChatColor.stripColor(line);
+            String normalized = stripped == null ? "" : stripped.trim().toLowerCase(Locale.ROOT);
+            if ("executor".equals(normalized)
+                    || "{executor}".equals(normalized)
+                    || normalized.startsWith("executor:")
+                    || "prefix".equals(normalized)
+                    || "{prefix}".equals(normalized)
+                    || normalized.startsWith("prefix:")) {
+                continue;
+            }
+            sender.sendMessage(line);
+            sent = true;
+        }
+        if (!sent) {
+            sender.sendMessage(message);
+        }
+    }
+
+    private static boolean shouldUseDefaultLocale(Player player) {
+        if (player == null) {
+            return false;
+        }
+        try {
+            Core core = Core.getInstance();
+            if (core == null) {
+                return false;
+            }
+            AuthManager authManager = core.getAuthManager();
+            return authManager != null && authManager.requiresAuthentication(player);
+        } catch (Throwable ignored) {
+            return false;
         }
     }
 
@@ -295,33 +453,45 @@ public final class LanguageManager {
         String path = localeKey(actualLocale, key);
         if (!config.contains(path) && key != null && !key.isEmpty() && def != null && path != null && !path.isEmpty()) {
             try {
-                config.set(path, def);
+                config.setInMemory(path, def);
             } catch (IllegalArgumentException ex) {
                 Core.getInstance().getLogger().log(Level.FINEST,
                         "Unable to auto-populate language key '{0}' at path '{1}': {2}",
                         new Object[]{key, path, ex.getMessage()});
             }
         }
-        String value = config.getString(path);
-        if (value == null) {
-            ConfigurationSection section = config.getSection(path);
-            if (section != null) {
-                value = section.getString("item");
-            } else {
-                Object raw = config.get(path);
-                if (raw instanceof Map<?, ?>) {
-                    Map<?, ?> map = (Map<?, ?>) raw;
-                    Object item = map.get("item");
-                    if (item != null) {
-                        value = item.toString();
+        String value = null;
+        Object raw = config.get(path);
+        if (raw instanceof String) {
+            value = (String) raw;
+        } else if (raw instanceof ConfigurationSection) {
+            ConfigurationSection section = (ConfigurationSection) raw;
+            value = section.getString("item");
+            if (value == null) {
+                Set<String> sectionKeys = section.getKeys(false);
+                if (sectionKeys.size() == 1) {
+                    String loneKey = sectionKeys.iterator().next();
+                    Object loneValue = section.get(loneKey);
+                    if (loneValue == null) {
+                        // Recover broken YAML like: timeout: {prefix}Login timed out.
+                        value = loneKey;
+                        config.setInMemory(path, value);
                     }
                 }
             }
+        } else if (raw instanceof Map<?, ?>) {
+            Map<?, ?> map = (Map<?, ?>) raw;
+            Object item = map.get("item");
+            if (item != null) {
+                value = item.toString();
+            }
+        } else if (raw != null) {
+            value = raw.toString();
         }
         if (value == null) {
             if (def != null) {
                 try {
-                    config.set(path, def);
+                    config.setInMemory(path, def);
                 } catch (IllegalArgumentException ex) {
                     Core.getInstance().getLogger().log(Level.FINEST,
                             "Unable to auto-populate missing language key '{0}' at '{1}': {2}",
@@ -346,7 +516,7 @@ public final class LanguageManager {
         String actualLocale = resolveLocale(locale);
         String path = localeKey(actualLocale, key);
         if (!config.contains(path)) {
-            config.set(path, def);
+            config.setInMemory(path, def);
         }
         return config.getInt(path, def);
     }
@@ -366,7 +536,7 @@ public final class LanguageManager {
         String actualLocale = resolveLocale(locale);
         String path = localeKey(actualLocale, key);
         if (!config.contains(path)) {
-            config.set(path, def);
+            config.setInMemory(path, def);
         }
         return config.getBoolean(path, def);
     }
@@ -386,7 +556,7 @@ public final class LanguageManager {
         String actualLocale = resolveLocale(locale);
         String path = localeKey(actualLocale, key);
         if (!config.contains(path) && def != null) {
-            config.set(path, def);
+            config.setInMemory(path, def);
         }
         List<Integer> values = config.getIntegerList(path);
         if (values == null || values.isEmpty()) {
@@ -420,7 +590,7 @@ public final class LanguageManager {
         String actualLocale = resolveLocale(locale);
         String path = localeKey(actualLocale, key);
         if (!config.contains(path) && def != null && key != null && !key.isEmpty() && path != null && !path.isEmpty()) {
-            config.set(path, def);
+            config.setInMemory(path, def);
         }
         List<String> list = config.getStringList(path);
         if (list == null || list.isEmpty()) {
@@ -435,7 +605,7 @@ public final class LanguageManager {
 
     private static String applyPlaceholders(String input, Object... placeholders) {
         if (input == null || placeholders == null || placeholders.length == 0) {
-            return Objects.requireNonNullElse(input, "");
+            return input == null ? "" : input;
         }
         String result = input;
         for (int i = 0; i + 1 < placeholders.length; i += 2) {
@@ -509,17 +679,17 @@ public final class LanguageManager {
             Map<String, Object> defaults = new LinkedHashMap<>();
             defaults.put("slot", defaultSlot);
             defaults.put("item", def);
-            config.set(path, defaults);
+            config.setInMemory(path, defaults);
             return;
         }
 
         ConfigurationSection section = config.getSection(path);
         if (section != null) {
             if (!section.contains("slot")) {
-                config.set(path + ".slot", defaultSlot);
+                config.setInMemory(path + ".slot", defaultSlot);
             }
             if (!section.contains("item") && def != null) {
-                config.set(path + ".item", def);
+                config.setInMemory(path + ".item", def);
             }
             return;
         }
@@ -528,24 +698,24 @@ public final class LanguageManager {
         if (raw instanceof Map<?, ?>) {
             Map<?, ?> map = (Map<?, ?>) raw;
             if (!map.containsKey("slot")) {
-                config.set(path + ".slot", defaultSlot);
+                config.setInMemory(path + ".slot", defaultSlot);
             }
             if (!map.containsKey("item") && def != null) {
-                config.set(path + ".item", def);
+                config.setInMemory(path + ".item", def);
             }
             return;
         }
 
         if (raw instanceof String) {
             String string = (String) raw;
-            config.set(path + ".slot", defaultSlot);
-            config.set(path + ".item", string);
+            config.setInMemory(path + ".slot", defaultSlot);
+            config.setInMemory(path + ".item", string);
             return;
         }
 
-        config.set(path + ".slot", defaultSlot);
+        config.setInMemory(path + ".slot", defaultSlot);
         if (def != null) {
-            config.set(path + ".item", def);
+            config.setInMemory(path + ".item", def);
         }
     }
 
@@ -573,7 +743,7 @@ public final class LanguageManager {
     private static String metaString(String locale, String key, String def) {
         String path = localeKey(locale, "meta." + key);
         if (!config.contains(path) && def != null) {
-            config.set(path, def);
+            config.setInMemory(path, def);
         }
         return config.getString(path, def);
     }
@@ -581,7 +751,7 @@ public final class LanguageManager {
     private static List<String> metaList(String locale, String key, List<String> def) {
         String path = localeKey(locale, "meta." + key);
         if (!config.contains(path) && def != null) {
-            config.set(path, def);
+            config.setInMemory(path, def);
         }
         List<String> values = config.getStringList(path);
         if (values == null || values.isEmpty()) {

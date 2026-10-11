@@ -20,6 +20,7 @@ public final class AuthSession {
     private volatile boolean emailRequired;
     private volatile boolean emailVerified;
     private volatile long lastEmailReminderAt;
+    private volatile boolean mapVerificationPassed;
 
     AuthSession(UUID uniqueId, String username, String address) {
         this.uniqueId = uniqueId;
@@ -148,6 +149,15 @@ public final class AuthSession {
 
     public void markEmailReminderSent() {
         this.lastEmailReminderAt = System.currentTimeMillis();
+        touch();
+    }
+
+    public boolean isMapVerificationPassed() {
+        return mapVerificationPassed;
+    }
+
+    public void setMapVerificationPassed(boolean mapVerificationPassed) {
+        this.mapVerificationPassed = mapVerificationPassed;
         touch();
     }
 

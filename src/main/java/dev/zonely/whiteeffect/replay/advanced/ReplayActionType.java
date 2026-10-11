@@ -1,6 +1,7 @@
 package dev.zonely.whiteeffect.replay.advanced;
 
 public enum ReplayActionType {
+    MAP_CHUNK,
     MOVE,
     LOOK,
     EQUIP,

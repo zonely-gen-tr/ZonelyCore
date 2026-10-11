@@ -1,0 +1,170 @@
+[SIZE=6][B]ZonelyCore API Quick Reference[/B][/SIZE]
+[SIZE=2]All examples assume ZonelyCore is enabled and your plugin depends on it.[/SIZE]
+
+[B]Accessing the API[/B]
+[CODE=java]
+import dev.zonely.whiteeffect.api.ZonelyCoreAPI;
+
+public final class MyAddon {
+
+    private ZonelyCoreAPI api;
+
+    public void onEnable() {
+        api = ZonelyCoreAPI.get(); // safe once ZonelyCore is enabled
+    }
+}
+[/CODE]
+
+[B]Checking Module Toggles[/B]
+[CODE=java]
+if (!api.areVouchersEnabled()) {
+    getLogger().warning("Vouchers module disabled, skipping custom voucher logic.");
+}
+
+if (api.areLastCreditsEnabled()) {
+    getLogger().info("Last credits module active – holograms and GUI calls are safe.");
+}
+[/CODE]
+
+[HR][/HR]
+
+[B]Cash API[/B]
+[LIST]
+[*] [ICODE]getBalance(name|player)[/ICODE] returns the current credit total (offline-safe).
+[*] [ICODE]addBalance[/ICODE], [ICODE]withdraw[/ICODE], [ICODE]setBalance[/ICODE] return the updated balance and throw [ICODE]CreditOperationException[/ICODE] on failure (insufficient funds, DB issues, validation errors).
+[*] [ICODE]isCached[/ICODE] / [ICODE]invalidateCache[/ICODE] let you manage the in-memory cache after manual DB edits.
+[*] Async helpers ([ICODE]addBalanceAsync[/ICODE], [ICODE]withdrawAsync[/ICODE], [ICODE]setBalanceAsync[/ICODE]) complete on a [ICODE]CompletableFuture<Long>[/ICODE] so you can stay off the main thread.
+[/LIST]
+[CODE=java]
+import dev.zonely.whiteeffect.api.cash.CashAPI;
+import dev.zonely.whiteeffect.api.cash.CreditOperationException;
+
+CashAPI cash = api.cash();
+
+try {
+    long updated = cash.addBalance("PlayerOne", 500);
+    long remaining = cash.withdraw("PlayerTwo", 250);
+    cash.setBalance("PlayerVIP", 10_000);
+    getLogger().info("Balances updated: " + updated + " / " + remaining);
+} catch (CreditOperationException ex) {
+    getLogger().warning("Credit operation failed: " + ex.getMessage());
+}
+
+cash.addBalanceAsync("AsyncGuy", 1000).thenAccept(newBalance ->
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            Player player = Bukkit.getPlayerExact("AsyncGuy");
+            if (player != null) {
+                player.sendMessage("Yeni bakiyen: " + newBalance);
+            }
+        })
+);
+[/CODE]
+
+[HR][/HR]
+
+[B]Voucher API[/B]
+[LIST]
+[*] [ICODE]issueVoucher(issuer, target, amount)[/ICODE] deducts credits and returns a [ICODE]VoucherIssueResult[/ICODE] (item + metadata).
+[*] [ICODE]parseVoucher(item)[/ICODE] inspects items safely, [ICODE]redeemVoucher(details|item)[/ICODE] credits the target.
+[*] Throws [ICODE]CreditOperationException[/ICODE] for validation problems (e.g. insufficient funds).
+[/LIST]
+[CODE=java]
+import dev.zonely.whiteeffect.api.voucher.VoucherAPI;
+import dev.zonely.whiteeffect.api.voucher.VoucherIssueResult;
+
+VoucherAPI vouchers = api.vouchers();
+
+try {
+    VoucherIssueResult voucher = vouchers.issueVoucher("Staff", "PlayerTwo", 250);
+    player.getInventory().addItem(voucher.getVoucherItem());
+    vouchers.redeemVoucher(voucher.getDetails());
+} catch (CreditOperationException ex) {
+    getLogger().warning("Voucher error: " + ex.getMessage());
+}
+[/CODE]
+
+[HR][/HR]
+
+[B]Deliveries API[/B]
+[LIST]
+[*] [ICODE]listDeliveries()[/ICODE] exposes configured reward entries.
+[*] [ICODE]getStatus(player, delivery)[/ICODE] describes permission/cooldown; [ICODE]claim(player, delivery)[/ICODE] performs the reward (throws [ICODE]CreditOperationException[/ICODE] on profile load failures).
+[/LIST]
+[CODE=java]
+api.deliveries().listDeliveries().forEach(delivery -> {
+    api.deliveries().getStatus(player, delivery).ifPresent(status -> {
+        if (status.canClaimNow()) {
+            try {
+                api.deliveries().claim(player, delivery);
+            } catch (CreditOperationException ex) {
+                player.sendMessage("Delivery failed: " + ex.getMessage());
+            }
+        }
+    });
+});
+[/CODE]
+
+[HR][/HR]
+
+[B]Last Credits API[/B]
+[LIST]
+[*] [ICODE]getLeaderboard(category)[/ICODE] returns cached entries (RECENT, ALL_TIME, YEARLY, MONTHLY, DAILY).
+[*] [ICODE]getLastLeaderboardRefresh(category)[/ICODE] exposes snapshot freshness.
+[*] [ICODE]getRecentTopups()[/ICODE] mirrors the PlaceholderAPI cache.
+[*] [ICODE]getViewerCategory(player)[/ICODE] / [ICODE]setViewerCategory(player, category)[/ICODE] keep holograms & GUI aligned per player.
+[*] [ICODE]openMenu(player, category)[/ICODE] honours the viewer’s active category (pass [ICODE]getViewerCategory[/ICODE] to stay in sync).
+[/LIST]
+[CODE=java]
+var recent = api.lastCredits().getLeaderboard(LastCreditsMenuManager.Category.RECENT);
+recent.forEach(entry ->
+        Bukkit.getLogger().info(entry.getPosition() + ". " + entry.getUsername() + " -> " + entry.getFormattedAmount())
+);
+
+LastCreditsMenuManager.Category active = api.lastCredits().getViewerCategory(player);
+api.lastCredits().openMenu(player, active);
+[/CODE]
+
+[HR][/HR]
+
+[B]Secure Socket API[/B]
+[LIST]
+[*] Controlled by `config.yml` (`web-token`, `socket-port`); modules toggle must be enabled.
+[*] [ICODE]start()[/ICODE], [ICODE]stop()[/ICODE], [ICODE]restart()[/ICODE] manage the listener; [ICODE]isActive()[/ICODE] and [ICODE]getPort()[/ICODE] expose runtime state.
+[/LIST]
+[CODE=java]
+if (api.isSocketEnabled()) {
+    if (!api.socket().isActive()) {
+        if (!api.socket().start()) {
+            getLogger().warning("Secure socket could not start. Check config.yml.");
+        }
+    } else {
+        api.socket().restart();
+    }
+}
+[/CODE]
+
+[HR][/HR]
+
+[B]Auction API[/B]
+[LIST]
+[*] [ICODE]openMainMenu[/ICODE], [ICODE]openSoldMenu[/ICODE], [ICODE]openPurchasedMenu[/ICODE], [ICODE]openPurchaseMenu[/ICODE] are safe from async threads (manager switches back to Bukkit).
+[*] [ICODE]getMenuManager()[/ICODE] exposes the GUI controller; [ICODE]getDao()[/ICODE] grants direct DB access for custom workflows.
+[*] Check [ICODE]api.areAuctionsEnabled()[/ICODE] before exposing custom commands.
+[/LIST]
+[CODE=java]
+if (api.areAuctionsEnabled()) {
+    api.auctions().openMainMenu(player);
+
+    AuctionDao dao = api.auctions().getDao();
+    if (dao != null) {
+        dao.listByCreator(dao.fetchUserId(player.getName()))
+                .forEach(item -> getLogger().info(item.getCustomTitle()));
+    }
+} else {
+    player.sendMessage("Auctions are disabled on this server.");
+}
+[/CODE]
+
+[HR][/HR]
+
+Keep this BBCode snippet handy for your XenForo resource page or developer wiki. Update it whenever the API grows so third‑party developers always know how to integrate with ZonelyCore.

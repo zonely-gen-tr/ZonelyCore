@@ -9,6 +9,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Locale;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -60,6 +61,7 @@ public enum ParticleEffect {
 
    private static final Map<String, ParticleEffect> NAME_MAP = new HashMap();
    private static final Map<Integer, ParticleEffect> ID_MAP = new HashMap();
+   private static final Map<String, String> NAME_ALIASES = new HashMap<>();
    private final String name;
    private final int id;
    private final int requiredVersion;
@@ -73,6 +75,18 @@ public enum ParticleEffect {
    }
 
    public static ParticleEffect fromName(String name) {
+      if (name == null) {
+         return null;
+      }
+      String normalized = name.replace("_", "").replace("-", "").toLowerCase(Locale.ROOT);
+      String alias = NAME_ALIASES.get(normalized);
+      if (alias != null) {
+         for (Entry<String, ParticleEffect> entry : NAME_MAP.entrySet()) {
+            if (entry.getKey().equalsIgnoreCase(alias)) {
+               return entry.getValue();
+            }
+         }
+      }
       Iterator var1 = NAME_MAP.entrySet().iterator();
 
       Entry entry;
@@ -307,6 +321,13 @@ public enum ParticleEffect {
          NAME_MAP.put(effect.name, effect);
          ID_MAP.put(effect.id, effect);
       }
+
+      // aliases for common typos / naming variants
+      NAME_ALIASES.put("happyvillager", "happyVillager");
+      NAME_ALIASES.put("villagerhappy", "happyVillager");
+      NAME_ALIASES.put("happyvillger", "happyVillager");
+      NAME_ALIASES.put("happyvillagers", "happyVillager");
+      NAME_ALIASES.put("happyvillagerparticle", "happyVillager");
 
    }
 

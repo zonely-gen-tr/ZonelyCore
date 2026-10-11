@@ -24,7 +24,7 @@ import javax.sql.rowset.CachedRowSet;
 public class LastCreditPlaceholderService {
 
     private static final int LIMIT = 10;
-    private static final long REFRESH_INTERVAL_TICKS = 20L * 60; 
+    private static final long REFRESH_INTERVAL_TICKS = 20L * 10; 
 
     private final Core plugin;
     private volatile List<LastCreditRecord> cache = Collections.emptyList();
@@ -71,63 +71,23 @@ public class LastCreditPlaceholderService {
                 "ORDER BY lc.created_at DESC " +
                 "LIMIT ?";
 
-        try {
-            Database db = Database.getInstance();
-
-            CachedRowSet rowSet = null;
-            if (db instanceof HikariDatabase) {
-                rowSet = ((HikariDatabase) db).query(sql, LIMIT);
-            } else if (db instanceof MySQLDatabase) {
-                rowSet = ((MySQLDatabase) db).query(sql, LIMIT);
-            }
-
+        Database db = Database.getInstance();
+        if (db == null || db instanceof dev.zonely.whiteeffect.database.NullDatabase) return;
+        try (Connection conn = db.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, LIMIT);
+            ps.setQueryTimeout(5);
             List<LastCreditRecord> latest = new ArrayList<>();
-
-            if (rowSet != null) {
-                rowSet.beforeFirst();
-                while (rowSet.next()) {
-                    Timestamp createdAt = coerceTimestamp(rowSet.getObject("created_at"));
-                    if (createdAt == null) {
-                        continue;
-                    }
-                    latest.add(new LastCreditRecord(
-                            rowSet.getInt("userid"),
-                            rowSet.getString("nick"),
-                            rowSet.getLong("gain"),
-                            createdAt
-                    ));
-                }
-                try { rowSet.close(); } catch (SQLException ignore) {}
-            } else if (!(db instanceof HikariDatabase) && !(db instanceof MySQLDatabase)) {
-                try {
-                    Connection conn = db.getConnection();
-                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                        ps.setInt(1, LIMIT);
-                        try (ResultSet rs = ps.executeQuery()) {
-                            while (rs.next()) {
-                                Timestamp createdAt = coerceTimestamp(rs.getObject("created_at"));
-                                if (createdAt == null) {
-                                    continue;
-                                }
-                                latest.add(new LastCreditRecord(
-                                        rs.getInt("userid"),
-                                        rs.getString("nick"),
-                                        rs.getLong("gain"),
-                                        createdAt
-                                ));
-                            }
-                        }
-                    }
-                } catch (SQLException e) {
-                    plugin.getLogger().log(Level.SEVERE, "Failed to refresh last credit cache (fallback path)", e);
-                    return;
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Timestamp createdAt = coerceTimestamp(rs.getObject("created_at"));
+                    if (createdAt == null) continue;
+                    latest.add(new LastCreditRecord(rs.getInt("userid"), rs.getString("nick"), rs.getLong("gain"), createdAt));
                 }
             }
-
             cache = Collections.unmodifiableList(latest);
             lastUpdated = System.currentTimeMillis();
         } catch (Exception ex) {
-            plugin.getLogger().log(Level.SEVERE, "Failed to refresh last credit cache", ex);
+            plugin.getLogger().log(Level.WARNING, "Failed to refresh last credit cache; keeping previous records", ex);
         }
     }
 

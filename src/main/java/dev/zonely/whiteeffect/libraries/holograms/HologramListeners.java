@@ -4,10 +4,13 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import dev.zonely.whiteeffect.libraries.holograms.api.Hologram;
 import dev.zonely.whiteeffect.libraries.holograms.api.HologramLine;
+import dev.zonely.whiteeffect.nms.NMS;
 import dev.zonely.whiteeffect.nms.interfaces.entity.IItem;
 import dev.zonely.whiteeffect.nms.interfaces.entity.ISlime;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -208,7 +211,7 @@ public class HologramListeners implements Listener {
       ignoreCancelled = true
    )
    public void onWorldLoad(WorldLoadEvent evt) {
-      Iterator var2 = this.toRespawn.keys().iterator();
+      Iterator var2 = (new ArrayList(this.toRespawn.keys())).iterator();
 
       while(var2.hasNext()) {
          HologramListeners.ChunkCoord coord = (HologramListeners.ChunkCoord)var2.next();
@@ -230,7 +233,7 @@ public class HologramListeners implements Listener {
          Hologram hologram = (Hologram)var2.next();
          if (hologram != null && hologram.isSpawned() && hologram.getLocation().getWorld().equals(evt.getWorld())) {
             if (evt.isCancelled()) {
-               Iterator var4 = this.toRespawn.keys().iterator();
+               Iterator var4 = (new ArrayList(this.toRespawn.keys())).iterator();
 
                while(var4.hasNext()) {
                   HologramListeners.ChunkCoord coord = (HologramListeners.ChunkCoord)var4.next();
@@ -254,6 +257,17 @@ public class HologramListeners implements Listener {
       ignoreCancelled = true
    )
    public void onChunkLoad(ChunkLoadEvent evt) {
+      // Hologram armor stands saved in a chunk before a crash may not have been
+      // loaded during initial startup cleanup. Remove only unowned tagged entities.
+      for (Entity entity : evt.getChunk().getEntities()) {
+         try {
+            if (NMS.isHologramEntity(entity) && NMS.getHologram(entity) == null) {
+               entity.remove();
+            }
+         } catch (Throwable ex) {
+            this.plugin.getLogger().log(Level.WARNING, "Unable to clean orphaned hologram in loaded chunk", ex);
+         }
+      }
       this.respawnAllFromCoord(this.toCoord(evt.getChunk()));
    }
 
@@ -263,7 +277,6 @@ public class HologramListeners implements Listener {
    )
    public void onChunkUnload(ChunkUnloadEvent evt) {
       HologramListeners.ChunkCoord coord = this.toCoord(evt.getChunk());
-      new Location((World)null, 0.0D, 0.0D, 0.0D);
       Iterator var4 = HologramLibrary.listHolograms().iterator();
 
       while(var4.hasNext()) {
@@ -271,12 +284,9 @@ public class HologramListeners implements Listener {
          if (hologram != null && hologram.isSpawned()) {
             Location location = hologram.getLocation().clone();
             if (this.toCoord(location).equals(coord)) {
-               hologram.spawn();
-               if (hologram.isSpawned() && this.tryCancelChunkUnload(evt)) {
-                  this.respawnAllFromCoord(coord);
-                  return;
-               }
-
+               // Remove entities before the chunk is saved; keeping the chunk
+               // loaded indefinitely also causes expensive unload retries.
+               hologram.despawn();
                this.toRespawn.put(coord, hologram);
             }
          }
@@ -307,26 +317,17 @@ public class HologramListeners implements Listener {
    }
 
    private void respawnAllFromCoord(HologramListeners.ChunkCoord coord) {
-      Iterator var2 = this.toRespawn.asMap().keySet().iterator();
+      if (coord == null) {
+         return;
+      }
+      Collection holograms = new ArrayList(this.toRespawn.removeAll(coord));
+      Iterator var3 = holograms.iterator();
 
-      while(true) {
-         HologramListeners.ChunkCoord c;
-         do {
-            if (!var2.hasNext()) {
-               return;
-            }
-
-            c = (HologramListeners.ChunkCoord)var2.next();
-         } while(!c.equals(coord));
-
-         Iterator var4 = this.toRespawn.get(c).iterator();
-
-         while(var4.hasNext()) {
-            Hologram hologram = (Hologram)var4.next();
+      while(var3.hasNext()) {
+         Hologram hologram = (Hologram)var3.next();
+         if (hologram != null) {
             hologram.spawn();
          }
-
-         this.toRespawn.asMap().remove(c);
       }
    }
 
@@ -376,6 +377,14 @@ public class HologramListeners implements Listener {
          }
       }
 
+      public int hashCode() {
+         int result = 17;
+         result = 31 * result + (this.world == null ? 0 : this.world.hashCode());
+         result = 31 * result + this.x;
+         result = 31 * result + this.z;
+         return result;
+      }
+
       ChunkCoord(Chunk x0, Object x1) {
          this(x0);
       }
@@ -385,5 +394,4 @@ public class HologramListeners implements Listener {
       }
    }
 }
-
 

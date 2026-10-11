@@ -4,10 +4,10 @@ import com.comphenix.protocol.PacketType;
 import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.ProtocolManager;
 import com.comphenix.protocol.events.PacketContainer;
-import com.comphenix.protocol.wrappers.WrappedChatComponent;
 import com.comphenix.protocol.wrappers.WrappedDataWatcher;
 import dev.zonely.whiteeffect.Core;
 import dev.zonely.whiteeffect.lang.LanguageManager;
+import dev.zonely.whiteeffect.libraries.MinecraftVersion;
 import dev.zonely.whiteeffect.libraries.holograms.HologramLibrary;
 import dev.zonely.whiteeffect.libraries.holograms.api.Hologram;
 import dev.zonely.whiteeffect.libraries.holograms.api.HologramLine;
@@ -31,9 +31,6 @@ import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import me.clip.placeholderapi.PlaceholderAPI;
-import net.md_5.bungee.api.chat.BaseComponent;
-import net.md_5.bungee.api.chat.TextComponent;
-import net.md_5.bungee.chat.ComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Effect;
 import org.bukkit.Location;
@@ -87,6 +84,7 @@ public final class LastCreditHologramManager implements Listener {
    private Location location;
 
    private final Map<String, HoloInstance> instances = new ConcurrentHashMap<>();
+   private boolean metadataFailureLogged;
 
    private LastCreditHologramManager(Core plugin,
          LastCreditLeaderboardService leaderboardService) {
@@ -102,6 +100,7 @@ public final class LastCreditHologramManager implements Listener {
       this.entryFormat = LanguageManager.get("holograms.last-credits.entry-format", DEFAULT_ENTRY);
       this.emptyEntry = LanguageManager.get("holograms.last-credits.empty-entry", DEFAULT_EMPTY_ENTRY);
       this.entrySlots = detectEntrySlots(this.templates);
+      leaderboardService.ensureLimit(this.entrySlots);
       this.activeButtonTemplate = LanguageManager.get("holograms.last-credits.buttons.active", DEFAULT_BUTTON_ACTIVE);
       this.inactiveButtonTemplate = LanguageManager.get("holograms.last-credits.buttons.inactive",
             DEFAULT_BUTTON_INACTIVE);
@@ -124,9 +123,7 @@ public final class LastCreditHologramManager implements Listener {
       updateTask = new BukkitRunnable() {
          @Override
          public void run() {
-            boolean any = false;
             if (!instances.isEmpty()) {
-               any = true;
                for (Player player : Bukkit.getOnlinePlayers()) {
                   for (HoloInstance inst : instances.values()) {
                      if (inst.hologram != null && inst.hologram.isSpawned()) {
@@ -136,10 +133,7 @@ public final class LastCreditHologramManager implements Listener {
                }
             }
 
-            if (!any) {
-               if (hologram == null || hologramLines == null || !hologram.isSpawned()) {
-                  return;
-               }
+            if (hologram != null && hologramLines != null && hologram.isSpawned()) {
                for (Player player : Bukkit.getOnlinePlayers()) {
                   pushLines(player);
                }
@@ -211,6 +205,9 @@ public final class LastCreditHologramManager implements Listener {
    }
 
    public boolean setLocation(String id, Location location, boolean save) {
+      if (id == null || "default".equalsIgnoreCase(id)) {
+         return setLocation(location, save);
+      }
       if (location == null || location.getWorld() == null) {
          return false;
       }
@@ -479,8 +476,8 @@ public final class LastCreditHologramManager implements Listener {
 
       for (int i = 0; i < Math.min(rendered.size(), hologramLines.size()); i++) {
          String text = rendered.get(i);
-         if (!text.equals(cache.get(i))) {
-            sendMetadata(protocolManager, player, hologramLines.get(i), text);
+         if (!text.equals(cache.get(i))
+               && trySendMetadata(protocolManager, player, hologramLines.get(i), text)) {
             cache.set(i, text);
          }
       }
@@ -505,12 +502,12 @@ public final class LastCreditHologramManager implements Listener {
       return resolved;
    }
 
-   private int detectEntrySlots(List<String> templates) {
+   static int detectEntrySlots(List<String> templates) {
       int max = 3;
       if (templates == null || templates.isEmpty()) {
          return max;
       }
-      Pattern pattern = Pattern.compile("\\{entry_(\\d+)\\}");
+      Pattern pattern = Pattern.compile("\\{entry_(\\d+)(?:_(?:name|amount|amount_raw))?\\}");
       for (String template : templates) {
          Matcher matcher = pattern.matcher(template);
          while (matcher.find()) {
@@ -603,47 +600,25 @@ public final class LastCreditHologramManager implements Listener {
    }
 
    public void sendMetadata(ProtocolManager manager, Player player, HologramLine line, String text) {
+      trySendMetadata(manager, player, line, text);
+   }
+
+   public boolean trySendMetadata(ProtocolManager manager, Player player, HologramLine line, String text) {
       if (line == null || line.getArmor() == null || line.getArmor().isDead()) {
-         return;
+         return false;
       }
-
-      PacketContainer packet = manager.createPacket(PacketType.Play.Server.ENTITY_METADATA);
-      packet.getIntegers().write(0, line.getArmor().getId());
-
-      WrappedDataWatcher watcher = ProtocolLibUtils.createDataWatcher(line.getArmor().getEntity());
-      if (watcher == null) {
-         return;
-      }
-      BaseComponent[] legacyComponents = TextComponent.fromLegacyText(text);
-      if (legacyComponents.length == 0) {
-         legacyComponents = new BaseComponent[] { new TextComponent("") };
-      }
-      String json = ComponentSerializer.toString(legacyComponents);
-      Object baseComponent = WrappedChatComponent.fromJson(json).getHandle();
-
       try {
-         WrappedDataWatcher.Serializer chat = WrappedDataWatcher.Registry.getChatComponentSerializer(true);
-         watcher.setObject(new WrappedDataWatcher.WrappedDataWatcherObject(2, chat), Optional.of(baseComponent));
-      } catch (Throwable throwable) {
-         WrappedDataWatcher.Serializer legacy = WrappedDataWatcher.Registry.get(String.class);
-         watcher.setObject(new WrappedDataWatcher.WrappedDataWatcherObject(2, legacy), text);
-      }
-
-      try {
-         WrappedDataWatcher.Serializer boolSerializer = WrappedDataWatcher.Registry.get(Boolean.class);
-         watcher.setObject(new WrappedDataWatcher.WrappedDataWatcherObject(3, boolSerializer), !text.isEmpty());
-      } catch (Throwable throwable) {
-         WrappedDataWatcher.Serializer byteSerializer = WrappedDataWatcher.Registry.get(Byte.class);
-         watcher.setObject(new WrappedDataWatcher.WrappedDataWatcherObject(3, byteSerializer),
-               (byte) (text.isEmpty() ? 0 : 1));
-      }
-
-      ProtocolLibUtils.writeMetadata(packet, watcher);
-
-      try {
+         PacketContainer packet = ProtocolLibUtils.nameMetadataPacket(manager, line.getArmor().getId(), text);
          manager.sendServerPacket(player, packet);
-      } catch (Exception ex) {
-         plugin.getLogger().log(Level.WARNING, "[LastCreditHologram] Failed to send update: " + ex.getMessage());
+         return true;
+      } catch (Exception | LinkageError ex) {
+         if (!metadataFailureLogged) {
+            metadataFailureLogged = true;
+            plugin.getLogger().log(Level.WARNING,
+                  "[LastCreditHologram] Metadata update failed. On Paper 1.20.4 use ProtocolLib 5.4.0"
+                        + " (fixes WrappedChatComponent initialization), then fully restart the server.", ex);
+         }
+         return false;
       }
    }
 
@@ -711,28 +686,33 @@ public final class LastCreditHologramManager implements Listener {
    @EventHandler(ignoreCancelled = true)
    public void onChat(org.bukkit.event.player.AsyncPlayerChatEvent event) {
       UUID uuid = event.getPlayer().getUniqueId();
-      Location where = pendingPlacement.get(uuid);
-      if (where == null) {
+      if (!pendingPlacement.containsKey(uuid)) {
          return;
       }
       event.setCancelled(true);
       String msg = event.getMessage() == null ? "" : event.getMessage().trim();
-      if (msg.equalsIgnoreCase("cancel") || msg.equalsIgnoreCase("iptal")) {
-         pendingPlacement.remove(uuid);
-         LanguageManager.send(event.getPlayer(),
-               "commands.core.hologram.cancelled",
-               "{prefix}&cHologram placement cancelled.",
+      // AsyncPlayerChatEvent can fire off the primary thread. Entity spawn/config writes must run on it.
+      Bukkit.getScheduler().runTask(plugin, () -> {
+         Location where = pendingPlacement.remove(uuid);
+         Player player = Bukkit.getPlayer(uuid);
+         if (where == null || player == null) {
+            return;
+         }
+         if (msg.equalsIgnoreCase("cancel") || msg.equalsIgnoreCase("iptal")) {
+            LanguageManager.send(player, "commands.core.hologram.cancelled",
+                  "{prefix}&cHologram placement cancelled.",
+                  "prefix", LanguageManager.get("prefix.lobby", "&3Lobby &8->> "));
+            return;
+         }
+         String id = msg.isEmpty() ? "default" : msg.replaceAll("[^A-Za-z0-9_-]", "")
+               .toLowerCase(java.util.Locale.ROOT);
+         boolean ok = setLocation(id, where, true);
+         LanguageManager.send(player,
+               ok ? "commands.core.hologram.set" : "commands.core.hologram.failed",
+               ok ? "{prefix}&aLast-credit leaderboard hologram saved at your location."
+                     : "{prefix}&cUnable to place the hologram here.",
                "prefix", LanguageManager.get("prefix.lobby", "&3Lobby &8->> "));
-         return;
-      }
-      String id = msg.isEmpty() ? "default" : msg.replaceAll("[^A-Za-z0-9_-]", "").toLowerCase(java.util.Locale.ROOT);
-      boolean ok = setLocation(id, where, true);
-      pendingPlacement.remove(uuid);
-      LanguageManager.send(event.getPlayer(),
-            ok ? "commands.core.hologram.set" : "commands.core.hologram.failed",
-            ok ? "{prefix}&aLast-credit leaderboard hologram saved at your location."
-                  : "{prefix}&cUnable to place the hologram here.",
-            "prefix", LanguageManager.get("prefix.lobby", "&3Lobby &8->> "));
+      });
    }
 }
 
@@ -821,8 +801,8 @@ class HoloInstance {
       List<String> cache = lastSentLines.computeIfAbsent(player.getUniqueId(), id -> initialiseCache(rendered.size()));
       for (int i = 0; i < Math.min(rendered.size(), hologramLines.size()); i++) {
          String text = rendered.get(i);
-         if (!text.equals(cache.get(i))) {
-            mgr.sendMetadata(mgr.getProtocolManager(), player, hologramLines.get(i), text);
+         if (!text.equals(cache.get(i))
+               && mgr.trySendMetadata(mgr.getProtocolManager(), player, hologramLines.get(i), text)) {
             cache.set(i, text);
          }
       }

@@ -84,7 +84,8 @@ final class TwoFactorRepository {
         String sql = "UPDATE `" + columns.table() + "` SET `" + columns.twoFactorStatus() + "` = ? WHERE `" + columns.id() + "` = ?";
         try (Connection connection = database.getConnection();
              PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setInt(1, enabled ? 1 : 0);
+            // Compatible with both TINYINT(1) and ENUM('0','1') schemas.
+            ps.setString(1, enabled ? "1" : "0");
             ps.setInt(2, userId);
             ps.executeUpdate();
         } catch (SQLException ex) {

@@ -17,6 +17,7 @@ import dev.zonely.whiteeffect.lang.LanguageManager;
 
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
@@ -134,11 +135,13 @@ public class NPCReplayManager {
             trackReplayEntity(npc.getEntity());
         }
         if (useMobDisplay && displayEntity != null) {
+            applyReplayActorLabel(displayEntity, report != null ? report.getTarget() : null);
             orientEntity(displayEntity, first);
             zeroVelocity(displayEntity);
             trySetInvisible(displayEntity, false);
             clearInvisibilityPotions(displayEntity);
         } else if (npc != null && npc.getEntity() != null) {
+            applyReplayActorLabel(npc.getEntity(), report != null ? report.getTarget() : null);
             clearInvisibilityPotions(npc.getEntity());
         }
 
@@ -314,6 +317,7 @@ public class NPCReplayManager {
             if (display == null || !display.isValid()) {
                 return;
             }
+            applyReplayActorLabel(display, session.report != null ? session.report.getTarget() : null);
             orientEntity(display, target);
             zeroVelocity(display);
             clearInvisibilityPotions(display);
@@ -327,6 +331,7 @@ public class NPCReplayManager {
         if (anchor == null) {
             return;
         }
+        applyReplayActorLabel(anchor, session.report != null ? session.report.getTarget() : null);
         clearInvisibilityPotions(anchor);
         PacketNPCManager.handleTeleport(anchor, target, true);
         try {
@@ -683,6 +688,25 @@ public class NPCReplayManager {
         try {
             entity.remove();
         } catch (Throwable ignored) {}
+    }
+
+    private static void applyReplayActorLabel(Entity entity, String actorName) {
+        if (entity == null) {
+            return;
+        }
+        String baseName = actorName == null ? "" : actorName.trim();
+        if (baseName.isEmpty()) {
+            baseName = "Player";
+        }
+        String label = ChatColor.AQUA + baseName;
+        try {
+            entity.setCustomName(label);
+        } catch (Throwable ignored) {
+        }
+        try {
+            entity.setCustomNameVisible(true);
+        } catch (Throwable ignored) {
+        }
     }
 
     private static void setEntityRotation(Entity entity, float yaw, float pitch) {

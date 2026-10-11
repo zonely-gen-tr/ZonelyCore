@@ -17,10 +17,12 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -132,11 +134,15 @@ public final class SupportManager implements Listener {
             return;
         }
         int rawSlot = event.getRawSlot();
-        if (rawSlot < 0 || rawSlot >= top.getSize()) {
+        if (rawSlot < 0) {
             return;
         }
 
         event.setCancelled(true);
+        event.setResult(Event.Result.DENY);
+        if (rawSlot >= top.getSize()) {
+            return;
+        }
         switch (context.type) {
             case CATEGORY_SELECT:
                 handleCategoryMenuClick(player, context, rawSlot);
@@ -150,6 +156,24 @@ public final class SupportManager implements Listener {
             default:
                 break;
         }
+    }
+
+    @EventHandler
+    public void onInventoryDrag(InventoryDragEvent event) {
+        if (!(event.getWhoClicked() instanceof Player)) {
+            return;
+        }
+        Player player = (Player) event.getWhoClicked();
+        MenuContext context = openMenus.get(player.getUniqueId());
+        if (context == null) {
+            return;
+        }
+        Inventory top = event.getView().getTopInventory();
+        if (context.inventory != null && !context.matches(top)) {
+            return;
+        }
+        event.setCancelled(true);
+        event.setResult(Event.Result.DENY);
     }
 
     @EventHandler
@@ -584,7 +608,7 @@ public final class SupportManager implements Listener {
         if (!staff.isOnline()) {
             return;
         }
-        if (ticketOptional.isEmpty()) {
+        if (!ticketOptional.isPresent()) {
             send(staff, "support.staff.ticket-missing",
                     "{prefix}&cTicket could not be found.",
                     "prefix", getPrefix(staff));
@@ -975,7 +999,10 @@ public final class SupportManager implements Listener {
         if (material == null) {
             material = Material.matchMaterial("WEB");
         }
-        return material != null ? material : Material.WEB;
+        if (material == null) {
+            material = Material.STONE;
+        }
+        return material;
     }
 
     private void openCategoryMenu(Player player) {

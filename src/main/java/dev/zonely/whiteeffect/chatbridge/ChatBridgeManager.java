@@ -9,6 +9,7 @@ import dev.zonely.whiteeffect.database.NullDatabase;
 import dev.zonely.whiteeffect.player.role.Role;
 import dev.zonely.whiteeffect.utils.StringUtils;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -16,17 +17,26 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.event.player.PlayerCommandPreprocessEvent;
-import org.bukkit.event.server.ServerCommandEvent;
 import org.bukkit.event.server.BroadcastMessageEvent;
+import org.bukkit.event.server.ServerCommandEvent;
 
 import javax.sql.rowset.CachedRowSet;
 import java.sql.SQLException;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -34,6 +44,14 @@ import java.util.logging.Logger;
 public final class ChatBridgeManager implements Listener {
 
     private static final String CHANNEL_GLOBAL = "global";
+    private static final String EVENT_CHAT = "CHAT";
+    private static final String EVENT_COMMAND = "COMMAND";
+    private static final String EVENT_JOIN = "JOIN";
+    private static final String EVENT_QUIT = "QUIT";
+    private static final DateTimeFormatter DAY_KEY_FORMAT = DateTimeFormatter.BASIC_ISO_DATE;
+    private static final Set<String> SENSITIVE_COMMANDS = new HashSet<>(Arrays.asList(
+            "login", "l", "register", "reg", "email", "mail", "twofactor", "2fa", "passwordreset"
+    ));
 
     private final Core plugin;
     private final Database database;
@@ -46,8 +64,17 @@ public final class ChatBridgeManager implements Listener {
     private final long retentionMillis;
     private final AtomicBoolean polling = new AtomicBoolean(false);
 
+    private final boolean activityEnabled;
+    private final int activityFlushIntervalTicks;
+    private final long activityRetentionMillis;
+    private final boolean trackChatActivity;
+    private final boolean trackCommandActivity;
+    private final ZoneId activityZoneId;
+    private final ConcurrentHashMap<UUID, Long> sessionLastTick = new ConcurrentHashMap<>();
+
     private int pollTaskId = -1;
     private int cleanupTaskId = -1;
+    private int activityTaskId = -1;
 
     public ChatBridgeManager(Core plugin) {
         this.plugin = plugin;
@@ -73,6 +100,15 @@ public final class ChatBridgeManager implements Listener {
         } else {
             this.enabled = true;
         }
+
+        this.activityEnabled = this.enabled && plugin.getConfig().getBoolean("chat-bridge.activity.enabled", true);
+        int flushSeconds = Math.max(10, plugin.getConfig().getInt("chat-bridge.activity.flush-interval-seconds", 60));
+        this.activityFlushIntervalTicks = Math.max(20, flushSeconds * 20);
+        int activityRetentionDays = Math.max(1, plugin.getConfig().getInt("chat-bridge.activity.retention-days", 30));
+        this.activityRetentionMillis = activityRetentionDays * 24L * 60L * 60L * 1000L;
+        this.trackChatActivity = plugin.getConfig().getBoolean("chat-bridge.activity.track-chat", true);
+        this.trackCommandActivity = plugin.getConfig().getBoolean("chat-bridge.activity.track-commands", true);
+        this.activityZoneId = ZoneId.systemDefault();
     }
 
     public void start() {
@@ -85,8 +121,14 @@ public final class ChatBridgeManager implements Listener {
         syncOnlineSnapshot();
         schedulePoller();
         scheduleCleanup();
+        scheduleActivityFlush();
 
         logger.info(String.format(Locale.ROOT, "[ChatBridge] Online chat bridge active for server '%s'.", serverId));
+        if (activityEnabled) {
+            logger.info(String.format(Locale.ROOT, "[ChatBridge] Player activity tracking enabled (flush=%ds, retention=%dd).",
+                    Math.max(1, activityFlushIntervalTicks / 20),
+                    Math.max(1L, activityRetentionMillis / (24L * 60L * 60L * 1000L))));
+        }
     }
 
     public void shutdown() {
@@ -103,7 +145,16 @@ public final class ChatBridgeManager implements Listener {
             Bukkit.getScheduler().cancelTask(cleanupTaskId);
             cleanupTaskId = -1;
         }
+        if (activityTaskId != -1) {
+            Bukkit.getScheduler().cancelTask(activityTaskId);
+            activityTaskId = -1;
+        }
         polling.set(false);
+
+        if (activityEnabled) {
+            flushOnlineActivity(true);
+            sessionLastTick.clear();
+        }
 
         updateSync("UPDATE `ZonelyCoreOnlinePlayers` SET `online` = 0, `last_seen` = ?, `server` = ? WHERE `server` = ?",
                 System.currentTimeMillis(), serverId, serverId);
@@ -130,6 +181,10 @@ public final class ChatBridgeManager implements Listener {
                 rawMessage,
                 coloredMessage
         );
+
+        if (activityEnabled && trackChatActivity) {
+            recordChatActivity(player, rawMessage, System.currentTimeMillis());
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -138,12 +193,18 @@ public final class ChatBridgeManager implements Listener {
             return;
         }
         upsertOnlinePlayer(event.getPlayer(), true);
+        if (activityEnabled) {
+            markPlayerJoin(event.getPlayer());
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(PlayerQuitEvent event) {
         if (!enabled) {
             return;
+        }
+        if (activityEnabled) {
+            markPlayerQuit(event.getPlayer());
         }
         markOffline(event.getPlayer());
     }
@@ -172,6 +233,10 @@ public final class ChatBridgeManager implements Listener {
                 message,
                 message
         );
+
+        if (activityEnabled && trackCommandActivity) {
+            recordCommandActivity(player, message, System.currentTimeMillis());
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -186,7 +251,7 @@ public final class ChatBridgeManager implements Listener {
         }
 
         String source = "CONSOLE";
-        String displayComponent = "§7<§cConsole§7>";
+        String displayComponent = "\u00A77<\u00A7cConsole\u00A77>";
 
         String lower = command.toLowerCase(Locale.ROOT);
         if (lower.startsWith("say ") || lower.equals("say") || lower.startsWith("minecraft:say ")) {
@@ -239,7 +304,7 @@ public final class ChatBridgeManager implements Listener {
                 null,
                 null,
                 null,
-                "§7[§aServer§7]",
+                "\u00A77[\u00A7aServer\u00A77]",
                 message,
                 StringUtils.formatColors(message)
         );
@@ -250,11 +315,19 @@ public final class ChatBridgeManager implements Listener {
     }
 
     private void scheduleCleanup() {
-        if (retentionMillis <= 0) {
+        if (retentionMillis <= 0 && (!activityEnabled || activityRetentionMillis <= 0)) {
             return;
         }
         long intervalTicks = 20L * 60L * 30L;
         cleanupTaskId = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, this::cleanupHistory, intervalTicks, intervalTicks).getTaskId();
+    }
+
+    private void scheduleActivityFlush() {
+        if (!activityEnabled) {
+            return;
+        }
+        activityTaskId = Bukkit.getScheduler().runTaskTimer(plugin, () -> flushOnlineActivity(false),
+                activityFlushIntervalTicks, activityFlushIntervalTicks).getTaskId();
     }
 
     private void pollQueue() {
@@ -453,7 +526,15 @@ public final class ChatBridgeManager implements Listener {
     }
 
     private void syncOnlineSnapshot() {
-        Bukkit.getOnlinePlayers().forEach(player -> upsertOnlinePlayer(player, true));
+        long now = System.currentTimeMillis();
+        Bukkit.getOnlinePlayers().forEach(player -> {
+            upsertOnlinePlayer(player, true);
+            if (activityEnabled) {
+                sessionLastTick.put(player.getUniqueId(), now);
+                recordDailyActivity(player, now, 0L, 0, 0, 0L, player.getLocation());
+                updateActivitySummary(player, now, player.getLocation(), 0L, 0L, null, null, 0L, 0L);
+            }
+        });
     }
 
     private void upsertOnlinePlayer(Player player, boolean online) {
@@ -487,13 +568,240 @@ public final class ChatBridgeManager implements Listener {
         );
     }
 
-    private void cleanupHistory() {
-        if (retentionMillis <= 0) {
+    private void markPlayerJoin(Player player) {
+        long now = System.currentTimeMillis();
+        sessionLastTick.put(player.getUniqueId(), now);
+        Location location = player.getLocation();
+        recordDailyActivity(player, now, 0L, 0, 0, 0L, location);
+        updateActivitySummary(player, now, location, now, 0L, null, null, 0L, 0L);
+        insertRecentActivityEvent(player, EVENT_JOIN, null, now, location);
+    }
+
+    private void markPlayerQuit(Player player) {
+        long now = System.currentTimeMillis();
+        Location location = player.getLocation();
+        flushPlayerOnlineDuration(player, now, now, location);
+        sessionLastTick.remove(player.getUniqueId());
+
+        recordDailyActivity(player, now, 0L, 0, 0, now, location);
+        updateActivitySummary(player, now, location, 0L, now, null, null, 0L, 0L);
+        insertRecentActivityEvent(player, EVENT_QUIT, null, now, location);
+    }
+
+    private void recordChatActivity(Player player, String message, long now) {
+        String clean = truncateMessage(message, 512);
+        if (clean.isEmpty()) {
             return;
         }
-        long threshold = System.currentTimeMillis() - retentionMillis;
-        executeAsync("DELETE FROM `ZonelyCoreChatLog` WHERE `created_at` < ?", threshold);
-        executeAsync("DELETE FROM `ZonelyCoreChatQueue` WHERE `processed_at` > 0 AND `processed_at` < ?", threshold);
+
+        recordDailyActivity(player, now, 0L, 1, 0, 0L, null);
+        updateActivitySummary(player, now, null, 0L, 0L, clean, null, 1L, 0L);
+        insertRecentActivityEvent(player, EVENT_CHAT, clean, now, null);
+    }
+
+    private void recordCommandActivity(Player player, String commandLine, long now) {
+        String clean = sanitizeTrackedCommand(commandLine);
+        if (clean.isEmpty()) {
+            return;
+        }
+        Location location = player.getLocation();
+        recordDailyActivity(player, now, 0L, 0, 1, 0L, location);
+        updateActivitySummary(player, now, location, 0L, 0L, null, clean, 0L, 1L);
+        insertRecentActivityEvent(player, EVENT_COMMAND, clean, now, location);
+    }
+
+    private void flushOnlineActivity(boolean markQuit) {
+        if (!activityEnabled) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            long quitAt = markQuit ? now : 0L;
+            flushPlayerOnlineDuration(player, now, quitAt, player.getLocation());
+        }
+    }
+
+    private void flushPlayerOnlineDuration(Player player, long now, long quitAt, Location location) {
+        if (player == null) {
+            return;
+        }
+        UUID uuid = player.getUniqueId();
+        Long previous = sessionLastTick.get(uuid);
+        if (previous == null) {
+            sessionLastTick.put(uuid, now);
+            updateActivitySummary(player, now, location, 0L, quitAt, null, null, 0L, 0L);
+            return;
+        }
+        if (now <= previous) {
+            if (quitAt > 0L) {
+                updateActivitySummary(player, now, location, 0L, quitAt, null, null, 0L, 0L);
+            }
+            return;
+        }
+
+        sessionLastTick.put(uuid, now);
+        recordOnlineDuration(player, previous, now, quitAt, location);
+    }
+
+    private void recordOnlineDuration(Player player, long fromMillis, long toMillis, long quitAt, Location location) {
+        if (toMillis <= fromMillis) {
+            return;
+        }
+
+        long cursor = fromMillis;
+        while (cursor < toMillis) {
+            long nextDayStart = startOfNextDay(cursor);
+            long sliceEnd = Math.min(nextDayStart, toMillis);
+            long deltaMillis = sliceEnd - cursor;
+            if (deltaMillis > 0L) {
+                long rowQuitAt = (quitAt > 0L && sliceEnd == toMillis) ? quitAt : 0L;
+                recordDailyActivity(player, sliceEnd, deltaMillis, 0, 0, rowQuitAt, location);
+            }
+            cursor = sliceEnd;
+        }
+
+        updateActivitySummary(player, toMillis, location, 0L, quitAt, null, null, 0L, 0L);
+    }
+
+    private void recordDailyActivity(Player player, long activityAt, long onlineMillisDelta,
+                                     int messageDelta, int commandDelta, long quitAt, Location location) {
+        if (!activityEnabled || player == null) {
+            return;
+        }
+        LocationSnapshot snapshot = LocationSnapshot.from(location);
+        String dayKey = dayKey(activityAt);
+
+        executeAsync(
+                "INSERT INTO `ZonelyCorePlayerActivityDaily` (`uuid`, `name`, `date_key`, `online_millis`, `message_count`, `command_count`, `last_active_at`, `last_server`, `last_world`, `last_x`, `last_y`, `last_z`, `last_yaw`, `last_pitch`, `last_quit_at`) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
+                        "ON DUPLICATE KEY UPDATE " +
+                        "`name` = VALUES(`name`), " +
+                        "`online_millis` = `online_millis` + VALUES(`online_millis`), " +
+                        "`message_count` = `message_count` + VALUES(`message_count`), " +
+                        "`command_count` = `command_count` + VALUES(`command_count`), " +
+                        "`last_active_at` = GREATEST(`last_active_at`, VALUES(`last_active_at`)), " +
+                        "`last_server` = VALUES(`last_server`), " +
+                        "`last_world` = COALESCE(VALUES(`last_world`), `last_world`), " +
+                        "`last_x` = IFNULL(VALUES(`last_x`), `last_x`), " +
+                        "`last_y` = IFNULL(VALUES(`last_y`), `last_y`), " +
+                        "`last_z` = IFNULL(VALUES(`last_z`), `last_z`), " +
+                        "`last_yaw` = IFNULL(VALUES(`last_yaw`), `last_yaw`), " +
+                        "`last_pitch` = IFNULL(VALUES(`last_pitch`), `last_pitch`), " +
+                        "`last_quit_at` = IF(VALUES(`last_quit_at`) > 0, VALUES(`last_quit_at`), `last_quit_at`)",
+                player.getUniqueId().toString(),
+                truncateValue(player.getName(), 64),
+                dayKey,
+                Math.max(0L, onlineMillisDelta),
+                Math.max(0, messageDelta),
+                Math.max(0, commandDelta),
+                activityAt,
+                serverId,
+                snapshot.world,
+                snapshot.x,
+                snapshot.y,
+                snapshot.z,
+                snapshot.yaw,
+                snapshot.pitch,
+                Math.max(0L, quitAt)
+        );
+    }
+
+    private void updateActivitySummary(Player player, long now, Location location,
+                                       long joinAt, long quitAt,
+                                       String lastChatMessage, String lastCommand,
+                                       long totalMessageDelta, long totalCommandDelta) {
+        if (!activityEnabled || player == null) {
+            return;
+        }
+        LocationSnapshot snapshot = LocationSnapshot.from(location);
+        String normalizedChat = lastChatMessage == null ? null : truncateMessage(lastChatMessage, 512);
+        String normalizedCommand = lastCommand == null ? null : truncateMessage(lastCommand, 256);
+
+        executeAsync(
+                "INSERT INTO `ZonelyCorePlayerActivitySummary` (`uuid`, `name`, `last_server`, `last_world`, `last_x`, `last_y`, `last_z`, `last_yaw`, `last_pitch`, `last_seen_at`, `last_join_at`, `last_quit_at`, `last_chat_message`, `last_command`, `total_messages`, `total_commands`, `updated_at`) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) " +
+                        "ON DUPLICATE KEY UPDATE " +
+                        "`name` = VALUES(`name`), " +
+                        "`last_server` = VALUES(`last_server`), " +
+                        "`last_world` = COALESCE(VALUES(`last_world`), `last_world`), " +
+                        "`last_x` = IFNULL(VALUES(`last_x`), `last_x`), " +
+                        "`last_y` = IFNULL(VALUES(`last_y`), `last_y`), " +
+                        "`last_z` = IFNULL(VALUES(`last_z`), `last_z`), " +
+                        "`last_yaw` = IFNULL(VALUES(`last_yaw`), `last_yaw`), " +
+                        "`last_pitch` = IFNULL(VALUES(`last_pitch`), `last_pitch`), " +
+                        "`last_seen_at` = GREATEST(`last_seen_at`, VALUES(`last_seen_at`)), " +
+                        "`last_join_at` = IF(VALUES(`last_join_at`) > 0, VALUES(`last_join_at`), `last_join_at`), " +
+                        "`last_quit_at` = IF(VALUES(`last_quit_at`) > 0, VALUES(`last_quit_at`), `last_quit_at`), " +
+                        "`last_chat_message` = COALESCE(VALUES(`last_chat_message`), `last_chat_message`), " +
+                        "`last_command` = COALESCE(VALUES(`last_command`), `last_command`), " +
+                        "`total_messages` = `total_messages` + VALUES(`total_messages`), " +
+                        "`total_commands` = `total_commands` + VALUES(`total_commands`), " +
+                        "`updated_at` = VALUES(`updated_at`)",
+                player.getUniqueId().toString(),
+                truncateValue(player.getName(), 64),
+                serverId,
+                snapshot.world,
+                snapshot.x,
+                snapshot.y,
+                snapshot.z,
+                snapshot.yaw,
+                snapshot.pitch,
+                now,
+                Math.max(0L, joinAt),
+                Math.max(0L, quitAt),
+                normalizedChat,
+                normalizedCommand,
+                Math.max(0L, totalMessageDelta),
+                Math.max(0L, totalCommandDelta),
+                now
+        );
+    }
+
+    private void insertRecentActivityEvent(Player player, String type, String content, long createdAt, Location location) {
+        if (!activityEnabled || player == null || type == null || type.isEmpty()) {
+            return;
+        }
+        LocationSnapshot snapshot = LocationSnapshot.from(location);
+        executeAsync(
+                "INSERT INTO `ZonelyCorePlayerActivityRecent` (`uuid`, `name`, `server`, `event_type`, `content`, `world`, `x`, `y`, `z`, `yaw`, `pitch`, `created_at`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                player.getUniqueId().toString(),
+                truncateValue(player.getName(), 64),
+                serverId,
+                truncateValue(type.toUpperCase(Locale.ROOT), 16),
+                content == null ? null : truncateMessage(content, 512),
+                snapshot.world,
+                snapshot.x,
+                snapshot.y,
+                snapshot.z,
+                snapshot.yaw,
+                snapshot.pitch,
+                createdAt
+        );
+    }
+
+    private String dayKey(long millis) {
+        return DAY_KEY_FORMAT.format(Instant.ofEpochMilli(millis).atZone(activityZoneId).toLocalDate());
+    }
+
+    private long startOfNextDay(long millis) {
+        ZonedDateTime dateTime = Instant.ofEpochMilli(millis).atZone(activityZoneId);
+        ZonedDateTime next = dateTime.toLocalDate().plusDays(1).atStartOfDay(activityZoneId);
+        return next.toInstant().toEpochMilli();
+    }
+
+    private void cleanupHistory() {
+        long now = System.currentTimeMillis();
+        if (retentionMillis > 0) {
+            long chatThreshold = now - retentionMillis;
+            executeAsync("DELETE FROM `ZonelyCoreChatLog` WHERE `created_at` < ?", chatThreshold);
+            executeAsync("DELETE FROM `ZonelyCoreChatQueue` WHERE `processed_at` > 0 AND `processed_at` < ?", chatThreshold);
+        }
+
+        if (activityEnabled && activityRetentionMillis > 0) {
+            long activityThreshold = now - activityRetentionMillis;
+            executeAsync("DELETE FROM `ZonelyCorePlayerActivityRecent` WHERE `created_at` < ?", activityThreshold);
+            executeAsync("DELETE FROM `ZonelyCorePlayerActivityDaily` WHERE `last_active_at` > 0 AND `last_active_at` < ?", activityThreshold);
+        }
     }
 
     private CachedRowSet query(String sql, Object... params) {
@@ -557,9 +865,95 @@ public final class ChatBridgeManager implements Listener {
         return input.length() > 512 ? input.substring(0, 512) : input;
     }
 
+    private static String truncateMessage(String input, int maxLength) {
+        String sanitized = sanitizeMessage(input);
+        if (sanitized.length() > maxLength) {
+            return sanitized.substring(0, maxLength);
+        }
+        return sanitized;
+    }
+
+    private static String truncateValue(String input, int maxLength) {
+        if (input == null) {
+            return "";
+        }
+        String value = input.trim();
+        if (value.length() > maxLength) {
+            return value.substring(0, maxLength);
+        }
+        return value;
+    }
+
+    private static String sanitizeTrackedCommand(String commandLine) {
+        String command = sanitizeMessage(commandLine);
+        if (command.isEmpty()) {
+            return "";
+        }
+        if (!command.startsWith("/")) {
+            command = "/" + command;
+        }
+
+        String body = command.substring(1).trim();
+        if (body.isEmpty()) {
+            return truncateMessage(command, 256);
+        }
+
+        String[] parts = body.split("\\s+");
+        if (parts.length == 0) {
+            return truncateMessage(command, 256);
+        }
+        String label = parts[0].toLowerCase(Locale.ROOT);
+        if (SENSITIVE_COMMANDS.contains(label)) {
+            return "/" + parts[0] + " ********";
+        }
+        return truncateMessage(command, 256);
+    }
+
     private String buildChatDisplayName(String display) {
         String shown = display != null && !display.isEmpty() ? display : "Player";
-        return StringUtils.formatColors("§7<" + shown + "§7>");
+        return StringUtils.formatColors("\u00A77<" + shown + "\u00A77>");
+    }
+
+    private static final class LocationSnapshot {
+        private final String world;
+        private final Double x;
+        private final Double y;
+        private final Double z;
+        private final Float yaw;
+        private final Float pitch;
+
+        private LocationSnapshot(String world, Double x, Double y, Double z, Float yaw, Float pitch) {
+            this.world = world;
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.yaw = yaw;
+            this.pitch = pitch;
+        }
+
+        private static LocationSnapshot from(Location location) {
+            if (location == null || location.getWorld() == null) {
+                return new LocationSnapshot(null, null, null, null, null, null);
+            }
+            return new LocationSnapshot(
+                    truncate(location.getWorld().getName(), 64),
+                    location.getX(),
+                    location.getY(),
+                    location.getZ(),
+                    location.getYaw(),
+                    location.getPitch()
+            );
+        }
+
+        private static String truncate(String value, int maxLength) {
+            if (value == null) {
+                return null;
+            }
+            if (value.length() <= maxLength) {
+                return value;
+            }
+            return value.substring(0, maxLength);
+        }
     }
 
     private static final class PendingCommand {
@@ -577,4 +971,5 @@ public final class ChatBridgeManager implements Listener {
             this.requiresOp = requiresOp;
         }
     }
+
 }

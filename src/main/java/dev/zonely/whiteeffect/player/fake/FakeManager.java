@@ -3,12 +3,13 @@ package dev.zonely.whiteeffect.player.fake;
 import com.comphenix.protocol.wrappers.WrappedGameProfile;
 import com.comphenix.protocol.wrappers.WrappedSignedProperty;
 import dev.zonely.whiteeffect.Core;
+import dev.zonely.whiteeffect.Manager;
 import dev.zonely.whiteeffect.lang.LanguageManager;
 import dev.zonely.whiteeffect.libraries.profile.Mojang;
+import dev.zonely.whiteeffect.menus.disguise.DisguiseMenu;
 import dev.zonely.whiteeffect.player.Profile;
 import dev.zonely.whiteeffect.player.role.Role;
 import dev.zonely.whiteeffect.plugin.config.WConfig;
-import dev.zonely.whiteeffect.utils.BukkitUtils;
 import dev.zonely.whiteeffect.utils.StringUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,18 +18,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import net.md_5.bungee.api.chat.BaseComponent;
-import net.md_5.bungee.api.chat.ClickEvent;
-import net.md_5.bungee.api.chat.HoverEvent;
-import net.md_5.bungee.api.chat.TextComponent;
-import net.md_5.bungee.api.chat.HoverEvent.Action;
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.BookMeta;
 
 public class FakeManager {
    public static final String STEVE = "eyJ0aW1lc3RhbXAiOjE1ODcxNTAzMTc3MjAsInByb2ZpbGVJZCI6IjRkNzA0ODZmNTA5MjRkMzM4NmJiZmM5YzEyYmFiNGFlIiwicHJvZmlsZU5hbWUiOiJzaXJGYWJpb3pzY2hlIiwic2lnbmF0dXJlUmVxdWlyZWQiOnRydWUsInRleHR1cmVzIjp7IlNLSU4iOnsidXJsIjoiaHR0cDovL3RleHR1cmVzLm1pbmVjcmFmdC5uZXQvdGV4dHVyZS8xYTRhZjcxODQ1NWQ0YWFiNTI4ZTdhNjFmODZmYTI1ZTZhMzY5ZDE3NjhkY2IxM2Y3ZGYzMTlhNzEzZWI4MTBiIn19fQ==:syZ2Mt1vQeEjh/t8RGbv810mcfTrhQvnwEV7iLCd+5udVeroTa5NjoUehgswacTML3k/KxHZHaq4o6LmACHwsj/ivstW4PWc2RmVn+CcOoDKI3ytEm70LvGz0wAaTVKkrXHSw/RbEX/b7g7oQ8F67rzpiZ1+Z3TKaxbgZ9vgBQZQdwRJjVML2keI0669a9a1lWq3V/VIKFZc1rMJGzETMB2QL7JVTpQFOH/zXJGA+hJS5bRol+JG3LZTX93+DililM1e8KEjKDS496DYhMAr6AfTUfirLAN1Jv+WW70DzIpeKKXWR5ZeI+9qf48+IvjG8DhRBVFwwKP34DADbLhuebrolF/UyBIB9sABmozYdfit9uIywWW9+KYgpl2EtFXHG7CltIcNkbBbOdZy0Qzq62Tx6z/EK2acKn4oscFMqrobtioh5cA/BCRb9V4wh0fy5qx6DYHyRBdzLcQUfb6DkDx1uyNJ7R5mO44b79pSo8gdd9VvMryn/+KaJu2UvyCrMVUtOOzoIh4nCMc9wXOFW3jZ7ZTo4J6c28ouL98rVQSAImEd/P017uGvWIT+hgkdXnacVG895Y6ilXqJToyvf1JUQb4dgry0WTv6UTAjNgrm5a8mZx9OryLuI2obas97LCon1rydcNXnBtjUk0TUzdrvIa5zNstYZPchUb+FSnU=";
@@ -50,176 +44,74 @@ public class FakeManager {
    }
 
    public static void sendRole(Player player) {
-      ItemStack book = new ItemStack(Material.WRITTEN_BOOK);
-      BookMeta meta = (BookMeta) book.getItemMeta();
-      Profile profile = Profile.getProfile(player.getName());
-      meta.setAuthor(LanguageManager.get(profile, "commands.fake.book.author", "WhiteEffect"));
-      meta.setTitle(LanguageManager.get(profile, "commands.fake.book.title", "Sayfa Sec"));
-      TextComponent page = buildRolePage(profile);
-      applyTextPage(meta, page);
-      book.setItemMeta(meta);
-      BukkitUtils.openBook(player, book);
+      DisguiseMenu.openRoleMenu(player);
    }
 
    public static void sendSkin(Player player, String role) {
-      ItemStack book = new ItemStack(Material.WRITTEN_BOOK);
-      BookMeta meta = (BookMeta) book.getItemMeta();
-      Profile profile = Profile.getProfile(player.getName());
-      meta.setAuthor(LanguageManager.get(profile, "commands.fake.book.author", "WhiteEffect"));
-      meta.setTitle(LanguageManager.get(profile, "commands.fake.book.title", "Sayfa Sec"));
-      TextComponent page = buildSkinPage(profile, role);
-      applyTextPage(meta, page);
-      book.setItemMeta(meta);
-      BukkitUtils.openBook(player, book);
+      DisguiseMenu.openSkinMenu(player, role);
    }
 
-   private static TextComponent buildRolePage(Profile profile) {
-      TextComponent root = new TextComponent("");
-      List<String> introLines = LanguageManager.getList(profile,
-            "commands.fake.book.roles.intro",
-            Arrays.asList("&6&l[DISGUISE - GIZLENME]", " ", "&0Oyunculardan gizlenmek amaciyla kimliginin yetkisini sec:"));
-      appendLines(root, introLines, true);
+   public static List<String> getConfiguredRoles() {
+      return new ArrayList(CONFIG.getStringList("disguise.groups"));
+   }
 
-      String entryText = LanguageManager.get(profile,
-            "commands.fake.book.roles.entry.text",
-            "&0> {role_display}");
-      String entryHover = LanguageManager.get(profile,
-            "commands.fake.book.roles.entry.hover",
-            "&fYeni ismin {role_prefix}&f olarak gorunecek.");
-      String entryCommand = LanguageManager.get(profile,
-            "commands.fake.book.roles.entry.command",
-            "/disguise {role_id}");
+   public static String chooseRandomUsableName() {
+      List<String> enabled = new ArrayList();
+      Iterator var1 = getRandomNicks().iterator();
 
-      for (String roleName : CONFIG.getStringList("disguise.groups")) {
-         Role role = Role.getRoleByName(roleName);
-         if (role == null) {
-            continue;
+      while(var1.hasNext()) {
+         String name = (String)var1.next();
+         if (isUsable(name)) {
+            enabled.add(name);
          }
-         String display = role.getName();
-         String prefix = role.getPrefix();
-         String text = entryText
-               .replace("{role_display}", display)
-               .replace("{role_prefix}", prefix)
-               .replace("{role_id}", roleName);
-         String hoverText = entryHover
-               .replace("{role_display}", display)
-               .replace("{role_prefix}", prefix)
-               .replace("{role_id}", roleName);
-         String command = entryCommand
-               .replace("{role_display}", display)
-               .replace("{role_prefix}", prefix)
-               .replace("{role_id}", roleName);
-         appendInteractiveLine(root, text, hoverText, command, true);
       }
 
-      return root;
-   }
-
-   private static TextComponent buildSkinPage(Profile profile, String role) {
-      TextComponent root = new TextComponent("");
-      List<String> introLines = LanguageManager.getList(profile,
-            "commands.fake.book.skins.intro",
-            Arrays.asList("&6&l[DISGUISE - GIZLENME]", " ", "&0Simdi sirada cinsiyetini belirlemelisin:"));
-      appendLines(root, introLines, true);
-
-      appendSkinOption(root, profile, "commands.fake.book.skins.options.steve", role,
-            "&0> &7Steve", "&fSkinin Steve olarak ayarlanacak.", "/disguise {role} steve");
-      appendSkinOption(root, profile, "commands.fake.book.skins.options.self", role,
-            "&0> &7Kendi Skinin", "&fSkinin kendi skinin olarak ayarlanacak.", "/disguise {role} kendin");
-      appendSkinOption(root, profile, "commands.fake.book.skins.options.alex", role,
-            "&0> &7Alex", "&fSkinin Alex olarak ayarlanacak.", "/disguise {role} alex");
-
-      return root;
-   }
-
-   private static void appendSkinOption(TextComponent root,
-                                        Profile profile,
-                                        String baseKey,
-                                        String role,
-                                        String defaultText,
-                                        String defaultHover,
-                                        String defaultCommand) {
-      String text = LanguageManager.get(profile, baseKey + ".text", defaultText)
-            .replace("{role}", role);
-      String hover = LanguageManager.get(profile, baseKey + ".hover", defaultHover)
-            .replace("{role}", role);
-      String command = LanguageManager.get(profile, baseKey + ".command", defaultCommand)
-            .replace("{role}", role);
-      appendInteractiveLine(root, text, hover, command, true);
-   }
-
-   private static void appendLines(TextComponent root, List<String> lines, boolean trailingNewline) {
-      if (lines == null || lines.isEmpty()) {
-         return;
+      if (enabled.isEmpty()) {
+         return null;
+      } else {
+         return (String)enabled.get(ThreadLocalRandom.current().nextInt(enabled.size()));
       }
-      for (int i = 0; i < lines.size(); i++) {
-         String line = lines.get(i);
-         appendLegacy(root, line);
-         if (i < lines.size() - 1 || trailingNewline) {
-            root.addExtra(new TextComponent("\n"));
+   }
+
+   public static String resolveSkinData(Player player, String skinType) {
+      if (skinType == null) {
+         return ALEX;
+      } else if (skinType.equalsIgnoreCase("steve")) {
+         return STEVE;
+      } else if (!skinType.equalsIgnoreCase("self") && !skinType.equalsIgnoreCase("kendin")) {
+         return ALEX;
+      } else {
+         String value = Manager.getSkin(player.getName(), "value");
+         String signature = Manager.getSkin(player.getName(), "signature");
+         if (value != null && !value.trim().isEmpty() && signature != null && !signature.trim().isEmpty()) {
+            return value + ":" + signature;
+         } else {
+            return ALEX;
          }
       }
    }
 
-   private static void appendInteractiveLine(TextComponent root,
-                                             String text,
-                                             String hoverText,
-                                             String command,
-                                             boolean trailingNewline) {
-      BaseComponent[] components = TextComponent.fromLegacyText(StringUtils.formatColors(text == null ? "" : text));
-      HoverEvent hover = null;
-      if (hoverText != null && !hoverText.isEmpty()) {
-         hover = new HoverEvent(Action.SHOW_TEXT,
-               TextComponent.fromLegacyText(StringUtils.formatColors(hoverText)));
-      }
-      ClickEvent click = null;
-      if (command != null && !command.isEmpty()) {
-         click = new ClickEvent(ClickEvent.Action.RUN_COMMAND, command);
-      }
-      for (BaseComponent component : components) {
-         if (hover != null) {
-            component.setHoverEvent(hover);
+   public static boolean applyRandomFake(Player player, String role, String skinType) {
+      if (player != null && role != null && isFakeRole(role) && Role.getRoleByName(role) != null) {
+         String fakeName = chooseRandomUsableName();
+         if (fakeName == null) {
+            return false;
+         } else {
+            applyFake(player, fakeName, role, resolveSkinData(player, skinType));
+            return true;
          }
-         if (click != null) {
-            component.setClickEvent(click);
-         }
-         root.addExtra(component);
-      }
-      if (trailingNewline) {
-         root.addExtra(new TextComponent("\n"));
+      } else {
+         return false;
       }
    }
 
-   private static void appendLegacy(TextComponent root, String text) {
-      if (text == null) {
-         return;
-      }
-      BaseComponent[] components = TextComponent.fromLegacyText(StringUtils.formatColors(text));
-      for (BaseComponent component : components) {
-         root.addExtra(component);
-      }
-   }
-
-   private static void applyTextPage(BookMeta meta, TextComponent page) {
-      if (meta == null || page == null) {
-         return;
-      }
-      BaseComponent[] components = new BaseComponent[]{page};
-      try {
-         java.lang.reflect.Method spigotMethod = BookMeta.class.getMethod("spigot");
-         Object spigot = spigotMethod.invoke(meta);
-         if (spigot != null) {
-            java.lang.reflect.Method setPages = spigot.getClass().getMethod("setPages", BaseComponent[][].class);
-            setPages.invoke(spigot, (Object) new BaseComponent[][]{components});
-            return;
-         }
-      } catch (Throwable ignored) {
-      }
-      meta.setPages(TextComponent.toLegacyText(page));
-   }
    public static void applyFake(Player player, String fakeName, String role, String skin) {
       if (!isBungeeSide()) {
-         player.kickPlayer(StringUtils.formatColors(CONFIG.getString("disguise.kick-apply")).replace("\\n", "\n"));
+         Profile profile = player == null ? null : Profile.getProfile(player.getName());
+         String kickMessage = LanguageManager.get(profile,
+               "commands.fake.kick.apply",
+               CONFIG.getString("disguise.kick-apply", "&6&l- Disguise -\\n \\n&eRejoin the server to apply your disguise."));
+         player.kickPlayer(StringUtils.formatColors(kickMessage).replace("\\n", "\n"));
       }
 
       fakeNames.put(player.getName(), fakeName);
@@ -229,7 +121,11 @@ public class FakeManager {
 
    public static void removeFake(Player player) {
       if (!isBungeeSide()) {
-         player.kickPlayer(StringUtils.formatColors(CONFIG.getString("disguise.kick-remove")).replace("\\n", "\n"));
+         Profile profile = player == null ? null : Profile.getProfile(player.getName());
+         String kickMessage = LanguageManager.get(profile,
+               "commands.fake.kick.remove",
+               CONFIG.getString("disguise.kick-remove", "&6&l- Disguise -\\n \\n&cUnable to find a replacement name. Please rejoin."));
+         player.kickPlayer(StringUtils.formatColors(kickMessage).replace("\\n", "\n"));
       }
 
       fakeNames.remove(player.getName());

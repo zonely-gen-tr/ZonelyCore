@@ -2,16 +2,13 @@ package dev.zonely.whiteeffect.utils;
 
 import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.reflect.StructureModifier;
-import com.comphenix.protocol.wrappers.WrappedChatComponent;
 import com.comphenix.protocol.wrappers.WrappedDataWatcher;
 import com.comphenix.protocol.wrappers.WrappedDataWatcher.Serializer;
 import com.comphenix.protocol.wrappers.WrappedDataWatcher.WrappedDataWatcherObject;
 import com.comphenix.protocol.wrappers.WrappedWatchableObject;
 import dev.zonely.whiteeffect.Core;
-import net.md_5.bungee.api.chat.BaseComponent;
-import net.md_5.bungee.api.chat.TextComponent;
-import net.md_5.bungee.chat.ComponentSerializer;
 import org.bukkit.ChatColor;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 
 import java.lang.reflect.Constructor;
@@ -24,6 +21,7 @@ import java.util.logging.Logger;
 public final class ProtocolLibUtils {
 
     private static final AtomicBoolean WATCHER_LOGGED = new AtomicBoolean(false);
+    private static Method nativeChatFromString;
 
     private static final boolean HAS_WRAPPED_DATA_VALUE;
     private static final Constructor<?> DATA_VALUE_CTOR; 
@@ -98,33 +96,42 @@ public final class ProtocolLibUtils {
     }
 
     public static void setCustomName(WrappedDataWatcher watcher, int index, String raw) {
-        if (watcher == null) return;
+        setCustomNameChecked(watcher, index, raw);
+    }
 
+    public static Object nativeChatComponent(String text) throws ReflectiveOperationException {
+        if (nativeChatFromString == null) {
+            String craftPackage = Bukkit.getServer().getClass().getPackage().getName();
+            Class<?> chat = Class.forName(craftPackage + ".util.CraftChatMessage");
+            nativeChatFromString = chat.getMethod("fromString", String.class);
+        }
+        Object components = nativeChatFromString.invoke(null, text);
+        if (components == null || java.lang.reflect.Array.getLength(components) == 0)
+            throw new IllegalStateException("Server returned no chat component");
+        return java.lang.reflect.Array.get(components, 0);
+    }
+
+    public static boolean setCustomNameChecked(WrappedDataWatcher watcher, int index, String raw) {
+        if (watcher == null) return false;
         String formatted = raw == null ? "" : ChatColor.translateAlternateColorCodes('&', raw);
         boolean empty = formatted.isEmpty();
-
+        com.comphenix.protocol.utility.MinecraftVersion version = com.comphenix.protocol.utility.MinecraftVersion.getCurrentVersion();
+        boolean modern = version.getMajor() > 1 || version.getMinor() >= 13;
         try {
-            Serializer chat = WrappedDataWatcher.Registry.getChatComponentSerializer(true);
-            if (chat != null) {
-                Optional<Object> component;
-                if (empty) {
-                    component = Optional.empty();
-                } else {
-                    BaseComponent[] components = TextComponent.fromLegacyText(formatted);
-                    if (components.length == 0) components = new BaseComponent[]{ new TextComponent("") };
-                    Object handle = WrappedChatComponent.fromJson(ComponentSerializer.toString(components)).getHandle();
-                    component = Optional.of(handle);
-                }
+            if (modern) {
+                Serializer chat = WrappedDataWatcher.Registry.getChatComponentSerializer(true);
+                if (chat == null) return false;
+                Optional<Object> component = empty ? Optional.empty() : Optional.of(nativeChatComponent(formatted));
                 watcher.setObject(new WrappedDataWatcherObject(index, chat), component);
-                return;
+            } else {
+                Serializer serializer = WrappedDataWatcher.Registry.get(String.class);
+                if (serializer != null) watcher.setObject(new WrappedDataWatcherObject(index, serializer), formatted);
+                else watcher.setObject(index, formatted);
             }
-        } catch (Throwable ignored) {}
-
-        try {
-            Serializer serializer = WrappedDataWatcher.Registry.get(String.class);
-            watcher.setObject(new WrappedDataWatcherObject(index, serializer), formatted);
-        } catch (Throwable ignored) {
-            try { watcher.setObject(index, formatted); } catch (Throwable ignored2) {}
+            return true;
+        } catch (Exception | LinkageError failure) {
+            logFailure(failure);
+            return false;
         }
     }
 
@@ -132,37 +139,51 @@ public final class ProtocolLibUtils {
         setWatcherBoolean(watcher, index, visible);
     }
 
+    public static PacketContainer nameMetadataPacket(com.comphenix.protocol.ProtocolManager manager, int entityId, String text) {
+        PacketContainer packet = manager.createPacket(com.comphenix.protocol.PacketType.Play.Server.ENTITY_METADATA);
+        packet.getIntegers().write(0, entityId);
+        WrappedDataWatcher watcher = new WrappedDataWatcher();
+        if (!setCustomNameChecked(watcher, 2, text)) throw new IllegalStateException("Custom name metadata unavailable");
+        setCustomNameVisible(watcher, 3, text != null && !text.isEmpty());
+        if (!writeMetadataChecked(packet, watcher)) throw new IllegalStateException("Metadata packet field unavailable");
+        return packet;
+    }
+
     public static void writeMetadata(PacketContainer packet, WrappedDataWatcher watcher) {
-        if (packet == null || watcher == null) return;
+        writeMetadataChecked(packet, watcher);
+    }
+
+    public static boolean writeMetadataChecked(PacketContainer packet, WrappedDataWatcher watcher) {
+        if (packet == null || watcher == null) return false;
 
         if (HAS_WRAPPED_DATA_VALUE && hasDataValueModifier(packet)) {
-            List<?> values = tryBuildWrappedDataValues(watcher);
-            if (values == null) {
-                values = extractDataValues(watcher);
-            }
-            if (values == null) values = Collections.emptyList();
-
             StructureModifier<List<?>> mod = getDataValueModifier(packet);
-            if (mod != null) {
+            if (mod != null && mod.size() > 0) {
+                List<?> values = tryBuildWrappedDataValues(watcher);
+                if (values == null) {
+                    values = extractDataValues(watcher);
+                }
+                if (values == null) return false;
                 try {
                     mod.writeSafely(0, values);
-                    return;
+                    return true;
                 } catch (Throwable t) {
                     logFailure(t);
-                    return;
+                    return false;
                 }
             }
-            return;
+            // Older servers may expose the method but have no modern metadata field.
         }
 
         try {
             StructureModifier<List<?>> legacyMod = getWatchableCollectionModifier(packet);
-            if (legacyMod != null) {
+            if (legacyMod != null && legacyMod.size() > 0) {
                 List<WrappedWatchableObject> objs = watcher.getWatchableObjects();
                 legacyMod.writeSafely(0, objs != null ? objs : Collections.emptyList());
-                return;
+                return true;
             }
         } catch (Throwable ignored) {}
+        return false;
     }
 
 

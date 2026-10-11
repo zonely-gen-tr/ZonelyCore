@@ -418,13 +418,34 @@ public class Profile {
       if (locale == null || locale.equalsIgnoreCase("null") || locale.equals("0") || locale.trim().isEmpty()) {
          locale = LanguageManager.getDefaultLocale();
          container.set(locale);
+      } else {
+         String rawLocale = locale.trim();
+         String normalized = rawLocale.replace('-', '_');
+         String defaultLocale = LanguageManager.getDefaultLocale();
+         if ("en_US".equalsIgnoreCase(rawLocale)
+               && defaultLocale != null
+               && !"en_US".equalsIgnoreCase(defaultLocale)) {
+            normalized = defaultLocale;
+            container.set(normalized);
+         }
+         locale = normalized;
       }
       return locale;
    }
 
    public void setLanguage(String locale) {
-      String resolved = locale == null || locale.trim().isEmpty() ? LanguageManager.getDefaultLocale() : locale;
-      this.getDataContainer("ZonelyCoreProfile", "lang").set(resolved);
+      String resolved = locale == null || locale.trim().isEmpty()
+            ? LanguageManager.getDefaultLocale()
+            : locale.trim().replace('-', '_');
+      String defaultLocale = LanguageManager.getDefaultLocale();
+      if ("en_US".equalsIgnoreCase(resolved)
+            && defaultLocale != null
+            && !"en_US".equalsIgnoreCase(defaultLocale)) {
+         // Preserve explicit English preference while still migrating legacy en_US defaults.
+         this.getDataContainer("ZonelyCoreProfile", "lang").set("en-US");
+      } else {
+         this.getDataContainer("ZonelyCoreProfile", "lang").set(resolved);
+      }
       LanguageManager.invalidateProfileLocale(this);
    }
 

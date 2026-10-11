@@ -8,6 +8,7 @@ import dev.zonely.whiteeffect.replay.advanced.AdvancedReplayRecorder;
 import dev.zonely.whiteeffect.replay.ReplayFrame;
 import dev.zonely.whiteeffect.replay.ReplayRecorder;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -28,6 +29,8 @@ import java.util.logging.Level;
 public class ReportService {
 
     private static final String REPORTS_TABLE = "reports";
+    private static final String REPORT_CHAT_EVIDENCE_TABLE = "report_chat_evidence";
+    private static final int DEFAULT_CHAT_EVIDENCE_LINES = 6;
     private static final Set<String> EXPECTED_REPORT_COLUMNS = new LinkedHashSet<>(Arrays.asList(
             "id",
             "reporter",
@@ -109,6 +112,7 @@ public class ReportService {
                 st.executeUpdate("DROP TABLE IF EXISTS replay_sessions");
                 st.executeUpdate("DROP TABLE IF EXISTS report_replay_frames");
                 st.executeUpdate("DROP TABLE IF EXISTS report_snapshots");
+                st.executeUpdate("DROP TABLE IF EXISTS " + REPORT_CHAT_EVIDENCE_TABLE);
                 st.executeUpdate("DROP TABLE IF EXISTS " + REPORTS_TABLE);
                 reportsRebuilt = true;
             }
@@ -172,6 +176,16 @@ public class ReportService {
                     " payload LONGTEXT NULL," +
                     " INDEX idx_replay_action_session (session_id)," +
                     " INDEX idx_replay_action_actor (actor_id)" +
+                    ") ENGINE=InnoDB DEFAULT CHARSET=utf8;");
+
+            st.executeUpdate("CREATE TABLE IF NOT EXISTS " + REPORT_CHAT_EVIDENCE_TABLE + " (" +
+                    " id INT AUTO_INCREMENT PRIMARY KEY," +
+                    " report_id INT NOT NULL," +
+                    " line_no INT NOT NULL," +
+                    " created_at BIGINT NOT NULL," +
+                    " message_plain VARCHAR(512) NOT NULL," +
+                    " INDEX idx_report_chat_report (report_id, line_no)," +
+                    " INDEX idx_report_chat_created (created_at)" +
                     ") ENGINE=InnoDB DEFAULT CHARSET=utf8;");
 
             ensureColumn(c, "reports", "reporter", "VARCHAR(36) NOT NULL DEFAULT ''");
@@ -282,7 +296,7 @@ public class ReportService {
             }
             ps.setString(5, category == null ? "" : category);
             ps.setString(6, reason);
-            ps.setString(7, reason); 
+            ps.setString(7, "");
             ps.setString(8, server);
             ps.setInt(9, 0);
             ps.setString(10, replayKey);
@@ -336,6 +350,12 @@ public class ReportService {
                 SnapshotData snapshot = captureSnapshot(target);
                 if (snapshot != null) {
                     saveSnapshot(reportId, snapshot);
+                }
+
+                List<ChatEvidenceLine> chatEvidence = loadRecentChatEvidence(target, targetUuid, getChatEvidenceLimit());
+                if (!chatEvidence.isEmpty()) {
+                    saveChatEvidence(reportId, chatEvidence);
+                    updateReportContent(reportId, buildChatEvidenceSummary(chatEvidence));
                 }
             }
             return reportId;
@@ -538,6 +558,197 @@ public class ReportService {
         } catch (SQLException e) {
             plugin.getLogger().log(Level.WARNING, "Failed to save report snapshot for " + reportId, e);
         }
+    }
+
+    public List<String> getChatEvidenceLines(int reportId, int limit) {
+        if (reportId <= 0) {
+            return Collections.emptyList();
+        }
+        int safeLimit = Math.max(1, limit);
+        List<String> lines = new ArrayList<>();
+        String sql = "SELECT `message_plain` FROM " + REPORT_CHAT_EVIDENCE_TABLE
+                + " WHERE `report_id` = ? ORDER BY `line_no` ASC LIMIT ?";
+        try (Connection c = Database.getInstance().getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, reportId);
+            ps.setInt(2, safeLimit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String message = sanitizeEvidenceLine(rs.getString("message_plain"));
+                    if (!message.isEmpty()) {
+                        lines.add(message);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.WARNING, "Failed to read chat evidence for report " + reportId, e);
+        }
+        return lines;
+    }
+
+    private void saveChatEvidence(int reportId, List<ChatEvidenceLine> lines) {
+        if (reportId <= 0 || lines == null || lines.isEmpty()) {
+            return;
+        }
+        String deleteSql = "DELETE FROM " + REPORT_CHAT_EVIDENCE_TABLE + " WHERE `report_id` = ?";
+        String insertSql = "INSERT INTO " + REPORT_CHAT_EVIDENCE_TABLE
+                + " (`report_id`, `line_no`, `created_at`, `message_plain`) VALUES (?, ?, ?, ?)";
+        try (Connection c = Database.getInstance().getConnection()) {
+            try (PreparedStatement delete = c.prepareStatement(deleteSql)) {
+                delete.setInt(1, reportId);
+                delete.executeUpdate();
+            }
+            try (PreparedStatement insert = c.prepareStatement(insertSql)) {
+                int lineNo = 1;
+                for (ChatEvidenceLine line : lines) {
+                    if (line == null) {
+                        continue;
+                    }
+                    String message = sanitizeEvidenceLine(line.message);
+                    if (message.isEmpty()) {
+                        continue;
+                    }
+                    insert.setInt(1, reportId);
+                    insert.setInt(2, lineNo++);
+                    insert.setLong(3, line.createdAt);
+                    insert.setString(4, message);
+                    insert.addBatch();
+                }
+                insert.executeBatch();
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.WARNING, "Failed to save chat evidence for report " + reportId, e);
+        }
+    }
+
+    private List<ChatEvidenceLine> loadRecentChatEvidence(String targetName, String targetUuid, int limit) {
+        int safeLimit = Math.max(1, limit);
+        List<ChatEvidenceLine> rows = loadRecentChatEvidenceFromActivity(targetName, targetUuid, safeLimit);
+        if (rows.isEmpty()) {
+            rows = loadRecentChatEvidenceFromChatLog(targetName, targetUuid, safeLimit);
+        }
+        Collections.reverse(rows);
+        return rows;
+    }
+
+    private List<ChatEvidenceLine> loadRecentChatEvidenceFromActivity(String targetName, String targetUuid, int limit) {
+        List<ChatEvidenceLine> rows = new ArrayList<>();
+        String sqlByUuid = "SELECT `created_at`, `content` FROM `ZonelyCorePlayerActivityRecent` "
+                + "WHERE `uuid` = ? AND `event_type` = 'CHAT' ORDER BY `created_at` DESC LIMIT ?";
+        String sqlByName = "SELECT `created_at`, `content` FROM `ZonelyCorePlayerActivityRecent` "
+                + "WHERE LOWER(`name`) = LOWER(?) AND `event_type` = 'CHAT' ORDER BY `created_at` DESC LIMIT ?";
+        String sql = targetUuid != null && !targetUuid.isEmpty() ? sqlByUuid : sqlByName;
+        String value = targetUuid != null && !targetUuid.isEmpty() ? targetUuid : targetName;
+        if (value == null || value.trim().isEmpty()) {
+            return rows;
+        }
+
+        try (Connection c = Database.getInstance().getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, value);
+            ps.setInt(2, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String message = sanitizeEvidenceLine(rs.getString("content"));
+                    if (message.isEmpty()) {
+                        continue;
+                    }
+                    rows.add(new ChatEvidenceLine(rs.getLong("created_at"), message));
+                }
+            }
+        } catch (SQLException ex) {
+            plugin.getLogger().log(Level.FINE, "Activity chat evidence unavailable, falling back to chat log.", ex);
+        }
+        return rows;
+    }
+
+    private List<ChatEvidenceLine> loadRecentChatEvidenceFromChatLog(String targetName, String targetUuid, int limit) {
+        List<ChatEvidenceLine> rows = new ArrayList<>();
+        String sqlByUuid = "SELECT `created_at`, `message_plain` FROM `ZonelyCoreChatLog` "
+                + "WHERE `uuid` = ? AND `message_plain` NOT LIKE '/%' ORDER BY `id` DESC LIMIT ?";
+        String sqlByName = "SELECT `created_at`, `message_plain` FROM `ZonelyCoreChatLog` "
+                + "WHERE LOWER(`source`) = LOWER(?) AND `message_plain` NOT LIKE '/%' ORDER BY `id` DESC LIMIT ?";
+        String sql = targetUuid != null && !targetUuid.isEmpty() ? sqlByUuid : sqlByName;
+        String value = targetUuid != null && !targetUuid.isEmpty() ? targetUuid : targetName;
+        if (value == null || value.trim().isEmpty()) {
+            return rows;
+        }
+
+        try (Connection c = Database.getInstance().getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, value);
+            ps.setInt(2, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String message = sanitizeEvidenceLine(rs.getString("message_plain"));
+                    if (message.isEmpty()) {
+                        continue;
+                    }
+                    rows.add(new ChatEvidenceLine(rs.getLong("created_at"), message));
+                }
+            }
+        } catch (SQLException ex) {
+            plugin.getLogger().log(Level.WARNING, "Failed to load chat evidence from chat log", ex);
+        }
+        return rows;
+    }
+
+    private int getChatEvidenceLimit() {
+        return Math.max(1, plugin.getConfig("config").getInt("reports.chat-evidence.max-lines", DEFAULT_CHAT_EVIDENCE_LINES));
+    }
+
+    private String buildChatEvidenceSummary(List<ChatEvidenceLine> lines) {
+        if (lines == null || lines.isEmpty()) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder();
+        for (ChatEvidenceLine line : lines) {
+            if (line == null || line.message == null || line.message.isEmpty()) {
+                continue;
+            }
+            if (builder.length() > 0) {
+                builder.append(" | ");
+            }
+            builder.append(line.message);
+            if (builder.length() >= 245) {
+                break;
+            }
+        }
+        String summary = builder.toString();
+        if (summary.length() > 255) {
+            summary = summary.substring(0, 255);
+        }
+        return summary;
+    }
+
+    private void updateReportContent(int reportId, String content) {
+        if (reportId <= 0 || content == null || content.trim().isEmpty()) {
+            return;
+        }
+        String sql = "UPDATE reports SET reportContent=? WHERE id=?";
+        try (Connection c = Database.getInstance().getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, content);
+            ps.setInt(2, reportId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.WARNING, "Failed to update report content for " + reportId, e);
+        }
+    }
+
+    private String sanitizeEvidenceLine(String line) {
+        if (line == null) {
+            return "";
+        }
+        String clean = ChatColor.stripColor(line);
+        if (clean == null) {
+            clean = "";
+        }
+        clean = clean.replace('\r', ' ').replace('\n', ' ').trim();
+        if (clean.length() > 512) {
+            clean = clean.substring(0, 512);
+        }
+        return clean;
     }
 
     public List<ReplayFrame> loadReplayFrames(int reportId) {
@@ -755,7 +966,36 @@ public class ReportService {
         String msg = LanguageManager.get(key, def,
                 "prefix", LanguageManager.get("prefix.punish", "&4Punish &8->> "),
                 "target", report.getTarget());
-        reporter.sendMessage(msg);
+        sendFilteredMessage(reporter, msg);
+    }
+
+    private void sendFilteredMessage(Player player, String message) {
+        if (player == null || message == null || message.trim().isEmpty()) {
+            return;
+        }
+        boolean sent = false;
+        String[] lines = message.split("\\r?\\n");
+        for (String rawLine : lines) {
+            if (rawLine == null) {
+                continue;
+            }
+            String line = rawLine.trim().isEmpty() ? "" : rawLine;
+            String stripped = ChatColor.stripColor(line);
+            String normalized = stripped == null ? "" : stripped.trim().toLowerCase(Locale.ROOT);
+            if ("executor".equals(normalized)
+                    || "{executor}".equals(normalized)
+                    || normalized.startsWith("executor:")
+                    || "prefix".equals(normalized)
+                    || "{prefix}".equals(normalized)
+                    || normalized.startsWith("prefix:")) {
+                continue;
+            }
+            player.sendMessage(line);
+            sent = true;
+        }
+        if (!sent) {
+            player.sendMessage(message);
+        }
     }
 
     private Report map(ResultSet rs) throws SQLException {
@@ -826,6 +1066,16 @@ public class ReportService {
         }
     }
 
+    private static final class ChatEvidenceLine {
+        private final long createdAt;
+        private final String message;
+
+        private ChatEvidenceLine(long createdAt, String message) {
+            this.createdAt = createdAt;
+            this.message = message;
+        }
+    }
+
     private static final class SnapshotData {
         long capturedAt;
         double health;
@@ -842,4 +1092,3 @@ public class ReportService {
         Float pitch;
     }
 }
-

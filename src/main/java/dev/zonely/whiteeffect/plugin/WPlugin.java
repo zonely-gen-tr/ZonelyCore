@@ -60,4 +60,8 @@ public abstract class WPlugin extends JavaPlugin {
    public FileUtils getFileUtils() {
       return this.fileUtils;
    }
+
+   public File getPluginFile() {
+      return this.getFile();
+   }
 }

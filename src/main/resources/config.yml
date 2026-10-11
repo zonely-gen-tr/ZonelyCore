@@ -16,6 +16,12 @@ bungeecord: false
 web-token: ""
 socket-port: 454
 auction-server-id: 1
+store:
+  # false: Yalnızca bu sunucuya teslim eder. true: Panelde ürüne seçilen diğer sunuculara da gönderir.
+  # Her sunucu, yukarıdaki kendine ait web-token ile otomatik eşleşir; sunucu numarası gerekmez.
+  send-to-other-servers: false
+  # Item/rank commands wait until the buyer joins the target server.
+  require-player-online: true
 # Toggle major subsystems individually.
 modules:
   socket: true
@@ -24,8 +30,10 @@ modules:
   reports: true
   last-credits: true
   support: true
+  friends: true
   auth: false
   launcher-auth: false
+  esports: true
 
 # Support module settings
 support:
@@ -34,15 +42,37 @@ support:
   default-category-id: -1
   # Allow the support module to run even if the in-game auth module is disabled.
   allow-without-auth: false
+
+# Friends module settings
+friends:
+  limits:
+    # Maximum friends per player. Set 0 to disable the limit.
+    max-friends: 150
+    # Maximum pending outgoing friend requests. Set 0 to disable the limit.
+    max-outgoing-pending: 25
+  mailbox:
+    # Poll interval for cross-server mailbox delivery (ticks).
+    poll-ticks: 40
+    # Maximum mailbox rows consumed per poll cycle.
+    batch-size: 64
+  # Time window for /friends remove <player> confirm (seconds).
+  remove-confirm-seconds: 15
+  message:
+    # Maximum direct-message / announcement length.
+    max-length: 256
+
 database:
   # Supported drivers: MongoDB, MySQL
   type: "MySQL"
+  # When true the plugin refuses to start until MySQL is fully configured and reachable.
+  require-mysql: true
   # When true the plugin switches to an in-memory fallback if the database is unavailable.
-  fail-open: true
+  # Ignored when require-mysql is enabled.
+  fail-open: false
   mysql:
-    hikari: false
+    hikari: true
     mariadb: false
-    host: "premium.zonely.gen.tr"
+    host: "localhost"
     port: "3306"
     name: "test"
     username: "root"
@@ -57,8 +87,23 @@ auth:
   security:
     max-login-attempts: 5
     login-timeout-seconds: 120
+    # Master switch for auto-login.
+    auto-login-enabled: false
+    # Legacy time-window mode (seconds). If > 0 and auto-login-enabled=true,
+    # player can be auto-logged if the last login is within this window.
     auto-login-seconds: 0
+    # IP-based mode. If true and auto-login-enabled=true, matching IP is enough
+    # to restore session (time window is ignored).
+    auto-login-by-ip: false
+    # Require same IP for both time and IP auto-login modes.
     auto-login-require-same-ip: true
+    title-verification:
+      # Enable title-based code verification before /login and /register.
+      enabled: false
+      # Code length between 4 and 8.
+      code-length: 5
+      # Characters used while generating the code.
+      code-charset: "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
     allowed-commands:
       - login
       - l
@@ -124,6 +169,16 @@ chat-bridge:
   poll-interval-seconds: 2
   command-batch-size: 25
   retention-days: 7
+  activity:
+    # User activity tracking for web stats (daily/weekly/monthly graphs).
+    enabled: true
+    # Flush online playtime to MySQL every N seconds.
+    flush-interval-seconds: 60
+    # Keep per-day and recent activity rows for this many days.
+    retention-days: 30
+    # Track chat and command events into activity tables.
+    track-chat: true
+    track-commands: true
 inventory-snapshot:
   enabled: true
   server-id: ""
@@ -167,11 +222,88 @@ launcher-auth:
   log-denied: true
   # When true, connections from 127.0.0.1/::1 are automatically accepted (useful for local testing).
   allow-loopback: false
+esports:
+  enabled: true
+  refresh-seconds: 20
+  scoreboard:
+    # Base scoreboard title used when custom frames are not provided.
+    title-base: "&e&lE-SPORTS"
+    # Optional palette used by animated title generation.
+    title-palette:
+      - "&e"
+      - "&6"
+      - "&f"
+      - "&6"
+    # Set explicit animation frames (leave empty to auto-generate from base + palette).
+    title-frames: []
+  auto-start:
+    enabled: false
+    # Minutes after scheduled start to auto-start if no staff online
+    delay-minutes: 10
+  replay:
+    # Kulup-vs-kulup mac replay kaydi (2 oyuncu ozel degil).
+    enabled: true
+    # Match basina tutulacak maksimum event sayisi.
+    max-events-per-match: 2400
+    # Asenkron DB flush batch boyutu.
+    flush-batch-size: 200
+    # Ayni hasar tipinde tekrar kayitlar arasindaki min sure.
+    damage-event-min-interval-ms: 250
+    # Cevresel hasar eventlerini dahil et (lava/fall vb).
+    include-environment-damage: false
+    # JSON string alanlarinin maksimum uzunlugu.
+    max-string-length: 180
+    # Koordinat yuvarlama hassasiyeti.
+    location-decimals: 2
+    # Yazma kuyrugu ust limiti.
+    max-queue-size: 9000
+    # Match replay_url alanini otomatik guncelle.
+    update-match-replay-url: false
+  arena:
+    spectator:
+      world: "world"
+      x: 0.5
+      y: 85.0
+      z: 0.5
+      yaw: 0.0
+      pitch: 0.0
+    countdown-seconds: 5
+    staging-border-radius: 8.0
+    border-radius: 35.0
+    border-growth-seconds: 6
+    spawn-autofill-radius: 6.0
 reports:
   default-punishment:
     duration: "1d"
+  chat-evidence:
+    # Number of latest chat lines captured when a report is created.
+    max-lines: 6
   replay:
+    # How long actions are recorded after report creation.
     capture-seconds: 120
+    # Nearby player tracking radius for action capture (blocks).
+    capture-radius: 25.0
+    # Initial world surface snapshot so web replay can render nearby map chunks.
+    chunk-capture:
+      enabled: true
+      # Captures a square around report center: (radius*2+1)^2 chunks.
+      radius-chunks: 4
+      # Hard cap to avoid oversized reports on very busy maps.
+      max-chunks: 256
+      # While tracked players move into new chunks, capture nearby chunk surfaces too.
+      follow-player: true
+      # Additional square radius captured around the player's current chunk while moving.
+      follow-radius-chunks: 2
+      # Refresh nearby chunks periodically even if the player stays in the same chunk.
+      follow-refresh-ticks: 100
+      # Force an extra chunk capture around block place/break events.
+      capture-on-block-events: true
+      # Extra square radius captured around place/break events.
+      block-event-radius-chunks: 1
+      # Keep true for performance; false can force-load missing chunks.
+      loaded-only: true
+      # Compress chunk surface payload before DB write.
+      gzip: true
   punishment:
     defaults:
       ban-duration: "1d"
@@ -294,190 +426,6 @@ alonsoleagues:
       completed-name: "&a&lCoal I"
       appearance: "&8Coal I"
       glow-on-complete: true
-    coal-2:
-      slot: 11
-      required-points: 1000
-      icon: "173 : 1"
-      name: "&8&lCoal II"
-      completed-name: "&a&lCoal II"
-      appearance: "&8Coal II"
-      glow-on-complete: true
-    coal-3:
-      slot: 12
-      required-points: 1200
-      icon: "173 : 1"
-      name: "&8&lCoal III"
-      completed-name: "&a&lCoal III"
-      appearance: "&8Coal III"
-      glow-on-complete: true
-    iron-1:
-      slot: 14
-      required-points: 1450
-      icon: "42 : 1"
-      name: "&f&lIron I"
-      completed-name: "&a&lIron I"
-      appearance: "&fIron I"
-      glow-on-complete: true
-    iron-2:
-      slot: 15
-      required-points: 1750
-      icon: "42 : 1"
-      name: "&f&lIron II"
-      completed-name: "&a&lIron II"
-      appearance: "&fIron II"
-      glow-on-complete: true
-    iron-3:
-      slot: 16
-      required-points: 2100
-      icon: "42 : 1"
-      name: "&f&lIron III"
-      completed-name: "&a&lIron III"
-      appearance: "&fIron III"
-      glow-on-complete: true
-    redstone-1:
-      slot: 19
-      required-points: 2500
-      icon: "152 : 1"
-      name: "&c&lRedstone I"
-      completed-name: "&a&lRedstone I"
-      appearance: "&cRedstone I"
-      glow-on-complete: true
-    redstone-2:
-      slot: 20
-      required-points: 2950
-      icon: "152 : 1"
-      name: "&c&lRedstone II"
-      completed-name: "&a&lRedstone II"
-      appearance: "&cRedstone II"
-      glow-on-complete: true
-    redstone-3:
-      slot: 21
-      required-points: 3450
-      icon: "152 : 1"
-      name: "&c&lRedstone III"
-      completed-name: "&a&lRedstone III"
-      appearance: "&cRedstone III"
-      glow-on-complete: true
-    gold-1:
-      slot: 23
-      required-points: 4000
-      icon: "41 : 1"
-      name: "&6&lGold I"
-      completed-name: "&a&lGold I"
-      appearance: "&6Gold I"
-      glow-on-complete: true
-    gold-2:
-      slot: 24
-      required-points: 4600
-      icon: "41 : 1"
-      name: "&6&lGold II"
-      completed-name: "&a&lGold II"
-      appearance: "&6Gold II"
-      glow-on-complete: true
-    gold-3:
-      slot: 25
-      required-points: 5250
-      icon: "41 : 1"
-      name: "&6&lGold III"
-      completed-name: "&a&lGold III"
-      appearance: "&6Gold III"
-      glow-on-complete: true
-    diamond-1:
-      slot: 28
-      required-points: 5950
-      icon: "57 : 1"
-      name: "&b&lDiamond I"
-      completed-name: "&b&lDiamond I"
-      appearance: "&bDiamond I"
-      glow-on-complete: true
-    diamond-2:
-      slot: 29
-      required-points: 6700
-      icon: "57 : 1"
-      name: "&b&lDiamond II"
-      completed-name: "&b&lDiamond II"
-      appearance: "&bDiamond II"
-      glow-on-complete: true
-    diamond-3:
-      slot: 30
-      required-points: 7500
-      icon: "57 : 1"
-      name: "&b&lDiamond III"
-      completed-name: "&b&lDiamond III"
-      appearance: "&bDiamond III"
-      glow-on-complete: true
-    obsidian-1:
-      slot: 32
-      required-points: 8350
-      icon: "49 : 1"
-      name: "&5&lObsidian I"
-      completed-name: "&5&lObsidian I"
-      appearance: "&5Obsidian I"
-      glow-on-complete: true
-    obsidian-2:
-      slot: 33
-      required-points: 9250
-      icon: "49 : 1"
-      name: "&5&lObsidian II"
-      completed-name: "&5&lObsidian II"
-      appearance: "&5Obsidian II"
-      glow-on-complete: true
-    obsidian-3:
-      slot: 34
-      required-points: 10200
-      icon: "49 : 1"
-      name: "&5&lObsidian III"
-      completed-name: "&5&lObsidian III"
-      appearance: "&5Obsidian III"
-      glow-on-complete: true
-    emerald-1:
-      slot: 37
-      required-points: 11200
-      icon: "133 : 1"
-      name: "&2&lEmerald I"
-      completed-name: "&2&lEmerald I"
-      appearance: "&2Emerald I"
-      glow-on-complete: true
-    emerald-2:
-      slot: 38
-      required-points: 12250
-      icon: "133 : 1"
-      name: "&2&lEmerald II"
-      completed-name: "&2&lEmerald II"
-      appearance: "&2Emerald II"
-      glow-on-complete: true
-    emerald-3:
-      slot: 39
-      required-points: 13350
-      icon: "133 : 1"
-      name: "&2&lEmerald III"
-      completed-name: "&2&lEmerald III"
-      appearance: "&2Emerald III"
-      glow-on-complete: true
-    amethyst-1:
-      slot: 41
-      required-points: 14500
-      icon: "159:2 : 1"
-      name: "&d&lAmethyst I"
-      completed-name: "&d&lAmethyst I"
-      appearance: "&dAmethyst I"
-      glow-on-complete: true
-    amethyst-2:
-      slot: 42
-      required-points: 15700
-      icon: "159:2 : 1"
-      name: "&d&lAmethyst II"
-      completed-name: "&d&lAmethyst II"
-      appearance: "&dAmethyst II"
-      glow-on-complete: true
-    amethyst-3:
-      slot: 43
-      required-points: 16950
-      icon: "159:2 : 1"
-      name: "&d&lAmethyst III"
-      completed-name: "&d&lAmethyst III"
-      appearance: "&dAmethyst III"
-      glow-on-complete: true
 
 deliveries:
   oyuncugunluk:
@@ -488,147 +436,7 @@ deliveries:
     message: "&3Lobby &8-> &6Player Daily &eReward collected successfully."
     rewards:
       - "CASH>100"
-  vipgunluk:
-    slot: 11
-    days: 1
-    permission: "group.vip"
-    icon: "STAINED_CLAY:5 : 1 : name>&6&lVIP {color}&lDaily Reward : desc>&8[REWARD]\\n \\n&fAvailable only to &6VIP &fplayers.\\n \\n&f* Contents:\\n&7 &8-> &6300 Credits\\n&7 &8-> &d1 Mystery Box\\n&7 &8-> &c1 &l[2x Booster] &c[Global] &7(1 hour)\\n&7 &8-> &31 &l[2x Booster] &3[Server] &7(2 hours)\\n"
-    message: "&3Lobby &8-> &6VIP Daily &eReward collected successfully."
-    rewards:
-      - "CASH>300"
-      - "PRIVATE_BOOSTER>1:2.0:1"
-      - "NETWORK_BOOSTER>1:2.0:2"
-      - "KOMUT>wmb ver {name} 1"
-  vipplusgunluk:
-    slot: 12
-    days: 1
-    permission: "group.vipplus"
-    icon: "STAINED_CLAY:5 : 1 : name>&6&lVIP&c&l+ {color}&lDaily Reward : desc>&8[REWARD]\\n \\n&fAvailable only to &6VIP&c+ &fplayers.\\n \\n&f* Contents:\\n&7 &8-> &6400 Credits\\n&7 &8-> &d2 Mystery Boxes\\n&7 &8-> &c1 &l[3x Booster] &c[Global] &7(1 hour)\\n&7 &8-> &31 &l[3x Booster] &3[Server] &7(2 hours)\\n"
-    message: "&3Lobby &8-> &6VIP&c+ &6Daily &eReward collected successfully."
-    rewards:
-      - "CASH>400"
-      - "PRIVATE_BOOSTER>1:3.0:1"
-      - "NETWORK_BOOSTER>1:3.0:2"
-      - "KOMUT>wmb ver {name} 2"
-  mvipgunluk:
-    slot: 13
-    days: 1
-    permission: "group.mvip"
-    icon: "STAINED_CLAY:5 : 1 : name>&a&lMVIP {color}&lDaily Reward : desc>&8[REWARD]\\n \\n&fAvailable only to &aMVIP &fplayers.\\n \\n&f* Contents:\\n&7 &8-> &6450 Credits\\n&7 &8-> &d3 Mystery Boxes\\n&7 &8-> &c1 &l[4x Booster] &c[Global] &7(1 hour)\\n&7 &8-> &31 &l[4x Booster] &3[Server] &7(2 hours)\\n"
-    message: "&3Lobby &8-> &6MVIP Daily &eReward collected successfully."
-    rewards:
-      - "CASH>450"
-      - "PRIVATE_BOOSTER>1:4.0:1"
-      - "NETWORK_BOOSTER>1:4.0:2"
-      - "KOMUT>wmb ver {name} 3"
-  mvipplusgunluk:
-    slot: 14
-    days: 1
-    permission: "group.mvipplus"
-    icon: "STAINED_CLAY:5 : 1 : name>&a&lMVIP&c&l+ {color}&lDaily Reward : desc>&8[REWARD]\\n \\n&fAvailable only to &aMVIP&c+ &fplayers.\\n \\n&f* Contents:\\n&7 &8-> &6500 Credits\\n&7 &8-> &d4 Mystery Boxes\\n&7 &8-> &c1 &l[5x Booster] &c[Global] &7(1 hour)\\n&7 &8-> &31 &l[5x Booster] &3[Server] &7(2 hours)\\n"
-    message: "&3Lobby &8-> &aMVIP&c+ &6Daily &eReward collected successfully."
-    rewards:
-      - "CASH>500"
-      - "PRIVATE_BOOSTER>1:5.0:1"
-      - "NETWORK_BOOSTER>1:5.0:2"
-      - "KOMUT>wmb ver {name} 4"
-  previpgunluk:
-    slot: 15
-    days: 1
-    permission: "group.previp"
-    icon: "STAINED_CLAY:5 : 1 : name>&9&lPre&cVIP {color}&lDaily Reward : desc>&8[REWARD]\\n \\n&fAvailable only to &9Pre&cVIP &fplayers.\\n \\n&f* Contents:\\n&7 &8-> &61000 Credits\\n&7 &8-> &d10 Mystery Boxes\\n&7 &8-> &c2 &l[7x Booster] &c[Global] &7(1 hour)\\n&7 &8-> &32 &l[7x Booster] &3[Server] &7(2 hours)\\n"
-    message: "&3Lobby &8-> &9Pre&cVIP Daily &eReward collected successfully."
-    rewards:
-      - "CASH>1000"
-      - "PRIVATE_BOOSTER>2:7.0:1"
-      - "NETWORK_BOOSTER>2:7.0:2"
-      - "KOMUT>wmb ver {name} 10"
-  previpplusgunluk:
-    slot: 16
-    days: 1
-    permission: "group.previpplus"
-    icon: "STAINED_CLAY:5 : 1 : name>&9&lPre&cVIP&5&l+ {color}&lDaily Reward : desc>&8[REWARD]\\n \\n&fAvailable only to &9Pre&cVIP&5+ &fplayers.\\n \\n&f* Contents:\\n&7 &8-> &62000 Credits\\n&7 &8-> &d20 Mystery Boxes\\n&7 &8-> &c4 &l[14x Booster] &c[Global] &7(1 hour)\\n&7 &8-> &34 &l[14x Booster] &3[Server] &7(2 hours)\\n"
-    message: "&3Lobby &8-> &9Pre&cVIP&5+ &6Daily &eReward collected successfully."
-    rewards:
-      - "CASH>2000"
-      - "PRIVATE_BOOSTER>4:14.0:1"
-      - "NETWORK_BOOSTER>4:14.0:2"
-      - "KOMUT>wmb ver {name} 20"
-  oyuncuaylik:
-    slot: 19
-    days: 31
-    permission: ""
-    icon: "STAINED_CLAY:5 : 1 : name>{color}&lPlayer Monthly Reward : desc>&8[REWARD]\\n \\n&fYou can claim this reward again after a cooldown.\\n \\n&f* Contents:\\n&7 &8-> &6200 Credits\\n&7 &8-> &d1 Mystery Box\\n"
-    message: "&3Lobby &8-> &6Player Monthly &eReward collected successfully."
-    rewards:
-      - "CASH>200"
-      - "KOMUT>wmb ver {name} 1"
-  vipaylik:
-    slot: 20
-    days: 31
-    permission: "group.vip"
-    icon: "STAINED_CLAY:5 : 1 : name>&6&lVIP {color}&lMonthly Reward : desc>&8[REWARD]\\n \\n&fAvailable only to &6VIP &fplayers.\\n \\n&f* Contents:\\n&7 &8-> &6300 Credits\\n&7 &8-> &d5 Mystery Boxes\\n&7 &8-> &c2 &l[2x Booster] &c[Global] &7(4 hours)\\n&7 &8-> &32 &l[2x Booster] &3[Server] &7(10 hours)\\n"
-    message: "&3Lobby &8-> &6VIP Monthly &eReward collected successfully."
-    rewards:
-      - "CASH>300"
-      - "PRIVATE_BOOSTER>2:2.0:4"
-      - "NETWORK_BOOSTER>2:2.0:10"
-      - "KOMUT>wmb ver {name} 5"
-  vipplusaylik:
-    slot: 21
-    days: 31
-    permission: "group.vipplus"
-    icon: "STAINED_CLAY:5 : 1 : name>&6&lVIP&c&l+ {color}&lMonthly Reward : desc>&8[REWARD]\\n \\n&fAvailable only to &6VIP&c+ &fplayers.\\n \\n&f* Contents:\\n&7 &8-> &6400 Credits\\n&7 &8-> &d7 Mystery Boxes\\n&7 &8-> &c3 &l[3x Booster] &c[Global] &7(4 hours)\\n&7 &8-> &33 &l[3x Booster] &3[Server] &7(10 hours)\\n"
-    message: "&3Lobby &8-> &6VIP&c+ &6Monthly &eReward collected successfully."
-    rewards:
-      - "CASH>400"
-      - "PRIVATE_BOOSTER>3:3.0:4"
-      - "NETWORK_BOOSTER>3:3.0:10"
-      - "KOMUT>wmb ver {name} 7"
-  mvipaylik:
-    slot: 22
-    days: 31
-    permission: "group.mvip"
-    icon: "STAINED_CLAY:5 : 1 : name>&a&lMVIP {color}&lMonthly Reward : desc>&8[REWARD]\\n \\n&fAvailable only to &aMVIP &fplayers.\\n \\n&f* Contents:\\n&7 &8-> &6450 Credits\\n&7 &8-> &d10 Mystery Boxes\\n&7 &8-> &c4 &l[4x Booster] &c[Global] &7(4 hours)\\n&7 &8-> &34 &l[4x Booster] &3[Server] &7(10 hours)\\n"
-    message: "&3Lobby &8-> &aMVIP &6Monthly &eReward collected successfully."
-    rewards:
-      - "CASH>450"
-      - "PRIVATE_BOOSTER>4:4.0:4"
-      - "NETWORK_BOOSTER>4:4.0:10"
-      - "KOMUT>wmb ver {name} 10"
-  mvipplusaylik:
-    slot: 23
-    days: 31
-    permission: "group.mvipplus"
-    icon: "STAINED_CLAY:5 : 1 : name>&a&lMVIP&c&l+ {color}&lMonthly Reward : desc>&8[REWARD]\\n \\n&fAvailable only to &aMVIP&c+ &fplayers.\\n \\n&f* Contents:\\n&7 &8-> &6500 Credits\\n&7 &8-> &d13 Mystery Boxes\\n&7 &8-> &c5 &l[5x Booster] &c[Global] &7(4 hours)\\n&7 &8-> &35 &l[5x Booster] &3[Server] &7(10 hours)\\n"
-    message: "&3Lobby &8-> &aMVIP&c+ &6Monthly &eReward collected successfully."
-    rewards:
-      - "CASH>500"
-      - "PRIVATE_BOOSTER>5:5.0:4"
-      - "NETWORK_BOOSTER>5:5.0:10"
-      - "KOMUT>wmb ver {name} 13"
-  previpaylik:
-    slot: 24
-    days: 31
-    permission: "group.previp"
-    icon: "STAINED_CLAY:5 : 1 : name>&9&lPre&cVIP {color}&lMonthly Reward : desc>&8[REWARD]\\n \\n&fAvailable only to &9Pre&cVIP &fplayers.\\n \\n&f* Contents:\\n&7 &8-> &61000 Credits\\n&7 &8-> &d17 Mystery Boxes\\n&7 &8-> &c10 &l[7x Booster] &c[Global] &7(6 hours)\\n&7 &8-> &33 &l[7x Booster] &3[Server] &7(14 hours)\\n"
-    message: "&3Lobby &8-> &9Pre&cVIP Monthly &eReward collected successfully."
-    rewards:
-      - "CASH>1000"
-      - "PRIVATE_BOOSTER>10:7.0:6"
-      - "NETWORK_BOOSTER>3:7.0:14"
       - "KOMUT>wmb ver {name} 17"
-  previpplusaylik:
-    slot: 25
-    days: 31
-    permission: "group.previpplus"
-    icon: "STAINED_CLAY:5 : 1 : name>&9&lPre&cVIP&5&l+ {color}&lMonthly Reward : desc>&8[REWARD]\\n \\n&fAvailable only to &9Pre&cVIP&5+ &fplayers.\\n \\n&f* Contents:\\n&7 &8-> &62000 Credits\\n&7 &8-> &d34 Mystery Boxes\\n&7 &8-> &c20 &l[14x Booster] &c[Global] &7(6 hours)\\n&7 &8-> &36 &l[14x Booster] &3[Server] &7(20 hours)\\n"
-    message: "&3Lobby &8-> &9Pre&cVIP&5+ &6Monthly &eReward collected successfully."
-    rewards:
-      - "CASH>2000"
-      - "PRIVATE_BOOSTER>20:14.0:6"
-      - "NETWORK_BOOSTER>6:14.0:20"
-      - "KOMUT>wmb ver {name} 34"
 # Integration Quick Reference (BetterSocial, ChatColor, AlonsoLeagues)
 # BetterSocial + ChatColor:
 #   1. Install BetterSocial and ChatColor+ alongside PlaceholderAPI so their placeholders work in menus and chat.

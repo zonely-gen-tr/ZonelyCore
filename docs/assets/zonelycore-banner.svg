@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="380" viewBox="0 0 1200 380" role="img" aria-label="ZonelyCore: Minecraft sunucun ve web panelin, aynı dünyada">
+<defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#07111f"/><stop offset="1" stop-color="#17112d"/></linearGradient><linearGradient id="accent"><stop stop-color="#38bdf8"/><stop offset="1" stop-color="#a78bfa"/></linearGradient><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#29344c" stroke-opacity=".45"/></pattern></defs>
+<rect width="1200" height="380" rx="24" fill="url(#bg)"/><rect width="1200" height="380" rx="24" fill="url(#grid)"/>
+<path d="M0 2H1200" stroke="url(#accent)" stroke-width="4"/>
+<g font-family="Segoe UI,Arial,sans-serif"><text x="64" y="78" fill="#8da8c7" font-size="15" letter-spacing="5">ONE CORE FOR MINECRAFT</text><text x="60" y="167" fill="#f1f5f9" font-size="72" font-weight="750">Zonely<tspan fill="#58c9f8">Core</tspan></text><text x="64" y="222" fill="#c1cbe0" font-size="24">Minecraft sunucun ve web panelin, aynı dünyada.</text>
+<g font-size="13" letter-spacing="2" fill="#b5c7de"><text x="66" y="307">MAĞAZA</text><text x="202" y="307">HESAPLAR</text><text x="364" y="307">TOPLULUK</text><text x="541" y="307">YÖNETİM</text></g>
+<path d="M64 268H670" stroke="#334155"/></g>
+<g transform="translate(880 90)"><path d="M100 0 210 63 100 126 -10 63Z" fill="#38bdf8" fill-opacity=".2" stroke="#73d5fa" stroke-width="2"/><path d="M-10 63 100 126 100 252 -10 189Z" fill="#38bdf8" fill-opacity=".1" stroke="#38bdf8" stroke-width="2"/><path d="M100 126 210 63 210 189 100 252Z" fill="#a78bfa" fill-opacity=".2" stroke="#a78bfa" stroke-width="2"/><path d="M100 60 158 94 100 128 42 94Z" fill="#7dd3fc"/><path d="M42 94 100 128 100 195 42 161Z" fill="#38bdf8"/><path d="M100 128 158 94 158 161 100 195Z" fill="#8b5cf6"/></g>
+</svg>

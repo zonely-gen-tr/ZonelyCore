@@ -78,6 +78,24 @@ public final class MaterialResolver {
       "ORANGE_DYE",
       "BONE_MEAL"
    };
+   private static final String[] WOOL_MAP = new String[]{
+      "WHITE_WOOL",
+      "ORANGE_WOOL",
+      "MAGENTA_WOOL",
+      "LIGHT_BLUE_WOOL",
+      "YELLOW_WOOL",
+      "LIME_WOOL",
+      "PINK_WOOL",
+      "GRAY_WOOL",
+      "LIGHT_GRAY_WOOL",
+      "CYAN_WOOL",
+      "PURPLE_WOOL",
+      "BLUE_WOOL",
+      "BROWN_WOOL",
+      "GREEN_WOOL",
+      "RED_WOOL",
+      "BLACK_WOOL"
+   };
 
    static {
       Method method = null;
@@ -221,14 +239,20 @@ public final class MaterialResolver {
             return resolveColorMapped(TERRACOTTA_MAP, "TERRACOTTA", data);
          case "DOUBLE_PLANT":
             return resolveColorMapped(DOUBLE_PLANT_MAP, "SUNFLOWER", data);
+         case "BANNER":
+            return valueOf("WHITE_BANNER");
          case "EXP_BOTTLE":
             return valueOf("EXPERIENCE_BOTTLE");
          case "INK_SACK":
             return resolveColorMapped(INK_SACK_MAP, "INK_SAC", data);
+         case "WOOL":
+            return resolveColorMapped(WOOL_MAP, "WHITE_WOOL", data);
          case "BOOK_AND_QUILL":
             return valueOf("WRITABLE_BOOK");
          case "REDSTONE_COMPARATOR":
             return valueOf("COMPARATOR");
+         case "EMPTY_MAP":
+            return valueOf("MAP");
          default:
             return null;
       }

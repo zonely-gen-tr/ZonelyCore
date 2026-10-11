@@ -102,6 +102,9 @@ public final class AuthBossBarManager {
     }
 
     private String getMessage(Player player, String key, String def) {
+        if (plugin != null && plugin.getAuthManager() != null && plugin.getAuthManager().requiresAuthentication(player)) {
+            return LanguageManager.get(key, def);
+        }
         Profile profile = Profile.getProfile(player.getName());
         if (profile != null) {
             return LanguageManager.get(profile, key, def);

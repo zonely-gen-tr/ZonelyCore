@@ -6,6 +6,7 @@ import dev.zonely.whiteeffect.database.data.DataContainer;
 import dev.zonely.whiteeffect.database.data.container.DeliveriesContainer;
 import dev.zonely.whiteeffect.deliveries.Delivery;
 import dev.zonely.whiteeffect.lang.LanguageManager;
+import dev.zonely.whiteeffect.lang.LanguageManager.MenuItemDefinition;
 import dev.zonely.whiteeffect.libraries.menu.UpdatablePlayerMenu;
 import dev.zonely.whiteeffect.mysterybox.api.MysteryBoxAPI;
 import dev.zonely.whiteeffect.player.Profile;
@@ -28,16 +29,22 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 
 public class MenuDeliveriesProfile extends UpdatablePlayerMenu {
-   private static final SimpleDateFormat SDF = new SimpleDateFormat("d MMMM yyyy HH:mm", Locale.forLanguageTag("tr-TR"));
+   private static final SimpleDateFormat SDF = new SimpleDateFormat("d MMMM yyyy HH:mm", Locale.ENGLISH);
    private Profile profile;
    private Map<ItemStack, Delivery> deliveries = new HashMap<>();
 
    public MenuDeliveriesProfile(Profile profile) {
       super(profile.getPlayer(), LanguageManager.get(profile,
-            "menus.profile.deliveries-title",
-            "&8Profile &0&l> &8Reward Courier"), 6);
+            "menus.profile.deliveries-menu-title",
+            localize(profile, "&8Profile &0&l> &8Reward Courier", "&8Profil &0&l> &8Odul Kuryesi")), 6);
       this.profile = profile;
+      populateHeaderItems(profile);
+      this.update();
+      this.register(Core.getInstance(), 20L);
+      this.open();
+   }
 
+   private void populateHeaderItems(Profile profile) {
       ItemStack profileInfo;
       try {
          Role role = Role.getPlayerRole(profile.getPlayer());
@@ -46,14 +53,29 @@ public class MenuDeliveriesProfile extends UpdatablePlayerMenu {
          }
          long created = safeLong(profile, "ZonelyCoreProfile", "created");
          long lastLogin = safeLong(profile, "ZonelyCoreProfile", "lastlogin");
-         profileInfo = BukkitUtils.putProfileOnSkull(this.player, BukkitUtils.deserializeItemStack(
-               "SKULL_ITEM:3 : 1 : name>&e&l" + profile.getName()
-                     + " : desc>\n&8 > &fRole: &b" + (role != null ? role.getName() : "Player")
-                     + "\n&8 > &fCredits: &6" + StringUtils.formatNumber(CashManager.getCash(profile)) + " [CREDITS]"
-                     + "\n&7 &8> &fMystery Fragments: &d" + profile.getFormatedStats("ZonelyMysteryBox", "mystery_frags") + " [FRAGMENTS]"
-                     + "\n&7 &8> &fMystery Boxes: &b" + StringUtils.formatNumber(MysteryBoxAPI.getMysteryBoxes(profile)) + " [BOXES]"
-                     + "\n \n&8 > &fFirst Login: &f" + (created > 0 ? SDF.format(created) : "-")
-                     + "\n&8 > &fLast Login: &f" + (lastLogin > 0 ? SDF.format(lastLogin) : "-")));
+         String createdText = created > 0L ? SDF.format(created) : "-";
+         String lastLoginText = lastLogin > 0L ? SDF.format(lastLogin) : "-";
+
+         MenuItemDefinition playerInfo = LanguageManager.getMenuItem(profile,
+               "menus.profile.items.player-info",
+               4,
+               "SKULL_ITEM:3 : 1 : name>&e&l{player} : desc>\n"
+                     + "&8- &fRole: &b{role}\n"
+                     + "&8- &fCredits: &6{credits}\n"
+                     + "&8- &fMystery Fragments: &d{fragments}\n"
+                     + "&8- &fMystery Boxes: &b{boxes}\n \n"
+                     + "&8- &fFirst Login: &f{first_login}\n"
+                     + "&8- &fLast Login: &f{last_login}",
+               "player", profile.getName(),
+               "role", role != null ? role.getName() : "Player",
+               "credits", StringUtils.formatNumber(CashManager.getCash(profile)),
+               "fragments", profile.getFormatedStats("ZonelyMysteryBox", "mystery_frags"),
+               "boxes", StringUtils.formatNumber(MysteryBoxAPI.getMysteryBoxes(profile)),
+               "first_login", createdText,
+               "last_login", lastLoginText);
+
+         profileInfo = BukkitUtils.putProfileOnSkull(this.player,
+               BukkitUtils.deserializeItemStack(playerInfo.item()));
       } catch (Throwable t) {
          Core.getInstance().getLogger().log(Level.WARNING,
                "[Deliveries] Failed to build profile summary for " + profile.getName(), t);
@@ -61,18 +83,18 @@ public class MenuDeliveriesProfile extends UpdatablePlayerMenu {
                BukkitUtils.deserializeItemStack("PLAYER_HEAD : 1 : name>&e" + profile.getName()));
       }
       this.setItem(4, profileInfo);
-      this.setItem(0, BukkitUtils.deserializeItemStack("STAINED_GLASS_PANE:7 : 1"));
-      this.setItem(1, BukkitUtils.deserializeItemStack("STAINED_GLASS_PANE:7 : 1"));
-      this.setItem(2, BukkitUtils.deserializeItemStack("STAINED_GLASS_PANE:7 : 1"));
-      this.setItem(3, BukkitUtils.deserializeItemStack("STAINED_GLASS_PANE:7 : 1"));
-      this.setItem(5, BukkitUtils.deserializeItemStack("STAINED_GLASS_PANE:7 : 1"));
-      this.setItem(6, BukkitUtils.deserializeItemStack("STAINED_GLASS_PANE:7 : 1"));
-      this.setItem(7, BukkitUtils.deserializeItemStack("STAINED_GLASS_PANE:7 : 1"));
-      this.setItem(8, BukkitUtils.deserializeItemStack("STAINED_GLASS_PANE:7 : 1"));
-      this.setItem(49, BukkitUtils.deserializeItemStack("ARROW : 1 : name>&e<--"));
-      this.update();
-      this.register(Core.getInstance(), 20L);
-      this.open();
+
+      ItemStack filler = BukkitUtils.deserializeItemStack(LanguageManager.get(profile,
+            "menus.common.filler", "STAINED_GLASS_PANE:7 : 1 : name>&r"));
+      for (int slot = 0; slot <= 8; slot++) {
+         if (slot == 4) {
+            continue;
+         }
+         this.setItem(slot, filler.clone());
+      }
+
+      this.setItem(49, BukkitUtils.deserializeItemStack(LanguageManager.get(profile,
+            "menus.common.back", "ARROW : 1 : name>&e<-")));
    }
 
    @EventHandler
@@ -138,6 +160,14 @@ public class MenuDeliveriesProfile extends UpdatablePlayerMenu {
       if (evt.getPlayer().equals(this.player) && evt.getInventory().equals(this.getInventory())) {
          this.cancel();
       }
+   }
+
+   private static String localize(Profile profile, String en, String tr) {
+      String locale = LanguageManager.resolveProfileLocale(profile);
+      if (locale != null && locale.toLowerCase(Locale.ROOT).startsWith("tr")) {
+         return tr;
+      }
+      return en;
    }
 
    private static long safeLong(Profile profile, String container, String key) {

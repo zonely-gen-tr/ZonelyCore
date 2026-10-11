@@ -31,6 +31,7 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.mongodb.client.model.Projections.fields;
@@ -58,7 +59,11 @@ public class MongoDBDatabase extends Database {
       this.url = mongoURL;
 
       this.openConnection();
-      this.executor = Executors.newCachedThreadPool();
+      this.executor = Executors.newFixedThreadPool(2, runnable -> {
+         Thread thread = new Thread(runnable, "zonely-mongodb");
+         thread.setDaemon(true);
+         return thread;
+      });
 
       this.collation = Collation.builder()
               .locale("en_US")
@@ -229,8 +234,17 @@ public class MongoDBDatabase extends Database {
 
    @Override
    public void close() {
-      this.executor.shutdownNow().forEach(Runnable::run);
-      this.client.close();
+      this.executor.shutdown();
+      try {
+         if (!this.executor.awaitTermination(5, TimeUnit.SECONDS)) {
+            this.executor.shutdownNow();
+         }
+      } catch (InterruptedException ex) {
+         Thread.currentThread().interrupt();
+         this.executor.shutdownNow();
+      } finally {
+         this.client.close();
+      }
    }
 
    public void openConnection() {

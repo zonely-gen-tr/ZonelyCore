@@ -1,6 +1,7 @@
 package dev.zonely.whiteeffect.cmd;
 
 import dev.zonely.whiteeffect.Core;
+import dev.zonely.whiteeffect.clubs.ClubLang;
 import dev.zonely.whiteeffect.database.Database;
 import dev.zonely.whiteeffect.lang.LanguageManager;
 import dev.zonely.whiteeffect.menus.MenuProfile;
@@ -9,11 +10,19 @@ import dev.zonely.whiteeffect.hologram.LastCreditHologramManager;
 import dev.zonely.whiteeffect.player.Profile;
 import dev.zonely.whiteeffect.utils.CenteredMessage;
 import dev.zonely.whiteeffect.utils.CommandMessageUtils;
+import dev.zonely.whiteeffect.utils.StringUtils;
 import dev.zonely.whiteeffect.utils.ZonelyUpdater;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.logging.Level;
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.HoverEvent;
+import net.md_5.bungee.api.chat.TextComponent;
+import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -25,26 +34,32 @@ public class CoreCommand extends Commands {
          "&eDeveloped by &6WhiteEffect &e- &4Orcun &cDonmez.",
          "&dZONELY.GEN.TR &ehosts distribution."
    );
-   private static final List<String> DEFAULT_HELP_HEADER = Arrays.asList("&6&m----------------------------", "&2");
-   private static final List<String> DEFAULT_HELP_FOOTER = Arrays.asList("&2", "&6&m----------------------------");
+   private static final int HELP_PAGE_SIZE = 8;
    private static final List<String> DEFAULT_HELP_ENTRIES = Arrays.asList(
-         "&e/zc update &2- &fCheck for plugin updates.",
-         "&e/zc convert &2- &fConvert stored data to another database type.",
-         "&e/zc menu <player> &2- &fOpen the profile menu.",
-         "&e/zc npc spawn <type> &2- &fCreate or move a lobby NPC.",
-         "&e/zc hologram lastcredits &2- &fPlace the last-credit leaderboard hologram.",
-         "&e/zc reload &2- &fReload configuration and language files.",
-         "&e/webprofile &2- &fOpen the web profile menu.",
-         "&e/credit &2- &fInspect credits.",
-         "&e/lastcredits &2- &fList the most recent credit purchasers.",
-         "&e/message &2- &fSend a private message.",
-         "&e/store &2- &fView store products.",
-         "&e/creditvoucher &2- &fShare credits between players.",
-         "&e/punish &2- &fManage player punishments.",
-         "&e/auctions &2- &fOpen the auction house.",
-         "&e/auction [amount] &2- &fSubmit an item for auction.",
-         "&e/disguise &2- &fUse the disguise system.",
-         "&e/sales &2- &fReview store sale statistics."
+         "&e/zc update &8- &7Update check",
+         "&e/zc reload &8- &7Reload files",
+         "&e/zc convert &8- &7Convert database",
+         "&e/zc menu <player> &8- &7Open profile",
+         "&e/zc npc spawn <type> [id] &8- &7Spawn lobby NPC",
+         "&e/zc hologram lastcredits <id> &8- &7Set hologram",
+         "&e/webprofile &8- &7Open profile UI",
+         "&e/credit &8- &7Check credits",
+         "&e/lastcredits &8- &7Recent buyers",
+         "&e/store &8- &7Open store",
+         "&e/creditvoucher &8- &7Send credits",
+         "&e/punish &8- &7Punishment panel",
+         "&e/esports &8- &7E-Sports panel",
+         "&e/club &8- &7Club panel",
+         "&e/club help &8- &7Club commands",
+         "&e/auctions &8- &7Auction house",
+         "&e/auction <amount> &8- &7List held item",
+         "&e/report <player> &8- &7Report player",
+         "&e/reports &8- &7Report panel",
+         "&e/friends &8- &7Friends panel",
+         "&e/support &8- &7Support panel",
+         "&e/email <set|resend|status> &8- &7Email settings",
+         "&e/passwordreset &8- &7Reset password",
+         "&e/2fa <setup|code|disable> &8- &72FA control"
    );
 
    public CoreCommand() {
@@ -76,12 +91,36 @@ public class CoreCommand extends Commands {
       }
 
       if (args.length == 0) {
-         sendHelp(player, profile);
+         sendHelp(player, profile, 1);
+         return;
+      }
+
+      Integer numericPage = parsePage(args[0]);
+      if (numericPage != null) {
+         sendHelp(player, profile, numericPage);
          return;
       }
 
       String action = args[0].toLowerCase(Locale.ROOT);
       switch (action) {
+         case "help":
+         case "yardim":
+         case "yardım": {
+            int page = 1;
+            if (args.length >= 2) {
+               Integer requested = parsePage(args[1]);
+               if (requested == null) {
+                  LanguageManager.send(player,
+                        "commands.core.help.invalid-page",
+                        "{prefix}&cPlease enter a valid help page number.",
+                        "prefix", getPrefix(profile));
+               } else {
+                  page = requested;
+               }
+            }
+            sendHelp(player, profile, page);
+            break;
+         }
          case "guncelle":
          case "güncelle":
          case "update": {
@@ -111,7 +150,7 @@ public class CoreCommand extends Commands {
          break;
       }
       default: {
-         sendHelp(player, profile);
+         sendHelp(player, profile, 1);
          break;
       }
       }
@@ -119,14 +158,6 @@ public class CoreCommand extends Commands {
 
    private void handleUpdate(Player player, Profile profile) {
       if (ZonelyUpdater.UPDATER != null) {
-         if (!ZonelyUpdater.UPDATER.canDownload) {
-            LanguageManager.send(player,
-                  "commands.core.update.already-downloaded",
-                  "{prefix}&eThe update is already downloaded and will apply on restart. Use /stop to apply now.",
-                  "prefix", getPrefix(profile));
-            return;
-         }
-         ZonelyUpdater.UPDATER.canDownload = false;
          ZonelyUpdater.UPDATER.downloadUpdate(player);
       } else {
          LanguageManager.send(player,
@@ -262,7 +293,7 @@ public class CoreCommand extends Commands {
          return;
       }
 
-      if (args.length >= 2 && (args[1].equalsIgnoreCase("remove") || args[1].equalsIgnoreCase("sil") || args[1].equalsIgnoreCase("kaldir") || args[1].equalsIgnoreCase("kaldır"))) {
+      if (args.length >= 2 && (args[1].equalsIgnoreCase("remove") || args[1].equalsIgnoreCase("sil") || args[1].equalsIgnoreCase("kaldir") || args[1].equalsIgnoreCase("kaldÄ±r"))) {
          if (args.length < 3) {
             LanguageManager.send(player,
                   "commands.core.npc.usage-remove",
@@ -303,7 +334,7 @@ public class CoreCommand extends Commands {
          return;
       }
 
-      if ("remove".equalsIgnoreCase(args[1]) || "sil".equalsIgnoreCase(args[1]) || "kaldir".equalsIgnoreCase(args[1]) || "kaldır".equalsIgnoreCase(args[1])) {
+      if ("remove".equalsIgnoreCase(args[1]) || "sil".equalsIgnoreCase(args[1]) || "kaldir".equalsIgnoreCase(args[1]) || "kaldÄ±r".equalsIgnoreCase(args[1])) {
          LastCreditHologramManager manager = LastCreditHologramManager.getInstance();
          if (manager == null) {
             LanguageManager.send(player,
@@ -356,7 +387,7 @@ public class CoreCommand extends Commands {
          return;
       }
 
-      if ("remove".equalsIgnoreCase(args[1]) || "sil".equalsIgnoreCase(args[1]) || "kaldir".equalsIgnoreCase(args[1]) || "kaldır".equalsIgnoreCase(args[1])) {
+      if ("remove".equalsIgnoreCase(args[1]) || "sil".equalsIgnoreCase(args[1]) || "kaldir".equalsIgnoreCase(args[1]) || "kaldÄ±r".equalsIgnoreCase(args[1])) {
          LastCreditHologramManager manager = LastCreditHologramManager.getInstance();
          if (manager == null) {
             LanguageManager.send(player,
@@ -444,28 +475,175 @@ public class CoreCommand extends Commands {
       }
    }
 
-   private void sendHelp(Player player, Profile profile) {
-      java.util.List<String> combined = null;
-      org.bukkit.configuration.ConfigurationSection helpSection =
-            LanguageManager.getSection(profile, "commands.core.help");
-
-      if (helpSection != null && helpSection.isList("lines")) {
-         java.util.List<String> rawLines = helpSection.getStringList("lines");
-         if (rawLines != null && !rawLines.isEmpty()) {
-            combined = new java.util.ArrayList<>(
-                  LanguageManager.getList(profile, "commands.core.help.lines", rawLines));
-         }
+   private void sendHelp(Player player, Profile profile, int requestedPage) {
+      List<String> entries = resolveHelpEntries(profile);
+      if (entries.isEmpty()) {
+         entries = new ArrayList<>(DEFAULT_HELP_ENTRIES);
       }
 
-      if (combined == null || combined.isEmpty()) {
-         combined = new java.util.ArrayList<>();
-         combined.addAll(LanguageManager.getList(profile, "commands.core.help.header", DEFAULT_HELP_HEADER));
-         combined.addAll(LanguageManager.getList(profile, "commands.core.help.entries", DEFAULT_HELP_ENTRIES));
-         combined.addAll(LanguageManager.getList(profile, "commands.core.help.footer", DEFAULT_HELP_FOOTER));
+      int maxPage = Math.max(1, (entries.size() + HELP_PAGE_SIZE - 1) / HELP_PAGE_SIZE);
+      int page = Math.max(1, Math.min(requestedPage, maxPage));
+      int from = (page - 1) * HELP_PAGE_SIZE;
+      int to = Math.min(from + HELP_PAGE_SIZE, entries.size());
+
+      String border = "&6&m-----------------------------";
+      String title = "&6&lZonelyCore Commands";
+
+      player.sendMessage(CenteredMessage.generate(border));
+      player.sendMessage("");
+      player.sendMessage(CenteredMessage.generate(title));
+
+      List<String> pageEntries = entries.subList(from, to);
+      for (String line : CommandMessageUtils.withSignature(pageEntries)) {
+         player.sendMessage(CenteredMessage.generate(line));
       }
 
-      CommandMessageUtils.withSignature(combined)
-            .forEach(line -> player.sendMessage(CenteredMessage.generate(line)));
+      player.sendMessage("");
+      sendHelpNavigation(player, profile, page, maxPage);
+      player.sendMessage("");
+      player.sendMessage(CenteredMessage.generate(border));
+   }
+
+   private List<String> resolveHelpEntries(Profile profile) {
+      Map<String, String> entries = new LinkedHashMap<>();
+
+      List<String> configured = LanguageManager.getList(profile,
+            "commands.core.help.entries",
+            new ArrayList<>());
+      if (configured.isEmpty()) {
+         configured = LanguageManager.getList(profile, "commands.core.help.lines", DEFAULT_HELP_ENTRIES);
+      }
+      for (String line : configured) {
+         addHelpEntry(entries, line);
+      }
+      ensureHelpEntry(entries, profile, "commands.core.help.entry.email",
+            "&e/email <set|resend|status> &2- &fManage account email.");
+      ensureHelpEntry(entries, profile, "commands.core.help.entry.passwordreset",
+            "&e/passwordreset &2- &fRequest a password reset link.");
+      ensureHelpEntry(entries, profile, "commands.core.help.entry.2fa",
+            "&e/2fa <setup|code|disable> &2- &fManage two-factor authentication.");
+      ensureHelpEntry(entries, profile, "commands.core.help.entry.disguise",
+            "&e/disguise &2- &fUse the disguise system.");
+      addHelpEntry(entries, ClubLang.get("command.help.help", "&e/club help &2- &fShow this help panel."));
+
+      return new ArrayList<>(entries.values());
+   }
+
+   private void ensureHelpEntry(Map<String, String> entries, Profile profile, String key, String def) {
+      String line = LanguageManager.get(profile, key, def);
+      if (!isHelpCommandLine(line)) {
+         return;
+      }
+      String helpKey = extractHelpKey(line);
+      if (helpKey.isEmpty()) {
+         return;
+      }
+      // Force localized/synced help entry to override stale line-based entries.
+      entries.put(helpKey, line);
+   }
+
+   private void addHelpEntry(Map<String, String> target, String line) {
+      if (!isHelpCommandLine(line)) {
+         return;
+      }
+      String key = extractHelpKey(line);
+      if (key.isEmpty()) {
+         return;
+      }
+      target.putIfAbsent(key, line);
+   }
+
+   private boolean isHelpCommandLine(String line) {
+      if (line == null) {
+         return false;
+      }
+      String stripped = ChatColor.stripColor(StringUtils.formatColors(line));
+      if (stripped == null) {
+         return false;
+      }
+      return stripped.trim().startsWith("/");
+   }
+
+   private String extractHelpKey(String line) {
+      String stripped = ChatColor.stripColor(StringUtils.formatColors(line));
+      if (stripped == null) {
+         return "";
+      }
+      String normalized = stripped.trim().toLowerCase(Locale.ROOT);
+      int split = normalized.indexOf(" - ");
+      if (split > 0) {
+         normalized = normalized.substring(0, split).trim();
+      }
+      return normalized;
+   }
+
+   private void sendHelpNavigation(Player player, Profile profile, int page, int maxPage) {
+      String prevActive = LanguageManager.get(profile, "commands.core.help.compact.nav.prev", "&e<--");
+      String prevDisabled = LanguageManager.get(profile,
+            "commands.core.help.compact.nav.prev-disabled",
+            "&8" + ChatColor.stripColor(StringUtils.formatColors(prevActive)));
+      String nextActive = LanguageManager.get(profile, "commands.core.help.compact.nav.next", "&e-->");
+      String nextDisabled = LanguageManager.get(profile,
+            "commands.core.help.compact.nav.next-disabled",
+            "&8" + ChatColor.stripColor(StringUtils.formatColors(nextActive)));
+      String pageText = LanguageManager.get(profile,
+            "commands.core.help.compact.nav.page",
+            " &8[&e{page}&7/&e{max}&8] ",
+            "page", Integer.toString(page),
+            "max", Integer.toString(maxPage));
+
+      String leftLabel = page > 1 ? prevActive : prevDisabled;
+      String rightLabel = page < maxPage ? nextActive : nextDisabled;
+      String padding = extractCenterPadding(leftLabel + pageText + rightLabel);
+
+      TextComponent root = new TextComponent(padding);
+      root.addExtra(createNavButton(
+            page > 1 ? prevActive : prevDisabled,
+            page > 1 ? "/zc help " + (page - 1) : null,
+            LanguageManager.get(profile,
+                  "commands.core.help.compact.nav.prev-hover",
+                  "&7Open previous help page")));
+
+      root.addExtra(new TextComponent(StringUtils.formatColors(pageText)));
+
+      root.addExtra(createNavButton(
+            page < maxPage ? nextActive : nextDisabled,
+            page < maxPage ? "/zc help " + (page + 1) : null,
+            LanguageManager.get(profile,
+                  "commands.core.help.compact.nav.next-hover",
+                  "&7Open next help page")));
+      player.spigot().sendMessage(root);
+   }
+
+   private String extractCenterPadding(String text) {
+      String centered = CenteredMessage.generate(text);
+      int index = 0;
+      while (index < centered.length() && centered.charAt(index) == ' ') {
+         index++;
+      }
+      return centered.substring(0, index);
+   }
+
+   private TextComponent createNavButton(String label, String command, String hoverText) {
+      TextComponent component = new TextComponent(StringUtils.formatColors(label));
+      if (command != null && !command.trim().isEmpty()) {
+         component.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, command));
+         component.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+               TextComponent.fromLegacyText(StringUtils.formatColors(hoverText))));
+      }
+      return component;
+   }
+
+   private Integer parsePage(String raw) {
+      if (raw == null || raw.trim().isEmpty()) {
+         return null;
+      }
+      try {
+         int value = Integer.parseInt(raw.trim());
+         return value >= 1 ? value : null;
+      } catch (NumberFormatException ignored) {
+         return null;
+      }
    }
 
    private String getPrefix(Profile profile) {
@@ -476,3 +654,4 @@ public class CoreCommand extends Commands {
       return LanguageManager.get("prefix.lobby", DEFAULT_PREFIX);
    }
 }
+

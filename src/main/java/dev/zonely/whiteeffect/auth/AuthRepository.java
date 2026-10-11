@@ -55,13 +55,14 @@ public final class AuthRepository {
         addColumn(columnNames, params, columns.password(), passwordHash);
         addColumn(columnNames, params, columns.salt(), "");
         addColumn(columnNames, params, columns.email(), "");
-        addColumn(columnNames, params, columns.logged(), 1);
-        addColumn(columnNames, params, columns.hasSession(), 1);
+        addColumn(columnNames, params, columns.logged(), "1");
+        addColumn(columnNames, params, columns.hasSession(), "1");
         addColumn(columnNames, params, columns.ip(), ip);
         addColumn(columnNames, params, columns.lastLogin(), new Timestamp(timestamp));
         addColumn(columnNames, params, columns.registerDate(), new Timestamp(timestamp));
         addColumn(columnNames, params, columns.registerIp(), ip);
-        addColumn(columnNames, params, columns.twoFactorStatus(), 0);
+        // Some legacy schemas use ENUM('0','1'); writing numeric 0 causes "Data truncated".
+        addColumn(columnNames, params, columns.twoFactorStatus(), "0");
         addLocationColumns(columnNames, params, location);
 
         if (columnNames.isEmpty()) {
@@ -99,8 +100,8 @@ public final class AuthRepository {
         List<String> assignments = new ArrayList<>();
         List<Object> params = new ArrayList<>();
 
-        addAssignment(assignments, params, columns.logged(), 1);
-        addAssignment(assignments, params, columns.hasSession(), 1);
+        addAssignment(assignments, params, columns.logged(), "1");
+        addAssignment(assignments, params, columns.hasSession(), "1");
         addAssignment(assignments, params, columns.ip(), ip);
         addAssignment(assignments, params, columns.lastLogin(), new Timestamp(timestamp));
         addLocationAssignments(assignments, params, location);
@@ -132,8 +133,8 @@ public final class AuthRepository {
         List<String> assignments = new ArrayList<>();
         List<Object> params = new ArrayList<>();
 
-        addAssignment(assignments, params, columns.logged(), 0);
-        addAssignment(assignments, params, columns.hasSession(), clearSession ? 0 : 1);
+        addAssignment(assignments, params, columns.logged(), "0");
+        addAssignment(assignments, params, columns.hasSession(), clearSession ? "0" : "1");
 
         if (assignments.isEmpty()) {
             return;

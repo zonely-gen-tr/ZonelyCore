@@ -23,6 +23,10 @@ import java.util.logging.Level;
 
 final class SupportRepository {
 
+    private static final String TICKET_SELECT_SQL =
+            "SELECT S.*, U.nick AS user_nick, U.subname AS user_subname "
+                    + "FROM supports S LEFT JOIN userslist U ON S.userid = U.id";
+
     private final Core plugin;
     private final ExecutorService executor;
 
@@ -41,7 +45,7 @@ final class SupportRepository {
     }
 
     public CompletableFuture<Optional<SupportTicket>> findActiveTicketByUserId(int userId) {
-        String sql = "SELECT * FROM supports WHERE userid = ? AND statusID IN (1,2,3) ORDER BY id DESC LIMIT 1";
+        String sql = TICKET_SELECT_SQL + " WHERE S.userid = ? AND S.statusID IN (1,2,3) ORDER BY S.id DESC LIMIT 1";
         return supplyAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -62,12 +66,12 @@ final class SupportRepository {
         if (statuses == null || statuses.isEmpty()) {
             return CompletableFuture.completedFuture(Collections.emptyList());
         }
-        StringBuilder sql = new StringBuilder("SELECT * FROM supports WHERE statusID IN (");
+        StringBuilder sql = new StringBuilder(TICKET_SELECT_SQL).append(" WHERE S.statusID IN (");
         for (int i = 0; i < statuses.size(); i++) {
             if (i > 0) sql.append(',');
             sql.append('?');
         }
-        sql.append(") ORDER BY updated_at DESC");
+        sql.append(") ORDER BY S.updated_at DESC");
         if (limit > 0) {
             sql.append(" LIMIT ").append(limit);
         }
@@ -149,10 +153,11 @@ final class SupportRepository {
                 try (ResultSet keys = ps.getGeneratedKeys()) {
                     if (keys.next()) {
                         int id = keys.getInt(1);
+                        String userName = resolveUserName(connection, userId);
                         return new SupportTicket(
                                 id,
                                 userId,
-                                null,
+                                userName,
                                 ipAddress,
                                 title,
                                 message,
@@ -295,7 +300,7 @@ final class SupportRepository {
     }
 
     public CompletableFuture<Optional<SupportTicket>> loadTicket(int ticketId) {
-        String sql = "SELECT * FROM supports WHERE id = ?";
+        String sql = TICKET_SELECT_SQL + " WHERE S.id = ?";
         return supplyAsync(() -> {
             try (Connection connection = getConnection();
                  PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -313,7 +318,7 @@ final class SupportRepository {
     }
 
     public CompletableFuture<List<SupportTicket>> listTicketsByUser(int userId, int limit) {
-        String sql = "SELECT * FROM supports WHERE userid = ? ORDER BY id DESC";
+        String sql = TICKET_SELECT_SQL + " WHERE S.userid = ? ORDER BY S.id DESC";
         if (limit > 0) {
             sql += " LIMIT " + limit;
         }
@@ -366,11 +371,43 @@ final class SupportRepository {
         }
     }
 
+    private String resolveUserName(Connection connection, int userId) {
+        if (connection == null || userId <= 0) {
+            return null;
+        }
+        String sql = "SELECT nick, subname FROM userslist WHERE id = ? LIMIT 1";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String nick = rs.getString("nick");
+                    if (nick != null && !nick.trim().isEmpty()) {
+                        return nick.trim();
+                    }
+                    String subname = rs.getString("subname");
+                    if (subname != null && !subname.trim().isEmpty()) {
+                        return subname.trim();
+                    }
+                }
+            }
+        } catch (SQLException ex) {
+            logSqlError("resolveUserName", ex);
+        }
+        return "ID#" + userId;
+    }
+
     private SupportTicket mapTicket(ResultSet rs) throws SQLException {
         int id = rs.getInt("id");
         Integer userId = rs.getInt("userid");
         if (rs.wasNull()) {
             userId = null;
+        }
+        String userName = rs.getString("user_nick");
+        if (userName == null || userName.trim().isEmpty()) {
+            userName = rs.getString("user_subname");
+        }
+        if ((userName == null || userName.trim().isEmpty()) && userId != null) {
+            userName = "ID#" + userId;
         }
         String title = rs.getString("title");
         String message = rs.getString("message");
@@ -380,7 +417,7 @@ final class SupportRepository {
         boolean read = rs.getInt("readed") == 1;
         Timestamp updatedAt = rs.getTimestamp("updated_at");
         Timestamp createdAt = rs.getTimestamp("created_at");
-        return new SupportTicket(id, userId, null, ip, title, message, categoryId, status, read, updatedAt, createdAt);
+        return new SupportTicket(id, userId, userName, ip, title, message, categoryId, status, read, updatedAt, createdAt);
     }
 
     private SupportMessage mapMessage(ResultSet rs) throws SQLException {

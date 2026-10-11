@@ -15,11 +15,6 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 
-/**
- * Parser for JSON text. Please note that JSONParser is NOT thread-safe.
- * 
- * @author FangYidong<fangyidong@yahoo.com.cn>
- */
 @SuppressWarnings("all")
 public class JSONParser {
 	public static final int S_INIT=0;
@@ -43,31 +38,17 @@ public class JSONParser {
 		return status.intValue();
 	}
 	
-    /**
-     *  Reset the parser to the initial state without resetting the underlying reader.
-     *
-     */
     public void reset(){
         token = null;
         status = S_INIT;
         handlerStatusStack = null;
     }
     
-    /**
-     * Reset the parser to the initial state with a new character reader.
-     * 
-     * @param in - The new character reader.
-     * @throws IOException
-     * @throws ParseException
-     */
 	public void reset(Reader in){
 		lexer.yyreset(in);
 		reset();
 	}
 	
-	/**
-	 * @return The position of the beginning of the current token.
-	 */
 	public int getPosition(){
 		return lexer.getPosition();
 	}
@@ -93,22 +74,6 @@ public class JSONParser {
 		return parse(in, (ContainerFactory)null);
 	}
 	
-	/**
-	 * Parse JSON text into java object from the input source.
-	 * 	
-	 * @param in
-     * @param containerFactory - Use this factory to createyour own JSON object and JSON array containers.
-	 * @return Instance of the following:
-	 *  org.json.simple.JSONObject,
-	 * 	org.json.simple.JSONArray,
-	 * 	java.lang.String,
-	 * 	java.lang.Number,
-	 * 	java.lang.Boolean,
-	 * 	null
-	 * 
-	 * @throws IOException
-	 * @throws ParseException
-	 */
 	public Object parse(Reader in, ContainerFactory containerFactory) throws IOException, ParseException{
 		reset(in);
 		LinkedList statusStack = new LinkedList();
@@ -313,20 +278,6 @@ public class JSONParser {
 		parse(in, contentHandler, false);
 	}
 	
-	/**
-	 * Stream processing of JSON text.
-	 * 
-	 * @see ContentHandler
-	 * 
-	 * @param in
-	 * @param contentHandler
-	 * @param isResume - Indicates if it continues previous parsing operation.
-     *                   If set to true, resume parsing the old stream, and parameter 'in' will be ignored. 
-	 *                   If this method is called for the first time in this instance, isResume will be ignored.
-	 * 
-	 * @throws IOException
-	 * @throws ParseException
-	 */
 	public void parse(Reader in, ContentHandler contentHandler, boolean isResume) throws IOException, ParseException{
 		if(!isResume){
 			reset(in);

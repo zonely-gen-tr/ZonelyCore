@@ -19,12 +19,6 @@ public abstract class AbstractPacket {
   // The packet we will be modifying
   protected final PacketContainer handle;
 
-  /**
-   * Constructs a new strongly typed wrapper for the given packet.
-   *
-   * @param handle - handle to the raw packet data.
-   * @param type   - the packet type.
-   */
   protected AbstractPacket(PacketContainer handle, PacketType type) {
     // Make sure we're given a valid packet
     if (handle == null) {
@@ -36,12 +30,10 @@ public abstract class AbstractPacket {
     this.handle = handle;
   }
 
-  /** Retrieve a handle to the raw packet data. */
   public PacketContainer getHandle() {
     return handle;
   }
 
-  /** Send the current packet to the given receiver. */
   public void sendPacket(Player receiver) {
     try {
       ProtocolLibrary.getProtocolManager().sendServerPacket(receiver, getHandle());
@@ -50,12 +42,6 @@ public abstract class AbstractPacket {
     }
   }
 
-  /**
-   * Simulate receiving the current packet from the given sender.
-   * Works with both ProtocolLib variants:
-   * - receiveClientPacket(Player, PacketContainer)
-   * - recieveClientPacket(Player, PacketContainer)  (old misspelling)
-   */
   public void receivePacket(Player sender) {
     try {
       Object pm = ProtocolLibrary.getProtocolManager();
@@ -74,7 +60,6 @@ public abstract class AbstractPacket {
     }
   }
 
-  /** Backwards-compatible alias for code that still calls the misspelled method. */
   public void recievePacket(Player sender) {
     receivePacket(sender);
   }

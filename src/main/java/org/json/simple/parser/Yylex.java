@@ -5,29 +5,17 @@ package org.json.simple.parser;
 @SuppressWarnings("all")
 class Yylex {
 
-  /** This character denotes the end of file */
   public static final int YYEOF = -1;
 
-  /** initial size of the lookahead buffer */
   private static final int ZZ_BUFFERSIZE = 16384;
 
-  /** lexical states */
   public static final int YYINITIAL = 0;
   public static final int STRING_BEGIN = 2;
 
-  /**
-   * ZZ_LEXSTATE[l] is the state in the DFA for the lexical state l
-   * ZZ_LEXSTATE[l+1] is the state in the DFA for the lexical state l
-   *                  at the beginning of a line
-   * l is of the form l = 2*k, k a non negative integer
-   */
   private static final int ZZ_LEXSTATE[] = { 
      0,  0,  1, 1
   };
 
-  /** 
-   * Translates characters to character classes
-   */
   private static final String ZZ_CMAP_PACKED = 
     "\11\0\1\7\1\7\2\0\1\7\22\0\1\7\1\0\1\11\10\0"+
     "\1\6\1\31\1\2\1\4\1\12\12\3\1\32\6\0\4\1\1\5"+
@@ -35,14 +23,8 @@ class Yylex {
     "\1\14\5\0\1\23\1\0\1\15\3\0\1\16\1\24\1\17\1\20"+
     "\5\0\1\25\1\0\1\26\uff82\0";
 
-  /** 
-   * Translates characters to character classes
-   */
   private static final char [] ZZ_CMAP = zzUnpackCMap(ZZ_CMAP_PACKED);
 
-  /** 
-   * Translates DFA states to action switch labels.
-   */
   private static final int [] ZZ_ACTION = zzUnpackAction();
 
   private static final String ZZ_ACTION_PACKED_0 =
@@ -72,9 +54,6 @@ class Yylex {
   }
 
 
-  /** 
-   * Translates a state to a row index in the transition table
-   */
   private static final int [] ZZ_ROWMAP = zzUnpackRowMap();
 
   private static final String ZZ_ROWMAP_PACKED_0 =
@@ -103,9 +82,6 @@ class Yylex {
     return j;
   }
 
-  /** 
-   * The transition table of the DFA
-   */
   private static final int ZZ_TRANS [] = {
     2, 2, 3, 4, 2, 2, 2, 5, 2, 6, 
     2, 2, 7, 8, 2, 9, 2, 2, 2, 2, 
@@ -189,9 +165,6 @@ class Yylex {
     "Error: pushback value was too large"
   };
 
-  /**
-   * ZZ_ATTRIBUTE[aState] contains the attributes of state <code>aState</code>
-   */
   private static final int [] ZZ_ATTRIBUTE = zzUnpackAttribute();
 
   private static final String ZZ_ATTRIBUTE_PACKED_0 =
@@ -218,50 +191,30 @@ class Yylex {
     return j;
   }
 
-  /** the input device */
   private java.io.Reader zzReader;
 
-  /** the current state of the DFA */
   private int zzState;
 
-  /** the current lexical state */
   private int zzLexicalState = YYINITIAL;
 
-  /** this buffer contains the current text to be matched and is
-      the source of the yytext() string */
   private char zzBuffer[] = new char[ZZ_BUFFERSIZE];
 
-  /** the textposition at the last accepting state */
   private int zzMarkedPos;
 
-  /** the current text position in the buffer */
   private int zzCurrentPos;
 
-  /** startRead marks the beginning of the yytext() string in the buffer */
   private int zzStartRead;
 
-  /** endRead marks the last character in the buffer, that has been read
-      from input */
   private int zzEndRead;
 
-  /** number of newlines encountered up to the start of the matched text */
   private int yyline;
 
-  /** the number of characters up to the start of the matched text */
   private int yychar;
 
-  /**
-   * the number of characters from the last newline up to the start of the 
-   * matched text
-   */
   private int yycolumn;
 
-  /** 
-   * zzAtBOL == true <=> the scanner is currently at the beginning of a line
-   */
   private boolean zzAtBOL = true;
 
-  /** zzAtEOF == true <=> the scanner is at the EOF */
   private boolean zzAtEOF;
 
   /* user code: */
@@ -273,32 +226,14 @@ int getPosition(){
 
 
 
-  /**
-   * Creates a new scanner
-   * There is also a java.io.InputStream version of this constructor.
-   *
-   * @param   in  the java.io.Reader to read input from.
-   */
   Yylex(java.io.Reader in) {
     this.zzReader = in;
   }
 
-  /**
-   * Creates a new scanner.
-   * There is also java.io.Reader version of this constructor.
-   *
-   * @param   in  the java.io.Inputstream to read input from.
-   */
   Yylex(java.io.InputStream in) {
     this(new java.io.InputStreamReader(in));
   }
 
-  /** 
-   * Unpacks the compressed character translation table.
-   *
-   * @param packed   the packed character translation table
-   * @return         the unpacked character translation table
-   */
   private static char [] zzUnpackCMap(String packed) {
     char [] map = new char[0x10000];
     int i = 0;  /* index in packed string  */
@@ -312,13 +247,6 @@ int getPosition(){
   }
 
 
-  /**
-   * Refills the input buffer.
-   *
-   * @return      <code>false</code>, iff there was new input.
-   * 
-   * @exception   java.io.IOException  if any I/O-Error occurs
-   */
   private boolean zzRefill() throws java.io.IOException {
 
     /* first: make room (if you can) */
@@ -366,9 +294,6 @@ int getPosition(){
   }
 
     
-  /**
-   * Closes the input stream.
-   */
   public final void yyclose() throws java.io.IOException {
     zzAtEOF = true;            /* indicate end of file */
     zzEndRead = zzStartRead;  /* invalidate buffer    */
@@ -378,16 +303,6 @@ int getPosition(){
   }
 
 
-  /**
-   * Resets the scanner to read from a new input stream.
-   * Does not close the old reader.
-   *
-   * All internal variables are reset, the old input stream 
-   * <b>cannot</b> be reused (internal buffer is discarded and lost).
-   * Lexical state is set to <tt>ZZ_INITIAL</tt>.
-   *
-   * @param reader   the new input stream 
-   */
   public final void yyreset(java.io.Reader reader) {
     zzReader = reader;
     zzAtBOL  = true;
@@ -399,70 +314,31 @@ int getPosition(){
   }
 
 
-  /**
-   * Returns the current lexical state.
-   */
   public final int yystate() {
     return zzLexicalState;
   }
 
 
-  /**
-   * Enters a new lexical state
-   *
-   * @param newState the new lexical state
-   */
   public final void yybegin(int newState) {
     zzLexicalState = newState;
   }
 
 
-  /**
-   * Returns the text matched by the current regular expression.
-   */
   public final String yytext() {
     return new String( zzBuffer, zzStartRead, zzMarkedPos-zzStartRead );
   }
 
 
-  /**
-   * Returns the character at position <tt>pos</tt> from the 
-   * matched text. 
-   * 
-   * It is equivalent to yytext().charAt(pos), but faster
-   *
-   * @param pos the position of the character to fetch. 
-   *            A value from 0 to yylength()-1.
-   *
-   * @return the character at position pos
-   */
   public final char yycharat(int pos) {
     return zzBuffer[zzStartRead+pos];
   }
 
 
-  /**
-   * Returns the length of the matched text region.
-   */
   public final int yylength() {
     return zzMarkedPos-zzStartRead;
   }
 
 
-  /**
-   * Reports an error that occured while scanning.
-   *
-   * In a wellformed scanner (no or only correct usage of 
-   * yypushback(int) and a match-all fallback rule) this method 
-   * will only be called with things that "Can't Possibly Happen".
-   * If this method is called, something is seriously wrong
-   * (e.g. a JFlex bug producing a faulty scanner etc.).
-   *
-   * Usual syntax/scanner level error handling should be done
-   * in error fallback rules.
-   *
-   * @param   errorCode  the code of the errormessage to display
-   */
   private void zzScanError(int errorCode) {
     String message;
     try {
@@ -476,14 +352,6 @@ int getPosition(){
   } 
 
 
-  /**
-   * Pushes the specified amount of characters back into the input stream.
-   *
-   * They will be read again by then next call of the scanning method
-   *
-   * @param number  the number of characters to be read again.
-   *                This number must not be greater than yylength()!
-   */
   public void yypushback(int number)  {
     if ( number > yylength() )
       zzScanError(ZZ_PUSHBACK_2BIG);
@@ -492,13 +360,6 @@ int getPosition(){
   }
 
 
-  /**
-   * Resumes scanning until the next regular expression is matched,
-   * the end of input is encountered or an I/O-Error occurs.
-   *
-   * @return      the next token
-   * @exception   java.io.IOException  if any I/O-Error occurs
-   */
   public Yytoken yylex() throws java.io.IOException, ParseException {
     int zzInput;
     int zzAction;

@@ -1,0 +1,46 @@
+{
+  "schemas": {
+    "expiries": "CREATE TABLE `expiries` (\n  `id` int(11) NOT NULL AUTO_INCREMENT,\n  `licenseID` int(255) NOT NULL,\n  `expiry_at` datetime DEFAULT '1000-01-01 00:00:00',\n  `startDate` datetime NOT NULL DEFAULT '1000-01-01 00:00:00',\n  PRIMARY KEY (`id`)\n) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci",
+    "lastedbuys": "CREATE TABLE `lastedbuys` (\n  `id` int(11) NOT NULL AUTO_INCREMENT,\n  `userid` int(11) NOT NULL,\n  `productid` int(11) NOT NULL,\n  `price` int(4) unsigned NOT NULL DEFAULT 0,\n  `created_at` datetime NOT NULL DEFAULT '1000-01-01 00:00:00',\n  PRIMARY KEY (`id`)\n) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci",
+    "licenses": "CREATE TABLE `licenses` (\n  `id` int(11) NOT NULL AUTO_INCREMENT,\n  `row_order` int(11) DEFAULT NULL,\n  `productlicenses_id` int(255) DEFAULT NULL,\n  `userid` int(255) DEFAULT NULL,\n  `productid` int(11) NOT NULL,\n  `domainAdress` text DEFAULT NULL,\n  `licenseIP` varchar(255) DEFAULT 'example.com',\n  `lastIP` text DEFAULT 'example.com',\n  `suspendStatus` int(11) NOT NULL DEFAULT 1,\n  `totalStart` int(11) DEFAULT 0,\n  `mcm-status` int(11) DEFAULT NULL,\n  `created_at` datetime NOT NULL DEFAULT '1000-01-01 00:00:00',\n  `dues` int(11) NOT NULL DEFAULT 1,\n  `selectedSkin` int(11) DEFAULT NULL,\n  `manual_delivery_status` tinyint(1) NOT NULL DEFAULT 0,\n  `smm_order_id` varchar(100) DEFAULT NULL,\n  `smm_progress_percent` tinyint(3) unsigned NOT NULL DEFAULT 0,\n  `smm_progress_text` varchar(255) DEFAULT NULL,\n  `smm_status` varchar(50) DEFAULT NULL,\n  `smm_started_at` datetime DEFAULT NULL,\n  PRIMARY KEY (`id`)\n) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci",
+    "plugin_servers": "CREATE TABLE `plugin_servers` (\n  `id` int(11) NOT NULL AUTO_INCREMENT,\n  `userid` int(11) NOT NULL,\n  `row_order` int(11) DEFAULT NULL,\n  `name` text NOT NULL,\n  `plugin_id` int(11) NOT NULL,\n  `ip` text NOT NULL,\n  `port` text NOT NULL,\n  `password` text NOT NULL,\n  `created_at` date NOT NULL DEFAULT '1000-01-01',\n  PRIMARY KEY (`id`)\n) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci",
+    "productcategories": "CREATE TABLE `productcategories` (\n  `id` int(11) NOT NULL AUTO_INCREMENT,\n  `userid` int(11) DEFAULT NULL,\n  `row_order` int(11) DEFAULT NULL,\n  `parentID` int(11) NOT NULL DEFAULT 0,\n  `name` varchar(255) NOT NULL,\n  `content` text NOT NULL,\n  `slug` varchar(255) NOT NULL,\n  `image_id` char(32) NOT NULL,\n  `image_type` varchar(6) NOT NULL DEFAULT 'jpg',\n  `gui` text DEFAULT NULL,\n  `created_at` datetime NOT NULL DEFAULT '1000-01-01 00:00:00',\n  PRIMARY KEY (`id`)\n) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci",
+    "productlicenses": "CREATE TABLE `productlicenses` (\n  `id` int(11) NOT NULL AUTO_INCREMENT,\n  `userid` int(11) NOT NULL,\n  `productid` int(11) NOT NULL,\n  `status` enum('0','1') NOT NULL DEFAULT '0',\n  `minecraft` int(11) DEFAULT NULL,\n  `created_at` datetime NOT NULL DEFAULT '1000-01-01 00:00:00',\n  PRIMARY KEY (`id`)\n) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci",
+    "productpackets": "CREATE TABLE `productpackets` (\n  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,\n  `category_id` int(11) DEFAULT NULL,\n  `userid` int(10) unsigned NOT NULL,\n  `name` text DEFAULT NULL,\n  `productsStatus` int(11) DEFAULT NULL,\n  `products` text NOT NULL,\n  `price` int(11) DEFAULT NULL,\n  `expiry_at` date DEFAULT '1000-01-01',\n  `created_at` date DEFAULT '1000-01-01',\n  `row_order` int(11) DEFAULT NULL,\n  PRIMARY KEY (`id`)\n) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci",
+    "products": "CREATE TABLE `products` (\n  `id` int(11) NOT NULL AUTO_INCREMENT,\n  `row_order` int(11) DEFAULT NULL,\n  `categoryID` int(11) DEFAULT NULL,\n  `name` varchar(255) DEFAULT NULL,\n  `developerID` int(11) DEFAULT NULL,\n  `slug` text DEFAULT NULL,\n  `init` text DEFAULT NULL,\n  `entry` text DEFAULT NULL,\n  `image_id` char(32) DEFAULT NULL,\n  `image_type` varchar(6) DEFAULT 'jpg',\n  `details` text DEFAULT NULL,\n  `contents` text DEFAULT NULL,\n  `price` int(4) unsigned DEFAULT 0,\n  `discountedPrice` int(4) unsigned DEFAULT 0,\n  `discountexpiry_at` datetime DEFAULT '1000-01-01 00:00:00',\n  `duration` int(4) DEFAULT NULL,\n  `stock` int(5) DEFAULT -1,\n  `paidFreeStatus` int(11) DEFAULT 0,\n  `downloadURL` text DEFAULT NULL,\n  `gamemodes` text DEFAULT NULL,\n  `fork` text DEFAULT NULL,\n  `views` int(11) DEFAULT 0,\n  `versions` text DEFAULT NULL,\n  `tags` text DEFAULT NULL,\n  `videos` text DEFAULT NULL,\n  `videosImage` text DEFAULT NULL,\n  `discordRole` text DEFAULT NULL,\n  `created_at` datetime DEFAULT '1000-01-01 00:00:00',\n  `productType` varchar(20) DEFAULT 'software',\n  `gametype` int(11) DEFAULT NULL,\n  `featureComparison` longtext DEFAULT NULL,\n  `minecraftData` longtext DEFAULT NULL,\n  `stock_type` enum('unlimited','limited') DEFAULT 'unlimited',\n  `sale_duration` int(11) DEFAULT 0,\n  `required_products` text DEFAULT NULL,\n  `require_only_one` tinyint(1) DEFAULT 0,\n  `plugin_data` longtext DEFAULT NULL COMMENT 'Minecraft ürünlerinin sunucu, komut ve özellik yapılarını JSON olarak tutar',\n  `skin_data` text DEFAULT NULL,\n  `cosmetic_data` text DEFAULT NULL,\n  `plugin_features` longtext DEFAULT NULL COMMENT 'Karşılaştırmalı özellik tablosu',\n  `grant_role_ids` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT json_array(),\n  `service_type` varchar(20) NOT NULL DEFAULT 'manual',\n  `provider_id` int(10) unsigned DEFAULT NULL,\n  `provider_service_id` varchar(100) DEFAULT NULL,\n  `min_quantity` int(11) DEFAULT NULL,\n  `max_quantity` int(11) DEFAULT NULL,\n  `variant_ids` longtext DEFAULT NULL,\n  `product_questions` longtext DEFAULT NULL,\n  `extra_services` longtext DEFAULT NULL,\n  PRIMARY KEY (`id`)\n) ENGINE=InnoDB AUTO_INCREMENT=64 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci",
+    "userslist": "CREATE TABLE `userslist` (\n  `id` int(11) NOT NULL AUTO_INCREMENT,\n  `row_order` int(11) DEFAULT NULL,\n  `subname` varchar(255) NOT NULL DEFAULT '0',\n  `lastname` varchar(255) DEFAULT NULL,\n  `nick` text DEFAULT NULL,\n  `email` varchar(255) DEFAULT 'zonely@gmail.com',\n  `password` varchar(255) NOT NULL,\n  `discord_id` text DEFAULT NULL,\n  `avatar` text DEFAULT NULL,\n  `google_avatar` text DEFAULT NULL,\n  `userperms` text DEFAULT NULL,\n  `header_background` text DEFAULT NULL,\n  `header_background_type` text DEFAULT NULL,\n  `avatar_background` text DEFAULT NULL,\n  `avatar_background_type` text DEFAULT NULL,\n  `body_background` text DEFAULT NULL,\n  `body_background_type` text DEFAULT NULL,\n  `lastlogin` datetime DEFAULT '1000-01-01 00:00:00',\n  `is_logged` smallint(6) NOT NULL DEFAULT 0,\n  `credit` int(5) unsigned NOT NULL DEFAULT 0,\n  `gold` int(255) DEFAULT 0,\n  `gift_gold` int(255) DEFAULT 0,\n  `tfa_status` enum('0','1') NOT NULL DEFAULT '0',\n  `created_ip` varchar(40) NOT NULL DEFAULT '127.0.0.1',\n  `linkvertise_gold` int(255) DEFAULT 0,\n  `hwid` text DEFAULT NULL,\n  `created_at` datetime NOT NULL DEFAULT '1000-01-01 00:00:00',\n  `cfxre_id` text DEFAULT NULL,\n  `cfxre_username` text DEFAULT NULL,\n  `roblox_username` text DEFAULT NULL,\n  `roblox_id` text DEFAULT NULL,\n  `steam_id` text DEFAULT NULL,\n  `realsubname` text DEFAULT NULL,\n  PRIMARY KEY (`id`)\n) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci"
+  },
+  "products": [
+    {
+      "id": 1,
+      "name": "Yerel test ürünü",
+      "details": "Yalnızca otomatik test verisidir.",
+      "slug": "local-test-one",
+      "productType": "minecraft",
+      "categoryID": 2,
+      "price": 100,
+      "plugin_data": "[{\"order\": 17, \"name\": \"Test seçeneği\", \"price\": 100, \"discount_type\": \"none\", \"stock_type\": \"unlimited\", \"zonely\": {\"showInGame\": 0}, \"servers\": []}]"
+    },
+    {
+      "id": 2,
+      "name": "İkinci test ürünü",
+      "details": "Yalnızca otomatik test verisidir.",
+      "slug": "local-test-two",
+      "productType": "minecraft",
+      "categoryID": 2,
+      "price": 100,
+      "plugin_data": "[{\"order\": 17, \"name\": \"Test seçeneği\", \"price\": 100, \"discount_type\": \"none\", \"stock_type\": \"unlimited\", \"zonely\": {\"showInGame\": 0}, \"servers\": []}]"
+    }
+  ],
+  "productcategories": [
+    {
+      "id": 2,
+      "name": "Test kategorisi",
+      "content": "Yapay test verisi",
+      "parentID": 0,
+      "row_order": 0,
+      "gui": "{\"showInGame\":0}"
+    }
+  ],
+  "productpackets": []
+}

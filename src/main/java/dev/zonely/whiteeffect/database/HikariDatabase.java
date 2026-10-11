@@ -17,6 +17,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLTransientConnectionException;
+import java.sql.SQLRecoverableException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -25,8 +27,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import javax.sql.rowset.CachedRowSet;
@@ -42,6 +49,8 @@ public class HikariDatabase extends Database {
    private final String password;
    private final boolean mariadb;
    private final ExecutorService executor;
+   private final DatabaseBackoff reconnectBackoff = new DatabaseBackoff();
+   private final AtomicLong nextErrorLogAt = new AtomicLong();
    private HikariDataSource dataSource;
 
    public HikariDatabase(String host, String port, String dbname, String username, String password, boolean mariadb) {
@@ -52,7 +61,13 @@ public class HikariDatabase extends Database {
       this.password = password;
       this.mariadb = mariadb;
       this.openConnection();
-      this.executor = Executors.newCachedThreadPool();
+      // Bounded workers and queue: outages must not accumulate unlimited write jobs in RAM.
+      this.executor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS,
+              new ArrayBlockingQueue<>(1024), runnable -> {
+                 Thread thread = new Thread(runnable, "zonely-db-writer");
+                 thread.setDaemon(true);
+                 return thread;
+              }, new ThreadPoolExecutor.AbortPolicy());
       ensureTableStructure("ZonelyCoreNetworkBooster",
               "CREATE TABLE IF NOT EXISTS `ZonelyCoreNetworkBooster` (`id` VARCHAR(32), `booster` TEXT, `multiplier` DOUBLE, `expires` LONG, PRIMARY KEY(`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE utf8_bin;");
       ChatBridgeSchema.tables().forEach(this::ensureTableStructure);
@@ -128,7 +143,7 @@ public class HikariDatabase extends Database {
          NetworkBooster var8;
          label52: {
             try {
-               if (rs != null) {
+               if (rs != null && rs.next()) {
                   String booster = rs.getString("booster");
                   double multiplier = rs.getDouble("multiplier");
                   long expires = rs.getLong("expires");
@@ -174,7 +189,7 @@ public class HikariDatabase extends Database {
          String var4;
          label50: {
             try {
-               if (rs != null) {
+               if (rs != null && rs.next()) {
                   String result = rs.getString("role") + " : " + rs.getString("name");
                   RoleCache.setCache(player, rs.getString("role"), rs.getString("name"));
                   var4 = result;
@@ -216,7 +231,7 @@ public class HikariDatabase extends Database {
          CachedRowSet rs = this.query("SELECT `preferences` FROM `ZonelyCoreProfile` WHERE LOWER(`name`) = ?", player.toLowerCase());
 
          try {
-            if (rs != null) {
+            if (rs != null && rs.next()) {
                preference = ((JSONObject)(new JSONParser()).parse(rs.getString("preferences"))).get(id).equals(0L);
             }
          } catch (Throwable var9) {
@@ -296,7 +311,16 @@ public class HikariDatabase extends Database {
    }
 
    public void close() {
-      this.executor.shutdownNow().forEach(Runnable::run);
+      this.executor.shutdown();
+      try {
+         if (!this.executor.awaitTermination(5, TimeUnit.SECONDS)) {
+            LOGGER.warning("Database writes did not finish before shutdown timeout.");
+            this.executor.shutdownNow();
+         }
+      } catch (InterruptedException ex) {
+         Thread.currentThread().interrupt();
+         this.executor.shutdownNow();
+      }
       this.closeConnection();
    }
 
@@ -311,7 +335,7 @@ public class HikariDatabase extends Database {
 
          try {
             label65: {
-               CachedRowSet rs = this.query(table.getInfo().select(), name.toLowerCase());
+               CachedRowSet rs = this.queryOrThrow(table.getInfo().select(), name.toLowerCase());
 
                label66: {
                   try {
@@ -359,7 +383,10 @@ public class HikariDatabase extends Database {
          List<Object> list = new ArrayList();
          list.add(name);
          list.addAll((Collection)containerMap.values().stream().map(DataContainer::get).collect(Collectors.toList()));
-         this.execute(table.getInfo().insert(), list.toArray());
+         // A new profile must exist before subsequent UPDATE statements run.
+         if (!updateOnce(table.getInfo().insert(), list.toArray())) {
+            throw new ProfileLoadException("Could not create profile row for " + table.getInfo().name());
+         }
          list.clear();
       }
 
@@ -378,15 +405,18 @@ public class HikariDatabase extends Database {
    private void save0(String name, Map<String, Map<String, DataContainer>> tableMap, boolean async) {
       for (DataTable table : DataTable.listTables()) {
          Map<String, DataContainer> rows = tableMap.get(table.getInfo().name());
-         if (rows.values().stream().noneMatch(DataContainer::isUpdated)) {
+         if (rows == null || rows.values().stream().noneMatch(DataContainer::isUpdated)) {
             continue;
          }
 
-         List<Object> values = rows.values().stream().filter(DataContainer::isUpdated).map(DataContainer::get).collect(Collectors.toList());
+         List<Object> values = new ArrayList<>();
+         Map<DataContainer, Object> snapshot = new LinkedHashMap<>();
          StringBuilder query = new StringBuilder("UPDATE `" + table.getInfo().name() + "` SET ");
          for (Map.Entry<String, DataContainer> collumn : rows.entrySet()) {
             if (collumn.getValue().isUpdated()) {
-               collumn.getValue().setUpdated(false);
+               Object value = collumn.getValue().get();
+               values.add(value);
+               snapshot.put(collumn.getValue(), value);
                query.append("`").append(collumn.getKey()).append("` = ?, ");
             }
          }
@@ -394,19 +424,23 @@ public class HikariDatabase extends Database {
          query.deleteCharAt(query.length() - 1);
          query.append(" WHERE LOWER(`name`) = ?");
          values.add(name.toLowerCase());
+         Runnable markSaved = () -> snapshot.forEach((container, value) -> {
+            if (Objects.equals(container.get(), value)) {
+               container.setUpdated(false);
+            }
+         });
          if (async) {
-            this.execute(query.toString(), values.toArray());
-         } else {
-            this.update(query.toString(), values.toArray());
+            this.queueUpdate(query.toString(), values.toArray(), markSaved);
+         } else if (this.updateOnce(query.toString(), values.toArray())) {
+            markSaved.run();
          }
-         values.clear();
       }
    }
 
    public String exists(String name) {
-      try {
-         return this.query("SELECT `name` FROM `ZonelyCoreProfile` WHERE LOWER(`name`) = ?", name.toLowerCase()).getString("name");
-      } catch (Exception var3) {
+      try (CachedRowSet rs = this.query("SELECT `name` FROM `ZonelyCoreProfile` WHERE LOWER(`name`) = ?", name.toLowerCase())) {
+         return rs != null && rs.next() ? rs.getString("name") : null;
+      } catch (SQLException ex) {
          return null;
       }
    }
@@ -415,200 +449,189 @@ public class HikariDatabase extends Database {
       LOGGER.info("§6MySQL §fserver connection initializing...");
       HikariConfig config = new HikariConfig();
       config.setPoolName("wConnectionPool");
-      config.setMaximumPoolSize(32);
-      config.setConnectionTimeout(30000L);
-      config.setDriverClassName(this.mariadb ? "org.mariadb.jdbc.Driver" : "com.mysql.jdbc.Driver");
-      config.setJdbcUrl((this.mariadb ? "jdbc:mariadb://" : "jdbc:mysql://") + this.host + ":" + this.port + "/" + this.dbname);
+      config.setMaximumPoolSize(5);
+      config.setMinimumIdle(0);
+      config.setConnectionTimeout(1500L);
+      config.setValidationTimeout(1000L);
+      config.setInitializationFailTimeout(2000L);
+      // MariaDB JDBC is a declared runtime dependency and also supports MySQL servers.
+      // The project does not package MySQL Connector/J.
+      config.setDriverClassName("org.mariadb.jdbc.Driver");
+      config.setJdbcUrl("jdbc:mariadb://" + this.host + ":" + this.port + "/" + this.dbname
+              + "?connectTimeout=1500&socketTimeout=5000&useUnicode=true&characterEncoding=UTF-8");
       config.setUsername(this.username);
       config.setPassword(this.password);
-      config.addDataSourceProperty("autoReconnect", "true");
       this.dataSource = new HikariDataSource(config);
       LOGGER.info("§6MySQL §fserver connection established.");
    }
 
    public void closeConnection() {
-      if (this.isConnected()) {
+      if (this.dataSource != null && !this.dataSource.isClosed()) {
          this.dataSource.close();
       }
 
    }
 
    public Connection getConnection() throws SQLException {
-      return this.dataSource.getConnection();
+      long remaining = reconnectBackoff.remainingMillis(System.currentTimeMillis());
+      if (remaining > 0L) {
+         throw new SQLTransientConnectionException("MySQL reconnect cooldown (" + remaining + " ms)", "08001");
+      }
+      try {
+         Connection connection = this.dataSource.getConnection();
+         reconnectBackoff.succeeded();
+         return connection;
+      } catch (SQLException ex) {
+         reconnectBackoff.failed(System.currentTimeMillis());
+         throw ex;
+      }
    }
 
    public boolean isConnected() {
-      return !this.dataSource.isClosed();
+      return this.dataSource != null && !this.dataSource.isClosed();
    }
 
    public void update(String sql, Object... vars) {
-      Connection connection = null;
-      PreparedStatement ps = null;
+      // Synchronous calls must never sleep on the Bukkit tick thread.
+      updateOnce(sql, vars);
+   }
 
-      try {
-         connection = this.getConnection();
-         ps = connection.prepareStatement(sql);
+   private boolean updateOnce(String sql, Object... vars) {
+      try (Connection connection = this.getConnection();
+           PreparedStatement ps = connection.prepareStatement(sql)) {
 
          for(int i = 0; i < vars.length; ++i) {
             ps.setObject(i + 1, vars[i]);
          }
 
          ps.executeUpdate();
-      } catch (SQLException var18) {
-         LOGGER.log(Level.WARNING, "Unable to obtain SQL connection: ", var18);
-      } finally {
-         try {
-            if (connection != null && !connection.isClosed()) {
-               connection.close();
-            }
-         } catch (SQLException var17) {
-            var17.printStackTrace();
+         return true;
+      } catch (SQLException ex) {
+         if (isConnectionError(ex) && reconnectBackoff.remainingMillis(System.currentTimeMillis()) == 0L) {
+            reconnectBackoff.failed(System.currentTimeMillis());
          }
-
-         try {
-            if (ps != null && !ps.isClosed()) {
-               ps.close();
-            }
-         } catch (SQLException var16) {
-            var16.printStackTrace();
-         }
-
+         logFailure("Database update failed", ex);
+         return false;
       }
-
    }
 
    public void execute(String sql, Object... vars) {
-      this.executor.execute(() -> {
-         this.update(sql, vars);
-      });
+      queueUpdate(sql, vars, null);
+   }
+
+   private void queueUpdate(String sql, Object[] vars, Runnable success) {
+      try {
+         this.executor.execute(() -> {
+            // Sleep/retry happens ONLY in the DB worker threads.
+            // Keep one bounded worker waiting for recovery, preserving queued write order.
+            // Shutdown interrupts this wait; non-connection SQL errors still stop immediately.
+            while (!Thread.currentThread().isInterrupted()) {
+               long cooldown = reconnectBackoff.remainingMillis(System.currentTimeMillis());
+               if (cooldown > 0L) {
+                  try {
+                     Thread.sleep(cooldown);
+                  } catch (InterruptedException ex) {
+                     Thread.currentThread().interrupt();
+                     return;
+                  }
+               }
+               if (updateOnce(sql, vars)) {
+                  if (success != null) {
+                     success.run();
+                  }
+                  return;
+               }
+               // A syntax/constraint error doesn't trigger the reconnect gate.
+               if (reconnectBackoff.remainingMillis(System.currentTimeMillis()) == 0L) {
+                  return;
+               }
+            }
+         });
+      } catch (RejectedExecutionException ex) {
+         logFailure("Database write queue full or stopping; write was not queued", ex);
+      }
+   }
+
+   private boolean isConnectionError(SQLException ex) {
+      String state = ex.getSQLState();
+      return ex instanceof SQLTransientConnectionException || ex instanceof SQLRecoverableException
+              || (state != null && state.startsWith("08"));
+   }
+
+   private void logFailure(String description, Exception error) {
+      long now = System.currentTimeMillis();
+      long previous = nextErrorLogAt.get();
+      if (now >= previous && nextErrorLogAt.compareAndSet(previous, now + 15000L)) {
+         LOGGER.log(Level.WARNING, description + "; further warnings suppressed for 15 seconds", error);
+      }
    }
 
    public int updateWithInsertId(String sql, Object... vars) {
       int id = -1;
-      Connection connection = null;
-      PreparedStatement ps = null;
-      ResultSet rs = null;
-
-      try {
-         connection = this.getConnection();
-         ps = connection.prepareStatement(sql, 1);
+      try (Connection connection = this.getConnection();
+           PreparedStatement ps = connection.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS)) {
 
          for(int i = 0; i < vars.length; ++i) {
             ps.setObject(i + 1, vars[i]);
          }
 
          ps.execute();
-         rs = ps.getGeneratedKeys();
-         if (rs.next()) {
-            id = rs.getInt(1);
-         }
-      } catch (SQLException var24) {
-         LOGGER.log(Level.WARNING, "Unable to obtain SQL connection: ", var24);
-      } finally {
-         try {
-            if (connection != null && !connection.isClosed()) {
-               connection.close();
+         try (ResultSet rs = ps.getGeneratedKeys()) {
+            if (rs.next()) {
+               id = rs.getInt(1);
             }
-         } catch (SQLException var23) {
-            var23.printStackTrace();
          }
-
-         try {
-            if (ps != null && !ps.isClosed()) {
-               ps.close();
-            }
-         } catch (SQLException var22) {
-            var22.printStackTrace();
-         }
-
-         try {
-            if (rs != null && !rs.isClosed()) {
-               rs.close();
-            }
-         } catch (SQLException var21) {
-            var21.printStackTrace();
-         }
-
+      } catch (SQLException ex) {
+         LOGGER.log(Level.WARNING, "Database generated-key update failed", ex);
       }
 
       return id;
    }
 
    public CachedRowSet query(String query, Object... vars) {
-      Connection connection = null;
-      PreparedStatement ps = null;
-      ResultSet rs = null;
-      CachedRowSet rowSet = null;
-
       try {
-         connection = this.getConnection();
-         ps = connection.prepareStatement(query);
+         return queryOrThrow(query, vars);
+      } catch (SQLException ex) {
+         if (isConnectionError(ex) && reconnectBackoff.remainingMillis(System.currentTimeMillis()) == 0L) {
+            reconnectBackoff.failed(System.currentTimeMillis());
+         }
+         logFailure("Failed to execute database query", ex);
+         return null;
+      }
+   }
+
+   private CachedRowSet queryOrThrow(String query, Object... vars) throws SQLException {
+      try (Connection connection = this.getConnection();
+           PreparedStatement ps = connection.prepareStatement(query)) {
 
          for(int i = 0; i < vars.length; ++i) {
             ps.setObject(i + 1, vars[i]);
          }
 
-         rs = ps.executeQuery();
-         rowSet = RowSetProvider.newFactory().createCachedRowSet();
-         rowSet.populate(rs);
+         CachedRowSet rowSet = RowSetProvider.newFactory().createCachedRowSet();
+         try (ResultSet rs = ps.executeQuery()) {
+            rowSet.populate(rs);
+         }
          if (!rowSet.next()) {
             rowSet.close();
-            rowSet = null;
-         } else {
-            rowSet.beforeFirst();
+            return null;
          }
-      } catch (SQLException var28) {
-         LOGGER.log(Level.WARNING, "Failed to execute query: ", var28);
-      } finally {
-         try {
-            if (connection != null && !connection.isClosed()) {
-               connection.close();
-            }
-         } catch (SQLException var27) {
-            var27.printStackTrace();
-         }
-
-         try {
-            if (ps != null && !ps.isClosed()) {
-               ps.close();
-            }
-         } catch (SQLException var26) {
-            var26.printStackTrace();
-         }
-
-         try {
-            if (rs != null && !rs.isClosed()) {
-               rs.close();
-            }
-         } catch (SQLException var25) {
-            var25.printStackTrace();
-         }
-
+         rowSet.beforeFirst();
+         return rowSet;
       }
-
-      return null;
    }
 
    private void ensureTableStructure(String tableName, String createSql) {
-      boolean rebuild = false;
       boolean exists = false;
       try (Connection connection = this.getConnection()) {
          exists = SchemaUtils.tableExists(connection, tableName);
          if (exists && !SchemaUtils.schemaMatches(connection, tableName, createSql)) {
-            rebuild = true;
+            LOGGER.warning("[Database] Schema mismatch in " + tableName + "; preserving existing data. Review migrations manually.");
          }
       } catch (SQLException ex) {
-         LOGGER.log(Level.WARNING, "[Database] Failed to inspect table " + tableName + ". Forcing rebuild.", ex);
-         rebuild = true;
+         LOGGER.log(Level.WARNING, "[Database] Failed to inspect " + tableName + "; refusing destructive migration.", ex);
       }
-
-      if (rebuild) {
-         LOGGER.warning("[Database] Detected schema mismatch for table " + tableName + ". Rebuilding table to match plugin definition.");
-         this.update("DROP TABLE IF EXISTS `" + tableName + "`");
-         exists = false;
-      }
-
-      if (!exists || rebuild) {
+      if (!exists) {
          this.update(createSql);
       }
    }

@@ -36,6 +36,8 @@ public abstract class Commands extends Command {
       if (!FakeManager.isBungeeSide()) {
          new FakeCommand();
       }
+      new EsportsCommand(Core.getInstance());
+      new ClubCommand(Core.getInstance());
 
    }
 

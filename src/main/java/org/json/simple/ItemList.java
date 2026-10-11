@@ -8,12 +8,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
 
-/**
- * |a:b:c| => |a|,|b|,|c|
- * |:| => ||,||
- * |a:| => |a|,||
- * @author FangYidong<fangyidong@yahoo.com.cn>
- */
 @SuppressWarnings("all")
 public class ItemList {
 	private String sp=",";
@@ -106,10 +100,6 @@ public class ItemList {
 		this.split(s,sp,items,isMultiToken);
 	}
 	
-	/**
-	 * @param i 0-based
-	 * @return
-	 */
 	public String get(int i){
 		return (String)items.get(i);
 	}

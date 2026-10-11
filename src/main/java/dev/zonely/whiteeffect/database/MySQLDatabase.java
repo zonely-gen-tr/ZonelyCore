@@ -91,7 +91,7 @@ public class MySQLDatabase extends Database {
    @Override
    public NetworkBooster getBooster(String minigame) {
       try (CachedRowSet rs = query("SELECT * FROM `ZonelyCoreNetworkBooster` WHERE `id` = ?", minigame)) {
-         if (rs != null) {
+         if (rs != null && rs.next()) {
             String booster = rs.getString("booster");
             double multiplier = rs.getDouble("multiplier");
             long expires = rs.getLong("expires");
@@ -108,7 +108,7 @@ public class MySQLDatabase extends Database {
    @Override
    public String getRankAndName(String player) {
       try (CachedRowSet rs = query("SELECT `name`, `role` FROM `ZonelyCoreProfile` WHERE LOWER(`name`) = ?", player.toLowerCase())) {
-         if (rs != null) {
+         if (rs != null && rs.next()) {
             String result = rs.getString("role") + " : " + rs.getString("name");
             RoleCache.setCache(player, rs.getString("role"), rs.getString("name"));
             return result;
@@ -122,7 +122,7 @@ public class MySQLDatabase extends Database {
    public boolean getPreference(String player, String id, boolean def) {
       boolean preference = true;
       try (CachedRowSet rs = query("SELECT `preferences` FROM `ZonelyCoreProfile` WHERE LOWER(`name`) = ?", player.toLowerCase())) {
-         if (rs != null) {
+         if (rs != null && rs.next()) {
             preference = ((JSONObject) new JSONParser().parse(rs.getString("preferences"))).get(id).equals(0L);
          }
       } catch (Exception ex) {
@@ -158,7 +158,16 @@ public class MySQLDatabase extends Database {
 
    @Override
    public void close() {
-      this.executor.shutdownNow().forEach(Runnable::run);
+      this.executor.shutdown();
+      try {
+         if (!this.executor.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS)) {
+            LOGGER.warning("Legacy database writes did not finish before shutdown timeout.");
+            this.executor.shutdownNow();
+         }
+      } catch (InterruptedException ex) {
+         Thread.currentThread().interrupt();
+         this.executor.shutdownNow();
+      }
       this.closeConnection();
    }
 
@@ -231,9 +240,9 @@ public class MySQLDatabase extends Database {
 
    @Override
    public String exists(String name) {
-      try {
-         return this.query("SELECT `name` FROM `ZonelyCoreProfile` WHERE LOWER(`name`) = ?", name.toLowerCase()).getString("name");
-      } catch (Exception ex) {
+      try (CachedRowSet rs = this.query("SELECT `name` FROM `ZonelyCoreProfile` WHERE LOWER(`name`) = ?", name.toLowerCase())) {
+         return rs != null && rs.next() ? rs.getString("name") : null;
+      } catch (SQLException ex) {
          return null;
       }
    }
@@ -429,26 +438,16 @@ public class MySQLDatabase extends Database {
    }
 
    private void ensureTableStructure(String tableName, String createSql) {
-      boolean rebuild = false;
       boolean exists = false;
-      try {
-         Connection connection = getConnection();
+      try (Connection connection = getConnection()) {
          exists = SchemaUtils.tableExists(connection, tableName);
          if (exists && !SchemaUtils.schemaMatches(connection, tableName, createSql)) {
-            rebuild = true;
+            LOGGER.warning("[Database] Schema mismatch in " + tableName + "; preserving existing data. Review migrations manually.");
          }
       } catch (SQLException ex) {
-         LOGGER.log(Level.WARNING, "[Database] Unable to validate table " + tableName + ". Forcing rebuild.", ex);
-         rebuild = true;
+         LOGGER.log(Level.WARNING, "[Database] Unable to inspect table " + tableName + "; refusing destructive migration.", ex);
       }
-
-      if (rebuild) {
-         LOGGER.warning("[Database] Detected schema mismatch for table " + tableName + ". Rebuilding table to match plugin definition.");
-         update("DROP TABLE IF EXISTS `" + tableName + "`");
-         exists = false;
-      }
-
-      if (!exists || rebuild) {
+      if (!exists) {
          update(createSql);
       }
    }

@@ -1,6 +1,7 @@
 package dev.zonely.whiteeffect.launcher;
 
 import dev.zonely.whiteeffect.Core;
+import dev.zonely.whiteeffect.nms.NMS;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -14,6 +15,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.entity.Player;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
@@ -50,20 +52,20 @@ public final class LauncherSessionService {
         return enabled && !endpoint.isEmpty();
     }
 
-    public boolean isPlayerAuthorized(String nickname, String ipAddress) {
+    public AuthorizationResult authorizePlayer(String nickname, String ipAddress) {
         if (!isEnabled()) {
-            return true;
+            return AuthorizationResult.allowed(null);
         }
 
         String trimmedName = nickname == null ? "" : nickname.trim();
         String trimmedIp = ipAddress == null ? "" : ipAddress.trim();
 
         if (allowLoopback && isLoopback(trimmedIp)) {
-            return true;
+            return AuthorizationResult.allowed(null);
         }
 
         if (trimmedName.isEmpty() || trimmedIp.isEmpty()) {
-            return false;
+            return AuthorizationResult.denied();
         }
 
         HttpURLConnection connection = null;
@@ -81,39 +83,49 @@ public final class LauncherSessionService {
             int status = connection.getResponseCode();
             InputStream stream = status >= 200 && status < 300 ? connection.getInputStream() : connection.getErrorStream();
             if (stream == null) {
-                return failOpen;
+                return failOpen ? AuthorizationResult.allowed(null) : AuthorizationResult.denied();
             }
 
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
                 Object parsed = parser.parse(reader);
                 if (parsed instanceof JSONObject) {
                     JSONObject json = (JSONObject) parsed;
-                    Object successObj = json.get("success");
-                    boolean success = !(successObj instanceof Boolean) || (Boolean) successObj;
+                    boolean success = asBoolean(json.get("success"), true);
                     if (!success) {
                         logDenied(trimmedName, trimmedIp, "service rejection");
-                        return false;
+                        return AuthorizationResult.denied();
                     }
-                    Object authorizedObj = json.get("authorized");
-                    boolean authorized = !(authorizedObj instanceof Boolean) || (Boolean) authorizedObj;
+
+                    boolean authorized = asBoolean(json.get("authorized"), false);
+                    SkinPayload skin = SkinPayload.fromJson(json.get("skin"));
                     if (!authorized) {
                         logDenied(trimmedName, trimmedIp, "missing session");
-                    } else {
-                        loggedDenials.remove(trimmedName.toLowerCase(Locale.ROOT));
+                        return AuthorizationResult.of(false, null);
                     }
-                    return authorized;
+
+                    loggedDenials.remove(trimmedName.toLowerCase(Locale.ROOT));
+                    return AuthorizationResult.of(true, skin);
                 }
             }
         } catch (Exception ex) {
             plugin.getLogger().log(Level.WARNING, "[LauncherAuth] Verification failed for " + trimmedName + ": " + ex.getMessage());
-            return failOpen;
+            return failOpen ? AuthorizationResult.allowed(null) : AuthorizationResult.denied();
         } finally {
             if (connection != null) {
                 connection.disconnect();
             }
         }
 
-        return failOpen;
+        return failOpen ? AuthorizationResult.allowed(null) : AuthorizationResult.denied();
+    }
+
+    public void applySkin(Player player, SkinPayload payload) {
+        if (player == null || payload == null || !payload.isValid()) {
+            return;
+        }
+
+        NMS.setValueAndSignature(player, payload.value(), payload.signature());
+        NMS.refreshPlayer(player);
     }
 
     private String buildUrl(String nickname, String ipAddress) throws IOException {
@@ -155,6 +167,17 @@ public final class LauncherSessionService {
         return candidate + VERIFY_SUFFIX;
     }
 
+    private boolean asBoolean(Object value, boolean defaultValue) {
+        if (value instanceof Boolean) {
+            return (Boolean) value;
+        }
+        if (value instanceof String) {
+            String str = (String) value;
+            return "true".equalsIgnoreCase(str) || "1".equals(str);
+        }
+        return defaultValue;
+    }
+
     private static boolean isLoopback(String ip) {
         if (ip == null) {
             return false;
@@ -163,5 +186,98 @@ public final class LauncherSessionService {
         return "127.0.0.1".equals(normalized)
                 || "::1".equals(normalized)
                 || "0:0:0:0:0:0:0:1".equalsIgnoreCase(normalized);
+    }
+
+    public static final class AuthorizationResult {
+        private final boolean authorized;
+        private final SkinPayload skin;
+
+        private AuthorizationResult(boolean authorized, SkinPayload skin) {
+            this.authorized = authorized;
+            this.skin = skin;
+        }
+
+        public static AuthorizationResult of(boolean authorized, SkinPayload skin) {
+            return new AuthorizationResult(authorized, skin);
+        }
+
+        public static AuthorizationResult allowed(SkinPayload skin) {
+            return new AuthorizationResult(true, skin);
+        }
+
+        public static AuthorizationResult denied() {
+            return new AuthorizationResult(false, null);
+        }
+
+        public boolean isAuthorized() {
+            return authorized;
+        }
+
+        public SkinPayload skin() {
+            return skin;
+        }
+    }
+
+    public static final class SkinPayload {
+        private final String value;
+        private final String signature;
+        private final String model;
+        private final String uuid;
+        private final String url;
+
+        private SkinPayload(String value, String signature, String model, String uuid, String url) {
+            this.value = value;
+            this.signature = signature;
+            this.model = model;
+            this.uuid = uuid;
+            this.url = url;
+        }
+
+        public static SkinPayload fromJson(Object source) {
+            if (!(source instanceof JSONObject)) {
+                return null;
+            }
+            JSONObject json = (JSONObject) source;
+
+            Object valueObj = json.get("value");
+            String value = valueObj instanceof String ? (String) valueObj : null;
+            Object signatureObj = json.get("signature");
+            String signature = signatureObj instanceof String ? (String) signatureObj : null;
+            if (value == null || signature == null) {
+                return null;
+            }
+
+            Object modelObj = json.get("model");
+            String model = modelObj instanceof String ? (String) modelObj : "classic";
+            Object uuidObj = json.get("uuid");
+            String uuid = uuidObj instanceof String ? (String) uuidObj : null;
+            Object urlObj = json.get("url");
+            String url = urlObj instanceof String ? (String) urlObj : null;
+            return new SkinPayload(value, signature, model, uuid, url);
+        }
+
+        public boolean isValid() {
+            return value != null && !value.isEmpty() && signature != null && !signature.isEmpty();
+        }
+
+        public String value() {
+            return value;
+        }
+
+        public String signature() {
+            return signature;
+        }
+
+        public String model() {
+            return model;
+        }
+
+        public String uuid() {
+            return uuid;
+        }
+
+        public String url() {
+            return url;
+        }
     }
 }

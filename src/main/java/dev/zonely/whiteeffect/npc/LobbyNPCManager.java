@@ -8,7 +8,6 @@ import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.events.PacketEvent;
 import com.comphenix.protocol.wrappers.EnumWrappers;
-import com.comphenix.protocol.wrappers.WrappedChatComponent;
 import com.comphenix.protocol.wrappers.WrappedDataWatcher;
 import com.google.common.collect.ImmutableList;
 import dev.zonely.whiteeffect.Core;
@@ -29,6 +28,8 @@ import dev.zonely.whiteeffect.plugin.config.WConfig;
 import dev.zonely.whiteeffect.store.LastCreditsMenuManager;
 import dev.zonely.whiteeffect.support.SupportManager;
 import dev.zonely.whiteeffect.utils.BukkitUtils;
+import dev.zonely.whiteeffect.esports.EsportsManager;
+import dev.zonely.whiteeffect.esports.menu.EsportsTournamentListMenu;
 import dev.zonely.whiteeffect.utils.ProtocolLibUtils;
 import dev.zonely.whiteeffect.utils.StringUtils;
 import dev.zonely.whiteeffect.player.Profile;
@@ -42,9 +43,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import me.clip.placeholderapi.PlaceholderAPI;
-import net.md_5.bungee.api.chat.BaseComponent;
-import net.md_5.bungee.api.chat.TextComponent;
-import net.md_5.bungee.chat.ComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -55,6 +53,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
@@ -77,6 +76,8 @@ import org.bukkit.util.Vector;
 public final class LobbyNPCManager implements Listener {
 
   private static final String NAMELESS_TEAM = "wNPCS";
+  private static final String NPC_ENTITY_TAG = "zc_lobbynpc";
+  private static final String NPC_TYPE_TAG_PREFIX = "zc_lobbynpc_";
 
   private static LobbyNPCManager instance;
 
@@ -102,6 +103,7 @@ public final class LobbyNPCManager implements Listener {
     registerUseEntitySniffer();
     startPlaceholderPusher();
     startTablistCleaner();
+    purgeTaggedNpcEntities();
     loadFromConfig();
   }
 
@@ -158,12 +160,35 @@ public final class LobbyNPCManager implements Listener {
     placeholderTask = new BukkitRunnable() {
       @Override public void run() {
         if (activeNPCs.isEmpty()) return;
-        for (ManagedNPC m : activeNPCs.values()) m.syncHitbox();
+        for (Map.Entry<String, ManagedNPC> entry : new ArrayList<>(activeNPCs.entrySet())) {
+          String entryKey = entry.getKey();
+          ManagedNPC m = entry.getValue();
+          if (m == null) continue;
+          Entity anchor = m.getPrimaryAnchor();
+          if (anchor == null || anchor.isDead() || !anchor.isValid()) {
+            respawnManagedNpc(entryKey);
+            continue;
+          }
+          m.syncHitbox();
+        }
         for (Player viewer : Bukkit.getOnlinePlayers()) {
           for (ManagedNPC m : activeNPCs.values()) m.pushPlaceholders(viewer, protocolManager);
         }
       }
     }.runTaskTimer(plugin, 20L, 40L);
+  }
+
+  private void respawnManagedNpc(String entryKey) {
+    if (entryKey == null || entryKey.isEmpty()) return;
+    String[] parts = entryKey.split(":", 2);
+    NPCType type = NPCType.fromId(parts[0]);
+    if (type == null) return;
+    String instanceId = parts.length > 1 && parts[1] != null && !parts[1].isEmpty()
+        ? parts[1]
+        : "default";
+    Location spawn = readLocation(type, instanceId);
+    if (spawn == null) return;
+    spawnNPC(type, instanceId, spawn, false);
   }
 
   private void startTablistCleaner() {
@@ -191,6 +216,77 @@ public final class LobbyNPCManager implements Listener {
         if (loc != null) spawnNPC(t, id, loc, false);
       }
     }
+  }
+
+  private void purgeTaggedNpcEntities() {
+    for (World world : Bukkit.getWorlds()) {
+      if (world == null) continue;
+      for (Entity entity : new ArrayList<>(world.getEntities())) {
+        removeOrphanedNpcEntity(entity);
+      }
+    }
+  }
+
+  @EventHandler
+  public void onNpcChunkLoad(ChunkLoadEvent event) {
+    // Old NPC entities may live in chunks that were not loaded during startup.
+    // Only remove tagged, unregistered Zonely entities, never nearby foreign holograms.
+    for (Entity entity : event.getChunk().getEntities()) {
+      removeOrphanedNpcEntity(entity);
+    }
+  }
+
+  private void removeOrphanedNpcEntity(Entity entity) {
+    if (entity == null || !hasNpcTag(entity)) return;
+    if (ENTITY_UUID_INDEX.containsKey(entity.getUniqueId())) return;
+    removeEntitySafely(entity);
+  }
+
+  private static void removeEntitySafely(Entity entity) {
+    if (entity == null) return;
+    try { NMS.removeFromWorld(entity); } catch (Throwable ignored) {
+      try { entity.remove(); } catch (Throwable ignored2) {}
+    }
+  }
+
+  private static void markNpcEntity(Entity entity, NPCType type) {
+    if (entity == null || type == null) return;
+    addEntityTag(entity, NPC_ENTITY_TAG);
+    addEntityTag(entity, NPC_TYPE_TAG_PREFIX + type.getId());
+    try {
+      if (entity instanceof LivingEntity) {
+        callBooleanSetter(entity, "setRemoveWhenFarAway", false);
+      }
+      callBooleanSetter(entity, "setPersistent", false);
+    } catch (Throwable ignored) {}
+  }
+
+  private static void addEntityTag(Entity entity, String tag) {
+    if (entity == null || tag == null || tag.isEmpty()) return;
+    try {
+      Method m = entity.getClass().getMethod("addScoreboardTag", String.class);
+      m.invoke(entity, tag);
+    } catch (Throwable ignored) {}
+  }
+
+  private static boolean hasNpcTag(Entity entity) {
+    if (entity == null) return false;
+    try {
+      Method m = entity.getClass().getMethod("getScoreboardTags");
+      Object raw = m.invoke(entity);
+      if (!(raw instanceof Set)) return false;
+      Set<?> tags = (Set<?>) raw;
+      if (tags.isEmpty()) return false;
+      for (Object value : tags) {
+        if (!(value instanceof String)) continue;
+        String tag = (String) value;
+        if (NPC_ENTITY_TAG.equals(tag)) return true;
+        if (tag.startsWith(NPC_TYPE_TAG_PREFIX)) {
+          return true;
+        }
+      }
+    } catch (Throwable ignored) {}
+    return false;
   }
 
   private Location readLocation(NPCType t, String id) {
@@ -275,6 +371,8 @@ public final class LobbyNPCManager implements Listener {
       displayEntity = npc.getEntity();
     }
 
+    markNpcEntity(displayEntity, type);
+
     orientNpc(npc, displayEntity, spawnLoc);
     final NPC orientNpc = npc;
     final Entity orientDisplay = displayEntity;
@@ -298,6 +396,13 @@ public final class LobbyNPCManager implements Listener {
         .createHologram(spawnLoc.clone().add(0, settings.hologramOffset(), 0), settings.templates().toArray(new String[0]))
         .spawn();
     List<HologramLine> lines = captureLines(hologram);
+    for (HologramLine line : lines) {
+      try {
+        if (line != null && line.getArmor() != null && line.getArmor().getEntity() != null) {
+          markNpcEntity(line.getArmor().getEntity(), type);
+        }
+      } catch (Throwable ignored) {}
+    }
 
     ManagedNPC m = new ManagedNPC(plugin, type, npc, displayEntity, hologram, lines, settings.templates(), settings, useMobDisplay);
     m.configureMobAppearance();
@@ -446,6 +551,19 @@ public final class LobbyNPCManager implements Listener {
               "prefix", LanguageManager.get("prefix.punish", ""));
         }
       }),
+    TOURNAMENTS("tournaments", "&bTournaments", "VILLAGER", "DESERT:CLERIC",
+      ImmutableList.of("&bTournament Browser", "&7Click to open"),
+      player -> {
+        Core core = Core.getInstance();
+        EsportsManager manager = core.getEsportsManager();
+        if (manager == null || core.getEsportsGameService() == null) {
+          String prefix = LanguageManager.get("prefix.lobby", "&3Lobby &8>> ");
+          player.sendMessage(StringUtils.formatColors(prefix + "&cEsports module is disabled."));
+          return;
+        }
+        boolean admin = player.hasPermission("esports.manage");
+        new dev.zonely.whiteeffect.esports.menu.EsportsTournamentBrowserMenu(core, player, manager, "live", admin);
+      }),
     SUPPORTS("supports", "&dSupport Desk", "VILLAGER", "SWAMP:LIBRARIAN",
       ImmutableList.of("&dSupport Desk", "&7Click to open"),
       player -> {
@@ -514,9 +632,22 @@ public final class LobbyNPCManager implements Listener {
 
     private NPCSettings readSettings() {
       String base = "npc." + id;
-      String display = LanguageManager.get(base + ".display-name", defName);
-      String item = LanguageManager.get(base + ".item", "");
-      List<String> holo = LanguageManager.getList(base + ".holograms", defHolo);
+      String displayFallback = this == TOURNAMENTS ? "&bTournament Browser" : defName;
+      String display = LanguageManager.get(base + ".display-name", displayFallback);
+      if (display == null || display.trim().isEmpty()) {
+        display = defName;
+      }
+      String itemFallback = this == TOURNAMENTS
+          ? "COMPASS : 1 : name>" + display
+          : "";
+      String item = LanguageManager.get(base + ".item", itemFallback);
+      List<String> holoFallback = this == TOURNAMENTS
+          ? Arrays.asList("&e&lView now!", "&bTournament Browser &7[v1.4]", "&e&lCLICK TO OPEN")
+          : defHolo;
+      List<String> holo = LanguageManager.getList(base + ".holograms", holoFallback);
+      if (holo == null || holo.isEmpty()) {
+        holo = defHolo;
+      }
       String villagerVariant = LanguageManager.get(base + ".villager-variant", defaultVillagerVariant);
 
       String v = LanguageManager.getRaw(LanguageManager.getDefaultLocale(), base + ".skin.value", "");
@@ -631,6 +762,7 @@ public final class LobbyNPCManager implements Listener {
           return;
         }
         hitbox = slime;
+        markNpcEntity(slime, type);
         LobbyNPCManager.callBooleanSetter(slime, "setSilent", true);
         LobbyNPCManager.callBooleanSetter(slime, "setAI", false);
         LobbyNPCManager.callBooleanSetter(slime, "setGravity", false);
@@ -772,8 +904,7 @@ public final class LobbyNPCManager implements Listener {
         text = StringUtils.formatColors(text);
 
         if (!text.equals(cache.get(i))) {
-          sendMeta(pm, viewer, hl, text);
-          cache.set(i, text);
+          if (sendMeta(pm, viewer, hl, text)) cache.set(i, text);
         }
       }
     }
@@ -853,36 +984,20 @@ public final class LobbyNPCManager implements Listener {
       registeredIds.clear();
     }
 
-    private void sendMeta(ProtocolManager pm, Player player, HologramLine line, String text) {
-      PacketContainer packet = pm.createPacket(PacketType.Play.Server.ENTITY_METADATA);
-      packet.getIntegers().write(0, line.getArmor().getId());
+    private boolean metadataFailureLogged;
 
-      WrappedDataWatcher watcher = ProtocolLibUtils.createDataWatcher(line.getArmor().getEntity());
-      if (watcher == null) return;
-
-      BaseComponent[] components = TextComponent.fromLegacyText(text);
-      if (components.length==0) components = new BaseComponent[]{ new TextComponent("") };
-      String json = ComponentSerializer.toString(components);
-      Object base = WrappedChatComponent.fromJson(json).getHandle();
-
+    private boolean sendMeta(ProtocolManager pm, Player player, HologramLine line, String text) {
       try {
-        WrappedDataWatcher.Serializer chat = WrappedDataWatcher.Registry.getChatComponentSerializer(true);
-        watcher.setObject(new WrappedDataWatcher.WrappedDataWatcherObject(2, chat), Optional.of(base));
-      } catch (Throwable t) {
-        WrappedDataWatcher.Serializer legacy = WrappedDataWatcher.Registry.get(String.class);
-        watcher.setObject(new WrappedDataWatcher.WrappedDataWatcherObject(2, legacy), text);
-      }
-      try {
-        WrappedDataWatcher.Serializer bool = WrappedDataWatcher.Registry.get(Boolean.class);
-        watcher.setObject(new WrappedDataWatcher.WrappedDataWatcherObject(3, bool), !text.isEmpty());
-      } catch (Throwable t) {
-        WrappedDataWatcher.Serializer byt = WrappedDataWatcher.Registry.get(Byte.class);
-        watcher.setObject(new WrappedDataWatcher.WrappedDataWatcherObject(3, byt), (byte)(text.isEmpty()?0:1));
-      }
-
-      ProtocolLibUtils.writeMetadata(packet, watcher);
-      try { pm.sendServerPacket(player, packet); } catch (Exception ex) {
-        Core.getInstance().getLogger().log(Level.WARNING, "[LobbyNPC] hologram metadata push failed: "+ex.getMessage());
+        PacketContainer packet = ProtocolLibUtils.nameMetadataPacket(pm, line.getArmor().getId(), text);
+        pm.sendServerPacket(player, packet);
+        return true;
+      } catch (Exception | LinkageError failure) {
+        if (!metadataFailureLogged) {
+          metadataFailureLogged = true;
+          Core.getInstance().getLogger().log(Level.WARNING,
+              "[LobbyNPC] Name metadata update failed. Install the bundled ProtocolLib and fully restart the server.", failure);
+        }
+        return false;
       }
     }
 
@@ -1259,6 +1374,7 @@ public final class LobbyNPCManager implements Listener {
     try {
       anchor = m.getPrimaryAnchor();
       if (anchor != null) {
+        markNpcEntity(anchor, m.type);
         ENTITY_UUID_INDEX.put(anchor.getUniqueId(), m);
         ENTITY_ID_INDEX.put(anchor.getEntityId(), m);
         m.rememberEntity(anchor);
@@ -1269,6 +1385,7 @@ public final class LobbyNPCManager implements Listener {
       if (npc != null) {
         Entity entity = npc.getEntity();
         if (entity != null && entity != anchor) {
+          markNpcEntity(entity, m.type);
           ENTITY_UUID_INDEX.put(entity.getUniqueId(), m);
           ENTITY_ID_INDEX.put(entity.getEntityId(), m);
           m.rememberEntity(entity);
@@ -1279,6 +1396,7 @@ public final class LobbyNPCManager implements Listener {
       try {
         if (line!=null && line.getArmor()!=null && line.getArmor().getEntity()!=null) {
           Entity a = line.getArmor().getEntity();
+          markNpcEntity(a, m.type);
           ENTITY_UUID_INDEX.put(a.getUniqueId(), m);
           ENTITY_ID_INDEX.put(a.getEntityId(), m);
           m.rememberEntity(a);
@@ -1287,6 +1405,7 @@ public final class LobbyNPCManager implements Listener {
     }
     Slime hitbox = m.getHitbox();
     if (hitbox != null && !hitbox.isDead()) {
+      markNpcEntity(hitbox, m.type);
       ENTITY_UUID_INDEX.put(hitbox.getUniqueId(), m);
       ENTITY_ID_INDEX.put(hitbox.getEntityId(), m);
       m.rememberEntity(hitbox);
@@ -1328,21 +1447,6 @@ public final class LobbyNPCManager implements Listener {
     if (player==null || clicked==null) return false;
     ManagedNPC m = ENTITY_UUID_INDEX.get(clicked.getUniqueId());
     if (m == null) try { m = ENTITY_ID_INDEX.get(clicked.getEntityId()); } catch (Throwable ignored) {}
-    if (m == null) {
-      for (ManagedNPC candidate : activeNPCs.values()) {
-        if (candidate == null || candidate.npc == null) continue;
-        Entity npcEntity = candidate.npc.getEntity();
-        if (npcEntity == null) continue;
-        try {
-          if (!npcEntity.getWorld().equals(clicked.getWorld())) continue;
-          double distanceSq = npcEntity.getLocation().distanceSquared(clicked.getLocation());
-          if (distanceSq <= 6.25D) {
-            m = candidate;
-            break;
-          }
-        } catch (Throwable ignored) {}
-      }
-    }
     if (m == null) return false;
     m.execute(player);
     return true;
