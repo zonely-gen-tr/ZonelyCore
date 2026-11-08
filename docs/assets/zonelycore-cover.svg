@@ -1,10 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="370" viewBox="0 0 1200 370" role="img" aria-labelledby="title desc">
-<title id="title">ZonelyCore</title>
-<desc id="desc">Minecraft sunucusu ile Zonely web paneli arasında bağlantı.</desc>
-<rect width="1200" height="370" fill="#C84B0C"/>
-<g fill="#fff" font-family="Segoe UI,Arial,sans-serif">
-<text x="52" y="226" font-size="115" font-weight="800" letter-spacing="-5">ZonelyCore</text>
-</g>
-<g data-feather="server" transform="translate(850 110) scale(5.8333)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></g>
-<g data-feather="monitor" transform="translate(1024 164) scale(4.1667)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="370" viewBox="0 0 1200 370" role="img" aria-labelledby="title desc"><title id="title">ZonelyCore</title><desc id="desc">Link between the Minecraft server and Zonely web panel.</desc><rect width="1200" height="370" fill="#C84B0C"/><g fill="#fff" font-family="Segoe UI,Arial,sans-serif"><text x="52" y="226" font-size="115" font-weight="800" letter-spacing="-5">ZonelyCore</text></g><g data-feather="server" transform="translate(850 110) scale(5.8333)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></g><g data-feather="monitor" transform="translate(1024 164) scale(4.1667)" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></g></svg>

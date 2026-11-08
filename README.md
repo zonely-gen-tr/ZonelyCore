@@ -1,136 +1,104 @@
 ![ZonelyCore](docs/assets/zonelycore-cover.svg)
 
-Minecraft sunucun ile Zonely web panelini bağla; mağaza, hesaplar, oyuncular ve turnuvaları birlikte yönet.
+Connect your Minecraft server to your Zonely website and manage your store, accounts, players and tournaments together.
 
-**Tanıtım videosu:** [YouTube’da izle](https://www.youtube.com/watch?v=qQuz-bhDHg4)
+**Introduction video:** [Watch on YouTube](https://www.youtube.com/watch?v=qQuz-bhDHg4)
 
-[JAR indir](https://github.com/zonely-gen-tr/ZonelyCore/releases/latest) · [Kurulum](docs/KURULUM.md) · [Mağaza](docs/MAGAZA.md) · [API](docs/ZonelyCoreAPI.md) · [SpigotMC](https://www.spigotmc.org/resources/zonelycore-one-core-for-minecraft.129652/) · [Destek](https://github.com/zonely-gen-tr/ZonelyCore/issues)
+[Download JAR](https://github.com/zonely-gen-tr/ZonelyCore/releases/latest) · [Installation](docs/KURULUM.md) · [Store](docs/MAGAZA.md) · [API](docs/ZonelyCoreAPI.md) · [SpigotMC](https://www.spigotmc.org/resources/zonelycore-one-core-for-minecraft.129652/) · [Support](https://github.com/zonely-gen-tr/ZonelyCore/issues)
 
-![Mağaza, kredi ve ödüller](docs/assets/zonelycore-store.svg)
+![Store, credits and rewards](docs/assets/zonelycore-store.svg)
+![Accounts and security](docs/assets/zonelycore-accounts.svg)
+![Lobby and player profiles](docs/assets/zonelycore-lobby.svg)
+![Community and moderation](docs/assets/zonelycore-community.svg)
+![Clubs and tournaments](docs/assets/zonelycore-esports.svg)
+![Web and integrations](docs/assets/zonelycore-integration.svg)
 
-![Hesap ve güvenlik](docs/assets/zonelycore-accounts.svg)
+[Detailed system reference](docs/SISTEMLER.md)
 
-![Lobi ve oyuncu profilleri](docs/assets/zonelycore-lobby.svg)
+![19 languages](docs/assets/zonelycore-languages.svg)
 
-![Topluluk ve yönetim](docs/assets/zonelycore-community.svg)
+The default language is `tr_TR`. Configure languages and messages in `languages.yml`.
 
-![Kulüpler ve turnuvalar](docs/assets/zonelycore-esports.svg)
+## Installation
 
-![Web ve entegrasyonlar](docs/assets/zonelycore-integration.svg)
+Requirements: the Zonely web panel, MySQL/MariaDB, ProtocolLib and PlaceholderAPI.
 
-[Sistemlerin ayrıntıları](docs/SISTEMLER.md)
+1. [Download the JAR](https://github.com/zonely-gen-tr/ZonelyCore/releases/latest) and place it in `plugins/`.
+2. Enter the panel database credentials in `config.yml`.
+3. Enable the modules you need and restart the server.
 
-![19 dil desteği](docs/assets/zonelycore-languages.svg)
+For store integration, set `web-token` to the token assigned to this server in the panel, then configure products and delivery commands. This field is optional for installations that do not use the store.
 
-Varsayılan dil: `tr_TR`. Dil ve metinler `languages.yml` dosyasından düzenlenir.
+Test environment: **Paper 1.20.4 · Java 21 · ProtocolLib 5.4.0 · PlaceholderAPI 2.11.6**.
 
-## Kurulum
+[Installation guide](docs/KURULUM.md) · [Store and cross-server delivery](docs/MAGAZA.md) · [GitHub updates](docs/GUNCELLEME.md)
 
-Zonely web paneli, MySQL/MariaDB, ProtocolLib ve PlaceholderAPI gerekir.
+## Commands and NPCs
 
-1. [JAR'ı indir](https://github.com/zonely-gen-tr/ZonelyCore/releases/latest) ve `plugins/` klasörüne koy.
-2. `config.yml` içine panel veritabanı bilgilerini yaz.
-3. Kullanacağın modülleri etkinleştir ve sunucuyu yeniden başlat.
-
-**Mağazayı bağlayacaksan:** `web-token` alanına paneldeki bu sunucunun token değerini yaz; ürün ve teslimat komutlarını eşleştir. Genel kurulumda bu alanı doldurman gerekmez.
-
-Test ortamı: **Paper 1.20.4 · Java 21 · ProtocolLib 5.4.0 · PlaceholderAPI 2.11.6**.
-
-[Kurulum rehberi](docs/KURULUM.md) · [Mağaza ve sunucular arası teslimat](docs/MAGAZA.md) · [GitHub güncellemesi](docs/GUNCELLEME.md)
-
-<details>
-<summary>Komutlar ve NPC türleri</summary>
-
-| Komut | Açıklama |
+| Command | Purpose |
 | --- | --- |
-| `/zc` | Yönetim yardımı. |
-| `/zc reload` | Dosyaları yeniden yükleme. |
-| `/zc update` | GitHub'dan sürüm kontrolü ve indirme. |
-| `/zc npc spawn <tür> [id]` | Lobi NPC'si oluşturma. |
-| `/zc npc remove <tür> [id]` | Lobi NPC'sini kaldırma. |
-| `/zc hologram lastcredits [id]` | Son kredi hologramını yerleştirme. |
-| `/webprofile` | Oyuncu profil menüsü. |
-| `/store` · `/magaza` · `/zonelystore` | Mağaza menüsü. |
-| `/credit [oyuncu]` | Kredi bakiyesini sorgulama. |
-| `/credit set <oyuncu> <tutar>` | Bakiyeyi belirleme. |
-| `/credit add <oyuncu> <tutar>` | Kredi ekleme. |
-| `/credit remove <oyuncu> <tutar>` | Kredi çıkarma. |
-| `/creditvoucher <oyuncu> <tutar>` | Kredi kuponu oluşturma. |
-| `/lastcredits` | Son kredi yüklemeleri ve sıralamalar. |
-| `/auction <tutar>` | Eldeki eşyayı açık artırmaya koyma. |
-| `/auctions` | Açık artırma menüsü. |
-| `/report <oyuncu>` | Oyuncu raporlama. |
-| `/reports` | Yetkili rapor menüsü. |
-| `/punish` | Ceza menüsü ve alt komutları. |
-| `/punish ban/ipban/mute/warning <oyuncu> <süre> <sebep>` | Ceza uygulama. |
-| `/punish unban/unmute/unwarning <oyuncu>` | İlgili cezayı kaldırma. |
-| `/support` | Destek talepleri. |
-| `/friends` | Arkadaş menüsü. |
-| `/friends add/accept/deny/remove <oyuncu>` | Arkadaşlık isteği ve liste yönetimi. |
-| `/friends msg <oyuncu> <mesaj>` | Arkadaşa özel mesaj. |
-| `/disguise` | Farklı kimlik menüsü. |
-| `/club` · `/club help` | Kulüp menüsü ve komut yardımı. |
-| `/esports` | Turnuva menüsü ve yönetimi. |
-| `/login` · `/register` | Giriş ve kayıt. |
-| `/email <set\|resend\|status>` | E-posta işlemleri. |
-| `/passwordreset` | Şifre sıfırlama. |
-| `/2fa <setup\|confirm\|cancel\|disable\|code\|recovery>` | İki aşamalı doğrulama. |
+| `/zc` | Administration help. |
+| `/zc reload` | Reload configuration files. |
+| `/zc update` | Check GitHub for updates and download a release. |
+| `/zc npc spawn <type> [id]` | Create a lobby NPC. |
+| `/zc npc remove <type> [id]` | Remove a lobby NPC. |
+| `/zc hologram lastcredits [id]` | Create a recent-credit hologram. |
+| `/webprofile` | Open a player profile. |
+| `/store` · `/magaza` · `/zonelystore` | Open the store. |
+| `/credit [player]` | Check a credit balance. |
+| `/credit set/add/remove <player> <amount>` | Manage credits. |
+| `/creditvoucher <player> <amount>` | Create a credit voucher. |
+| `/lastcredits` | Recent credit top-ups and rankings. |
+| `/auction <amount>` | Auction the held item. |
+| `/auctions` | Browse auctions. |
+| `/report <player>` · `/reports` | Submit and review player reports. |
+| `/punish` | Open the moderation menu. |
+| `/punish ban/ipban/mute/warning <player> <duration> <reason>` | Apply a moderation action. |
+| `/punish unban/unmute/unwarning <player>` | Remove the corresponding action. |
+| `/support` | Support tickets. |
+| `/friends` | Friends menu. |
+| `/friends add/accept/deny/remove <player>` | Manage friends and requests. |
+| `/friends msg <player> <message>` | Send a private message. |
+| `/disguise` | Alternate identity menu. |
+| `/club` · `/club help` | Clubs and command help. |
+| `/esports` | Tournaments and administration. |
+| `/login` · `/register` | Login and registration. |
+| `/email <set\|resend\|status>` | Email settings and verification. |
+| `/passwordreset` | Password reset. |
+| `/2fa <setup\|confirm\|cancel\|disable\|code\|recovery>` | Two-factor authentication. |
 
-NPC türleri: `web-profile`, `auctions`, `last-credits`, `reports`, `deliveries`, `web-store`, `supports`, `tournaments`.
+NPC types: `web-profile`, `auctions`, `last-credits`, `reports`, `deliveries`, `web-store`, `supports`, `tournaments`.
 
 ```text
-/zc npc spawn web-store magaza
-/zc npc spawn web-profile profil
-/zc npc spawn tournaments turnuvalar
-/zc hologram lastcredits krediler
+/zc npc spawn web-store store
+/zc npc spawn web-profile profile
+/zc npc spawn tournaments tournaments
+/zc hologram lastcredits credits
 ```
 
-</details>
-
 <details>
-<summary>Yetkiler</summary>
+<summary>Placeholder reference</summary>
 
-| Yetki | Kullanım |
+
+Use these placeholders in scoreboards, menus and hologram plugins. In recent-credit placeholders, `<sıra>` is the record position, starting at `1`. Values may be empty when there is no matching record or active tournament.
+
+### General and credit areas
+
+| Placeholder | Value |
 | --- | --- |
-| `zcore.admin` | ZonelyCore yönetimi. |
-| `zonely.auction` | Açık artırma kullanımı. |
-| `zonely.auction.manage` | Açık artırma yönetimi. |
-| `zonely.reports.view` | Raporları görüntüleme. |
-| `zonely.punish` | Ceza komutları. |
-| `zonely.punish.ban` · `zonely.punish.ipban` | Ban ve IP ban. |
-| `zonely.punish.mute` | Susturma. |
-| `zonely.punish.warning` | Uyarı. |
-| `zonely.punish.history` | Ceza geçmişi. |
-| `zonely.punish.notify` | Ceza bildirimleri. |
-| `zonely.support.staff` | Yetkili destek paneli. |
-| `zonely.support.ban` | Destek erişimini yönetme. |
-| `zcore.cmd.disguise` · `zcore.cmd.disguiselist` | Disguise ve kimlik listesi. |
-| `esports.manage` | Turnuva yönetimi. |
-
-</details>
+| `%ZonelyCore_cash%` | Credits bakiyesi. |
+| `%ZonelyCore_perm%` | Player role/grubu. |
+| `%ZonelyCore_playername%` | Shown player name. |
+| `%ZonelyCore_status_delivery%` | Expected time prize information. |
+| `%ZonelyCore_lastcredit_<sıra>%` | The player name of the corresponding record. |
+| `%ZonelyCore_lastcredit_<sıra>_display%` | Player and load amount. |
+| `%ZonelyCore_lastcredit_<sıra>_name%` | Player name. |
+| `%ZonelyCore_lastcredit_<sıra>_amount%` | Uploaded credit. |
+| `%ZonelyCore_lastcredit_<sıra>_date%` | Loading date. |
+| `%ZonelyCore_lastcredit_<sıra>_time%` | Loading time. |
 
 <details>
-<summary>PlaceholderAPI</summary>
-
-Yer tutucular scoreboard, menü ve hologram eklentilerinde kullanılabilir. Son kredi alanlarında `<sıra>`, `1` gibi bir kayıt sırasıdır. Gösterilecek kayıt veya etkin turnuva yoksa ilgili değer boş dönebilir.
-
-### Genel ve kredi alanları
-
-| Yer tutucu | Değer |
-| --- | --- |
-| `%ZonelyCore_cash%` | Kredi bakiyesi. |
-| `%ZonelyCore_perm%` | Oyuncu rolü/grubu. |
-| `%ZonelyCore_playername%` | Gösterilen oyuncu adı. |
-| `%ZonelyCore_status_delivery%` | Bekleyen zamanlı ödül bilgisi. |
-| `%ZonelyCore_lastcredit_<sıra>%` | İlgili kaydın oyuncu adı. |
-| `%ZonelyCore_lastcredit_<sıra>_display%` | Oyuncu ve yükleme tutarı. |
-| `%ZonelyCore_lastcredit_<sıra>_name%` | Oyuncu adı. |
-| `%ZonelyCore_lastcredit_<sıra>_amount%` | Yüklenen kredi. |
-| `%ZonelyCore_lastcredit_<sıra>_date%` | Yükleme tarihi. |
-| `%ZonelyCore_lastcredit_<sıra>_time%` | Yükleme zamanı. |
-
-<details>
-<summary>Turnuva, kulüp ve maç yer tutucuları</summary>
+<summary>Tournament, Club and match placeholders</summary>
 
 ```text
 %zonely_tournament_name%
@@ -164,35 +132,33 @@ Yer tutucular scoreboard, menü ve hologram eklentilerinde kullanılabilir. Son 
 %zonely_match_clubkills_<TAG>%
 ```
 
-Maç istatistiklerinin bir bölümü oyuncuya özeldir. Kulüp etiketiyle kullanılan alanlarda `<TAG>` yerine ilgili kulübün etiketi yazılır.
+A part of match statistics is special to the player. In areas used with club tag `<TAG>` instead of written the label of the corresponding club.
+
 
 </details>
 
-</details>
+## Placeholders and developer API
 
-<details>
-<summary>Geliştirici API</summary>
+The complete placeholder reference is available in the [system guide](docs/SISTEMLER.md). Some match statistics are player-specific. Replace `<TAG>` with the club tag in club-related placeholders.
 
-ZonelyCore etkinleştirildikten sonra `ZonelyCoreAPI.get()` ile API'ye erişilebilir. Kendi eklentinizin bağımlılıklarına `ZonelyCore` ekleyin.
+Add `ZonelyCore` as a dependency and access `ZonelyCoreAPI.get()` after the plugin is enabled.
 
 ```java
 import dev.zonely.whiteeffect.api.ZonelyCoreAPI;
 
 ZonelyCoreAPI api = ZonelyCoreAPI.get();
-long bakiye = api.cash().getBalance("Oyuncu");
+long balance = api.cash().getBalance("Player");
 ```
 
-| Servis | Kullanım |
+| Service | Purpose |
 | --- | --- |
-| `api.cash()` | Bakiye sorgulama ve kredi işlemleri. |
-| `api.vouchers()` | Kupon oluşturma, okuma ve kullanma. |
-| `api.deliveries()` | Zamanlı ödüller ve alma durumu. |
-| `api.lastCredits()` | Son yüklemeler ve sıralama önbelleği. |
-| `api.auctions()` | Açık artırma ekranları ve veri erişimi. |
-| `api.socket()` | Panel bağlantısının durumu ve kontrolü. |
+| `api.cash()` | Balance queries and credit operations. |
+| `api.vouchers()` | Create, read and redeem vouchers. |
+| `api.deliveries()` | Scheduled rewards and claim status. |
+| `api.lastCredits()` | Recent top-ups and ranking cache. |
+| `api.auctions()` | Auction screens and data access. |
+| `api.socket()` | Panel connection status and control. |
 
-[API rehberi](docs/ZonelyCoreAPI.md) · [Kaynaktan derleme](docs/GELISTIRME.md)
+[API guide](docs/ZonelyCoreAPI.md) · [Build from source](docs/GELISTIRME.md)
 
-</details>
-
-[MIT lisansı](LICENSE) · [Üçüncü taraf lisansları](THIRD_PARTY_NOTICES.md) · [Zonely](https://zonely.gen.tr)
+[MIT license](LICENSE) · [Third-party licenses](THIRD_PARTY_NOTICES.md) · [Zonely](https://zonely.gen.tr)
